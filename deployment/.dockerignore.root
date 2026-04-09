@@ -1,0 +1,7 @@
+.git
+.idea
+.vscode
+bin
+tmp
+node_modules
+frontend

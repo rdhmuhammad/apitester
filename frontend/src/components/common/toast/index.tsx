@@ -1,4 +1,4 @@
-import { Check, X } from "lucide-react";
+import {Check, CloudAlert, Trash, X} from "lucide-react";
 import { toast } from "sonner";
 
 class CustomToast {
@@ -29,7 +29,7 @@ class CustomToast {
             <div className="flex items-center justify-between bg-white rounded-[6px] shadow-md px-4 py-3 w-full min-w-[320px] gap-3">
                 <div className="flex items-center gap-2.5">
                     <div className="p-[7px] rounded-[8px] bg-red-100">
-                        <HiTrash size={18} className="text-red-600" />
+                        <Trash size={18} className="text-red-600" />
                     </div>
                     <span className="text-gray-500 font-normal text-sm">
             {message}
@@ -49,7 +49,7 @@ class CustomToast {
             <div className="flex items-center justify-between bg-white rounded-[6px] shadow-md px-4 py-3 w-full min-w-[320px] gap-3">
                 <div className="flex items-center gap-2.5">
                     <div className="p-[7px] rounded-[8px] bg-red-100">
-                        <MdErrorOutline size={18} className="text-red-600" />
+                        <CloudAlert size={18} className="text-red-600" />
                     </div>
                     <span className="text-gray-500 font-normal text-sm">
             {message}
