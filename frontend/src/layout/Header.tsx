@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {Images} from "@/config/constant/Images";
 import {cn} from "@/lib/utils";
 
@@ -16,53 +16,51 @@ import {
 } from "@/components/ui/alert-dialog.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
 import {ArrowDownToLine, ArrowUpFromLine, Send} from "lucide-react";
-import {useCollectionRead} from "@/layout/hooks/useCollection.tsx";
-import type {GetCollectionResponse} from "@/pages/editor/types/api.ts";
-import CustomToast from "@/components/common/toast";
+import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
+import {type ColtReqMethod, fetchCollections, selectBaseUrl, selectRequest} from "@/app/slices/collectionSlices.ts";
 
 const HeaderLayout: React.FC = () => {
     const [gitAction, setGitAction] = useState<"pull" | "push" | null>(null);
     const requestMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
-    const methodColorClass: Record<(typeof requestMethods)[number], string> = {
+    const methodColorClass: Record<ColtReqMethod[number], string> = {
         GET: "bg-emerald-600",
         POST: "bg-amber-600",
         PUT: "bg-blue-600",
         PATCH: "bg-violet-600",
         DELETE: "bg-red-600"
     };
-    const baseUrlOptions = [
-        "https://api.dev.local",
-        "https://api.staging.local",
-        "https://api.production.local"
-    ];
+    const [requestMethod, setRequestMethod] = useState<ColtReqMethod[number]>("GET");
 
-    const [selectedBaseUrl, setSelectedBaseUrl] = useState(baseUrlOptions[0]);
+    const baseUrlOptions = useAppSelector(selectBaseUrl)
+    const [selectedBaseUrl, setSelectedBaseUrl] = useState("");
     const [endpoint, setEndpoint] = useState("");
-    const [requestMethod, setRequestMethod] = useState<(typeof requestMethods)[number]>("GET");
+    const formatEndpoint = (endpoint: string): string => {
+        return endpoint.replace(/\{\{[^{}]+\}\}/g, "");
+    }
 
     const handleSendRequest = () => {
-        const normalizedEndpoint = endpoint.trim().startsWith("/") ? endpoint.trim() : `/${endpoint.trim()}`;
-        const fullUrl = endpoint.trim() ? `${selectedBaseUrl}${normalizedEndpoint}` : `${selectedBaseUrl}/v1/users`;
+        const sourceEndpoint = endpoint || currRequest?.request?.url?.raw || "";
+        const cleanedEndpoint = formatEndpoint(sourceEndpoint).trim();
+        const normalizedEndpoint = cleanedEndpoint.startsWith("/") ? cleanedEndpoint : `/${cleanedEndpoint}`;
+        const fullUrl = cleanedEndpoint ? `${selectedBaseUrl}${normalizedEndpoint}` : `${selectedBaseUrl}/v1/users`;
 
         console.log(`Send ${requestMethod} request to:`, fullUrl);
     };
 
-    const [collection, setCollection] = useState<GetCollectionResponse | null>(null)
+    const dispatch = useAppDispatch()
+    const currRequest = useAppSelector(selectRequest)
 
-    const {refetch: refetch} = useCollectionRead()
+    useEffect(() => {
+        if (currRequest){
+            setRequestMethod(currRequest?.request?.method ?? "GET")
+        }
+    }, [currRequest]);
+
     const handleConfirmGitAction = (action: string | null) => {
         if (action) {
             switch (action) {
                 case "pull":
-                    refetch()
-                        .then((res => {
-                            if (res.data) {
-                                setCollection(res.data)
-                            }
-                        }))
-                        .catch((err) => {
-                            CustomToast.error(err)
-                        })
+                    dispatch(fetchCollections())
                     break
                 case "push":
                     console.log("push")
@@ -108,10 +106,11 @@ const HeaderLayout: React.FC = () => {
                 </div>
             </div>
             {/*<div className="mx-4 h-full w-px bg-indigo-500" />*/}
+            {/* REQUEST URL */}
             <div className="basis-3/4 flex items-center h-full gap-3">
                 <Select
                     value={requestMethod}
-                    onValueChange={(value) => setRequestMethod(value as (typeof requestMethods)[number])}
+                    onValueChange={(value) => setRequestMethod(value as ColtReqMethod[number])}
                 >
                     <SelectTrigger
                         className={cn("min-w-[110px] font-semibold text-white", methodColorClass[requestMethod])}>
@@ -143,7 +142,7 @@ const HeaderLayout: React.FC = () => {
                         </SelectContent>
                     </Select>
                     <Input
-                        value={endpoint}
+                        value={formatEndpoint(currRequest?.request?.url?.raw ?? "")}
                         onChange={(event) => setEndpoint(event.target.value)}
                         className="border-0 rounded-none shadow-none focus-visible:ring-0"
                         placeholder="/v1/users"

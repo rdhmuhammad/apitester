@@ -25,7 +25,7 @@ export interface CollectionItem {
   request?: Request;
   response?: unknown[];
   event?: CollectionEvent[];
-  id?: string;
+  id: string;
   description?: string;
 }
 
@@ -48,10 +48,18 @@ export interface RequestBody {
   raw: string;
 }
 
+export interface ItemUrl {
+  key: string;
+  value: string;
+  description?: string;
+  disabled?: boolean;
+}
+
 export interface RequestURL {
   raw: string;
   host: string[];
   path: string[];
+  query: ItemUrl[];
 }
 
 export interface CollectionEvent {
@@ -68,5 +76,6 @@ export interface CollectionVar {
   id: string;
   key: string;
   value: string;
+  category: string;
   type: string;
 }

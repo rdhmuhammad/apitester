@@ -28,7 +28,7 @@ type CollectionItem struct {
 	Request     *Request          `json:"request,omitempty"`
 	Response    []any             `json:"response,omitempty"`
 	Event       []CollectionEvent `json:"event,omitempty"`
-	ID          string            `json:"id,omitempty"`
+	ID          string            `json:"id"`
 	Description string            `json:"description,omitempty"`
 }
 
@@ -68,8 +68,9 @@ type EventScript struct {
 }
 
 type CollectionVar struct {
-	ID    string `json:"id"`
-	Key   string `json:"key"`
-	Value string `json:"value"`
-	Type  string `json:"type"`
+	ID       string `json:"id"`
+	Key      string `json:"key"`
+	Category string `json:"category"`
+	Value    string `json:"value"`
+	Type     string `json:"type"`
 }

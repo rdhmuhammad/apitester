@@ -1,8 +1,8 @@
-import React, {useRef, useState} from 'react'
+import React, {useEffect, useRef, useState} from 'react'
 import {Badge} from "@/components/ui/badge.tsx";
 import {Clock3, Eye, EyeOff, FileJson2, FileText, SearchIcon, ShieldCheck, ToggleLeft, ToggleRight} from "lucide-react";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx";
-import {cn} from "@/lib/utils.ts";
+import {cn, getIPAddress} from "@/lib/utils.ts";
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
@@ -15,10 +15,21 @@ import "ace-builds/src-noconflict/mode-json";
 import type {IAceEditor} from "react-ace/lib/types";
 import {Card} from "@/components/ui/card.tsx";
 import CustomToast from "@/components/common/toast";
+import {useAppSelector} from "@/app/store/hooks.ts";
+import {selectRequest} from "@/app/slices/collectionSlices.ts";
+import type {ItemUrl} from "@/pages/editor/types/api.ts";
 
 type ContentType = "application/json" | "multipart/form-data";
 
 const IndicatorConfigTabs: React.FC = () => {
+    const currRequest = useAppSelector(selectRequest)
+
+    useEffect(() => {
+        if (currRequest) {
+            setQueryParams(currRequest?.request?.url?.query ?? [])
+        }
+
+    }, [currRequest]);
 
     // ===============> Request Params
     const [enabledParams, setEnabledParams] = useState<Record<string, boolean>>({
@@ -27,11 +38,7 @@ const IndicatorConfigTabs: React.FC = () => {
         sort: true
     });
 
-    const [queryParams, setQueryParams] = useState([
-        {key: "page", value: "1", description: "Current page number", enable: true},
-        {key: "limit", value: "20", description: "Rows per page", enable: true},
-        {key: "sort", value: "created_at:desc", description: "Sort order", enable: true}
-    ]);
+    const [queryParams, setQueryParams] = useState<ItemUrl[]>([]);
     type AuthType = "none" | "inherit" | "bearer";
 
     interface AuthValueProps {
@@ -99,13 +106,29 @@ const IndicatorConfigTabs: React.FC = () => {
     const [authValue, setAuthValue] = useState<AuthType>("inherit")
 
     // ===============> Headers
-    const [headers, setHeaders] = useState([
+    const [headers, setHeaders] = useState<ItemUrl[]>([
         {key: "Content-Type", value: "application/json"},
         {key: "Authorization", value: "Bearer <token>"},
         {key: "X-Request-ID", value: "editor-sample-001"}
     ])
 
     const [showSysHeader, setShowSysHeader] = useState(false)
+    const sysHeader: ItemUrl[] = [
+        {key: "Cache-Control", value: "no-cache"},
+        {key: "User-Agent", value: "ApiTesterAgent/0.0.1"},
+        {key: "Host", value: getIPAddress()},
+        {key: "Accept", value: "*/**"},
+        {key: "Accept-Encoding", value: "gzip, deflate, br"}
+    ]
+    const handleShowSysHeader = (show: boolean) => {
+        setShowSysHeader(show);
+        if (show){
+            setHeaders(prev=>[
+                ...prev,
+                ...sysHeader,
+            ])
+        }
+    }
 
     // ===============> Request Body
     const [contentType, setContentType] = useState<ContentType>("application/json")
@@ -196,6 +219,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                 onLoad={onEditorLoad}
                                 showPrintMargin={true}
                                 showGutter={true}
+                                value={currRequest?.request?.body?.raw ?? ""}
                                 highlightActiveLine={true}
                                 setOptions={{
                                     enableBasicAutocompletion: false,
@@ -296,7 +320,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                         <Button
                                             variant="ghost"
                                             size="xs"
-                                            onClick={e=>{
+                                            onClick={e => {
                                                 e.preventDefault()
                                                 setMultipartFieldType(item.key)
                                             }}
@@ -474,7 +498,7 @@ const IndicatorConfigTabs: React.FC = () => {
                 <TabsContent value="headers" className="p-4">
                     <Button variant="ghost" size="xs"
                             className="bg-gray-100 hover:bg-gray-200 rounded-full items-center mb-4"
-                            onClick={() => setShowSysHeader(!showSysHeader)}>
+                            onClick={() => handleShowSysHeader(!showSysHeader)}>
                         {showSysHeader ?
                             <>
                                 <Eye className="text-slate-600" size={10}/>
