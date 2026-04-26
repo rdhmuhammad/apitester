@@ -1,5 +1,5 @@
 import { ROUTES } from "@/config/constant/ROUTES";
-import MainLayout from "@/layout/MainLayout.tsx";
+import MainLayout from "@/layout/view/MainLayout.tsx";
 import {createBrowserRouter, Navigate, Outlet} from "react-router-dom";
 import Editor from "@/pages/editor";
 import NotFound from "@/pages/NotFound";
@@ -23,7 +23,7 @@ export const router = createBrowserRouter([
             },
         ]
     },
-    // Public Routes - No layout wrapper needed
+    // Public Routes - No view wrapper needed
     // {
     //   path: ROUTES.LOGIN,
     //   element: (

@@ -32,20 +32,16 @@ export interface CollectionItem {
 export interface Request {
   funIden: string;
   method: string;
-  header: Header[];
+  header: ItemUrl[];
   body?: RequestBody;
   url: RequestURL;
   description?: string;
 }
 
-export interface Header {
-  key: string;
-  value: string;
-}
-
 export interface RequestBody {
   mode: string;
-  raw: string;
+  raw?: string;
+  formdata?: ItemUrl[]
 }
 
 export interface ItemUrl {
@@ -53,6 +49,8 @@ export interface ItemUrl {
   value: string;
   description?: string;
   disabled?: boolean;
+  type?: string;
+  src?: string;
 }
 
 export interface RequestURL {

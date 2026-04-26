@@ -1,4 +1,4 @@
-import type {CollectionItem, CollectionVar, DocsContent} from "@/pages/editor/types/api.ts";
+import type {CollectionItem, CollectionVar, DocsContent, ItemUrl} from "@/pages/editor/types/api.ts";
 import {createAppAsyncThunk} from "@/app/store/withTypes.ts";
 import {CollectionServices} from "@/layout/services/collection.ts";
 import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
@@ -47,6 +47,9 @@ const collectionSlices = createSlice({
         setActiveTree(state, action: PayloadAction<{ id: string }>) {
             diveActiveTree(action.payload.id, state?.dirTree);
         },
+        setCurrentRequest(state, action: PayloadAction<CollectionItem>){
+          state.currRequest = action.payload
+        },
         setActiveRequest(state, action: PayloadAction<{ id: string }>) {
             const selected = diveActiveRequest(action.payload.id, state?.data?.item ?? []);
             if (selected) state.currRequest = selected
@@ -70,7 +73,7 @@ const collectionSlices = createSlice({
 
 export default collectionSlices.reducer
 
-export const { setActiveRequest, setActiveTree } = collectionSlices.actions
+export const { setActiveRequest, setCurrentRequest, setActiveTree } = collectionSlices.actions
 
 // SELECTOR
 export const selectColVar = (state: RootState): CollectionVar[] => state.collection?.data?.variable ?? []

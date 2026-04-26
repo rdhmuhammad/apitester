@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
-import {Images} from "@/config/constant/Images";
-import {cn} from "@/lib/utils";
+import {Images} from "@/config/constant/Images.tsx";
+import {cn} from "@/lib/utils.ts";
 
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
@@ -18,8 +18,17 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 import {ArrowDownToLine, ArrowUpFromLine, Send} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {type ColtReqMethod, fetchCollections, selectBaseUrl, selectRequest} from "@/app/slices/collectionSlices.ts";
+import type {HeaderAction} from "@/layout/types/headerContext.ts";
+import {useSendRequest} from "@/layout/hooks/useSendRequest.ts";
 
-const HeaderLayout: React.FC = () => {
+const HeaderLayout: React.FC<{onSend: HeaderAction}> = (
+    {
+        onSend
+    }) => {
+    const dispatch = useAppDispatch()
+    const currRequest = useAppSelector(selectRequest)
+    const baseUrlOptions = useAppSelector(selectBaseUrl)
+
     const [gitAction, setGitAction] = useState<"pull" | "push" | null>(null);
     const requestMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
     const methodColorClass: Record<ColtReqMethod[number], string> = {
@@ -31,30 +40,25 @@ const HeaderLayout: React.FC = () => {
     };
     const [requestMethod, setRequestMethod] = useState<ColtReqMethod[number]>("GET");
 
-    const baseUrlOptions = useAppSelector(selectBaseUrl)
     const [selectedBaseUrl, setSelectedBaseUrl] = useState("");
-    const [endpoint, setEndpoint] = useState("");
+    const [endpoint, setEndpoint] = useState(currRequest?.request?.url?.raw ?? "");
     const formatEndpoint = (endpoint: string): string => {
         return endpoint.replace(/\{\{[^{}]+\}\}/g, "");
     }
 
     const handleSendRequest = () => {
-        const sourceEndpoint = endpoint || currRequest?.request?.url?.raw || "";
-        const cleanedEndpoint = formatEndpoint(sourceEndpoint).trim();
-        const normalizedEndpoint = cleanedEndpoint.startsWith("/") ? cleanedEndpoint : `/${cleanedEndpoint}`;
-        const fullUrl = cleanedEndpoint ? `${selectedBaseUrl}${normalizedEndpoint}` : `${selectedBaseUrl}/v1/users`;
-
-        console.log(`Send ${requestMethod} request to:`, fullUrl);
+        if (onSend) onSend()
+        useSendRequest({
+            baseUrl: selectedBaseUrl,
+            endpoint: formatEndpoint(endpoint),
+            method: requestMethod,
+            headers: currRequest?.request?.header ?? [],
+            requestParams: currRequest?.request?.url.query ?? [],
+            contentType: currRequest?.request?.body?.mode ?? "application/json",
+            raw: currRequest?.request?.body?.raw,
+            formData: currRequest?.request?.body?.formdata
+        }).catch(err=> console.log(err))
     };
-
-    const dispatch = useAppDispatch()
-    const currRequest = useAppSelector(selectRequest)
-
-    useEffect(() => {
-        if (currRequest){
-            setRequestMethod(currRequest?.request?.method ?? "GET")
-        }
-    }, [currRequest]);
 
     const handleConfirmGitAction = (action: string | null) => {
         if (action) {
@@ -142,7 +146,7 @@ const HeaderLayout: React.FC = () => {
                         </SelectContent>
                     </Select>
                     <Input
-                        value={formatEndpoint(currRequest?.request?.url?.raw ?? "")}
+                        value={formatEndpoint(endpoint)}
                         onChange={(event) => setEndpoint(event.target.value)}
                         className="border-0 rounded-none shadow-none focus-visible:ring-0"
                         placeholder="/v1/users"
@@ -154,7 +158,7 @@ const HeaderLayout: React.FC = () => {
                     className="bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap"
                 >
                     <Send className="h-4 w-4 mr-2"/>
-                    Send Request
+                    Send Request & Save
                 </Button>
             </div>
             <AlertDialog open={Boolean(gitAction)} onOpenChange={(open) => !open && setGitAction(null)}>
