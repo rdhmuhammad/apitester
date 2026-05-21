@@ -2,6 +2,7 @@ package watch
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/rdhmuhammad/apitester/pkg/logger"
 	"github.com/rdhmuhammad/apitester/pkg/mapper"
 	"github.com/rdhmuhammad/apitester/shared/payload"
 )
@@ -15,9 +16,9 @@ type UsecaseInterface interface {
 	Read() (ReadResponse, error)
 }
 
-func NewController() Controller {
+func NewController(lg *logger.ReZero) Controller {
 	return Controller{
-		Uc: NewUsecase(),
+		Uc: NewUsecase(lg),
 	}
 }
 

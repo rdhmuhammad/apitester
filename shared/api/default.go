@@ -15,10 +15,10 @@ func Default() *Api {
 		server: server,
 	}
 
-	logger.DefaultLogger()
+	reZero := logger.DefaultLogger()
 
 	routers := []Router{
-		watch.NewController(),
+		watch.NewController(&reZero),
 	}
 
 	api.routers = routers

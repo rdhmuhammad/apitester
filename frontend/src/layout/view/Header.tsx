@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import {Images} from "@/config/constant/Images.tsx";
 import {cn} from "@/lib/utils.ts";
 
@@ -41,8 +41,9 @@ const HeaderLayout: React.FC<{onSend: HeaderAction}> = (
     const [requestMethod, setRequestMethod] = useState<ColtReqMethod[number]>("GET");
 
     const [selectedBaseUrl, setSelectedBaseUrl] = useState("");
-    const [endpoint, setEndpoint] = useState(currRequest?.request?.url?.raw ?? "");
+    const [endpoint, setEndpoint] = useState(currRequest?.request?.url.raw ?? "");
     const formatEndpoint = (endpoint: string): string => {
+        console.log(endpoint)
         return endpoint.replace(/\{\{[^{}]+\}\}/g, "");
     }
 

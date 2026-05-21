@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rdhmuhammad/apitester/pkg/localerror"
+	"github.com/rdhmuhammad/apitester/pkg/logger"
 	"github.com/rdhmuhammad/apitester/pkg/watcher"
 )
 
@@ -17,9 +19,10 @@ type Usecase struct {
 	errHandler localerror.HandleError
 }
 
-func NewUsecase() *Usecase {
+func NewUsecase(lg *logger.ReZero) *Usecase {
 	return &Usecase{
-		watcher: watcher.New(os.Getenv("API_DOCS")),
+		errHandler: localerror.NewHandlerError(lg),
+		watcher:    watcher.New(os.Getenv("API_DOCS")),
 	}
 }
 
@@ -34,6 +37,7 @@ func (u *Usecase) Read() (ReadResponse, error) {
 		content = string(fileBytes)
 	}
 
+	content = strings.TrimPrefix(content, "\uFEFF")
 	err := json.Unmarshal([]byte(content), &docsContent)
 	if err != nil {
 		return ReadResponse{}, u.errHandler.ErrorReturn(err)
