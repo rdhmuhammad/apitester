@@ -22,6 +22,7 @@ export interface DirTree {
 interface CollectionState {
     data: DocsContent | null
     currRequest: CollectionItem | null
+    currResponse: string
     dirTree: Map<string, DirTree>
     status: ColtStatusLoad
 }
@@ -37,7 +38,8 @@ const initialState: CollectionState = {
     data: null,
     currRequest: null,
     status: 'idle',
-    dirTree: new Map<string, DirTree>()
+    dirTree: new Map<string, DirTree>(),
+    currResponse: ''
 }
 
 const collectionSlices = createSlice({
@@ -49,6 +51,9 @@ const collectionSlices = createSlice({
         },
         setCurrentRequest(state, action: PayloadAction<CollectionItem>){
           state.currRequest = action.payload
+        },
+        setCurrentResponse(state, action: PayloadAction<{ data: string }>){
+          if (action.payload) state.currResponse = action.payload.data
         },
         setActiveRequest(state, action: PayloadAction<{ id: string }>) {
             const selected = diveActiveRequest(action.payload.id, state?.data?.item ?? []);
@@ -73,7 +78,7 @@ const collectionSlices = createSlice({
 
 export default collectionSlices.reducer
 
-export const { setActiveRequest, setCurrentRequest, setActiveTree } = collectionSlices.actions
+export const { setActiveRequest, setCurrentRequest, setActiveTree, setCurrentResponse } = collectionSlices.actions
 
 // SELECTOR
 export const selectColVar = (state: RootState): CollectionVar[] => state.collection?.data?.variable ?? []
@@ -90,6 +95,7 @@ export const selectBaseUrl = (state: RootState): string[] =>{
 
 export const selectRequest = (state: RootState): CollectionItem | null => state.collection?.currRequest
 
+export const selectResponse = (state: RootState): string => state.collection?.currResponse
 export const selectDirTree = (state: RootState): Map<string, DirTree> => {
     if (!isArrayEmpty(state.collection?.data?.item)) {
         // @ts-ignore

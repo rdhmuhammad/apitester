@@ -1,58 +1,114 @@
-﻿{
+{
   "info": {
-    "_postman_id": "d",
+    "_postman_id": "126ea653-15ff-430b-abae-f21d7aebc109",
     "name": "Phisiobook API",
-    "description": "Auto-generated API collection",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "description": "Complete API collection for Phisiobook backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "30434881"
   },
   "item": [
     {
-      "funIden": "bookingRouter",
-      "name": "BookingRouter",
+      "name": "Auth",
       "item": [
         {
-          "funIden": "bookingRouter.CreateBooking",
-          "name": "Create Booking",
+          "name": "User Register",
           "request": {
-            "funIden": "",
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
-              },
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1234567890\",\n  \"password\": \"SecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new user account"
+          },
+          "response": []
+        },
+        {
+          "name": "User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set(\"token\", jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login for mobile/user application"
+          },
+          "response": []
+        },
+        {
+          "name": "User Logout",
+          "request": {
+            "method": "POST",
+            "header": [
               {
                 "key": "Authorization",
                 "value": "Bearer {{token}}"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"city_id\": 0,\n  \"dateTime\": \"\",\n  \"payment_method\": \"\",\n  \"therapistCode\": \"\"\n}"
-            },
             "url": {
-              "raw": "{{base_url}}/bookingRouter/create",
+              "raw": "{{base_url}}/auth/logout",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "bookingRouter",
-                "create"
+                "auth",
+                "logout"
               ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "funIden": "userRouter",
-      "name": "User",
-      "item": [
+            },
+            "description": "Logout user (requires authentication)"
+          },
+          "response": []
+        },
         {
-          "funIden": "userRouter.CreateUser",
-          "name": "Create User",
+          "name": "Employee Register",
           "request": {
-            "funIden": "",
             "method": "POST",
             "header": [
               {
@@ -62,71 +118,466 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"password\": \"password 1\",\n  \"username\": \"Margarette_Huels75\",\n  \"id\": \"1\"\n}"
+              "raw": "{\n  \"fullName\": \"Jane Smith\",\n  \"email\": \"jane.smith@phisiobook.com\",\n  \"phone\": \"+1234567891\",\n  \"password\": \"SecurePassword123!\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/User",
+              "raw": "{{base_url}}/employee/register",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "api",
-                "v1",
-                "User"
+                "employee",
+                "register"
               ]
-            }
+            },
+            "description": "Register a new employee/therapist account"
           },
-          "response": [
-          ]
+          "response": []
         },
         {
-          "funIden": "userRouter.GetUser",
-          "name": "Get User",
+          "name": "Employee Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set(\"token\", jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
           "request": {
-            "funIden": "",
-            "method": "GET",
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePassword123!\"\n}\n"
+            },
             "url": {
-              "raw": "{{base_url}}/User",
+              "raw": "{{base_url}}/auth/login/admin",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "api",
-                "v1",
-                "User"
+                "auth",
+                "login",
+                "admin"
+              ]
+            },
+            "description": "Login for dashboard/employee application"
+          },
+          "response": []
+        },
+        {
+          "name": "Employee Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/employee/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "employee",
+                "logout"
+              ]
+            },
+            "description": "Logout employee (requires authentication)"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"otp\": 123456\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth-user/verify-acc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth-user",
+                "verify-acc"
+              ]
+            },
+            "description": "Verify account using OTP sent to email"
+          },
+          "response": []
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"name\": \"John Doe\",\n  \"content\": \"\",\n  \"subject\": \"Verify Your Account\",\n  \"userId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth-user/resend-otp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth-user",
+                "resend-otp"
+              ]
+            },
+            "description": "Resend OTP verification code to email"
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication and user management endpoints"
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health",
+                "status"
+              ]
+            },
+            "description": "Check system health status including database, cache, and storage connections"
+          },
+          "response": []
+        }
+      ],
+      "description": "System health check endpoints"
+    },
+    {
+      "name": "Homepage",
+      "item": [
+        {
+          "name": "Get Summary Home",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/homepage/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "homepage",
+                "summary"
+              ]
+            },
+            "description": "Get homepage summary data"
+          },
+          "response": []
+        }
+      ],
+      "description": "Homepage related endpoints"
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Chat Room",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/chat/room",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "chat",
+                "room"
               ]
             }
           },
-          "response": [
-          ]
+          "response": []
+        },
+        {
+          "name": "Chat History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/chat/history?roomId=bgyq9r",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "chat",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "roomId",
+                  "value": "bgyq9r"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Chat and messaging endpoints for real-time communication"
+    },
+    {
+      "name": "Booking",
+      "item": [
+        {
+          "name": "Dropdown City",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking/dropdown-cities",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "dropdown-cities"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Adjust Price",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking/adjust-price/:therapistCode",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "adjust-price",
+                ":therapistCode"
+              ],
+              "variable": [
+                {
+                  "key": "therapistCode",
+                  "value": "THR-001"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reschedule",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"dateTime\": \"2026-05-22T03:31:04+07:00\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/reschedule/:bookingCode",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "reschedule",
+                ":bookingCode"
+              ],
+              "variable": [
+                {
+                  "key": "bookingCode",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Dropdown Therapist",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking/dropdown-therapist/:cityId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "dropdown-therapist",
+                ":cityId"
+              ],
+              "variable": [
+                {
+                  "key": "cityId",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"city_id\": 1,\r\n  \"dateTime\": \"2026-05-15 10:00:00\",\r\n  \"therapistCode\": \"THR-001\",\r\n  \"payment_method\": \"cash\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "History",
+      "item": [
+        {
+          "name": "Get History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/history/list?page=1&size=10&search&status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "history",
+                "list"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": null
+                },
+                {
+                  "key": "status",
+                  "value": null
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ]
     }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
   "variable": [
     {
-      "id": "",
       "key": "base_url",
-      "value": "http://localhost:8999/api/v1",
-      "type": "string"
+      "value": "http://localhost:8990/api/v1"
     },
     {
-      "id": "",
-      "key": "base_url_mock",
-      "value": "https://69ede6c99163f839f8924bcd.mockapi.io/api/v1",
-      "type": "string"
-    },
-    {
-      "id": "",
       "key": "token",
-      "value": "",
-      "type": "string"
+      "value": ""
     }
   ]
 }

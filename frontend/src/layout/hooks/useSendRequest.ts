@@ -26,7 +26,12 @@ const formData = (request: ItemUrl[]): FormData => {
     return dt
 }
 
-export const useSendRequest = async (request: ISendRequest) => {
+export interface SendResponse {
+    statusCode: number;
+    statusText: string;
+}
+
+export const useSendRequest = async (request: ISendRequest):Promise<SendResponse> => {
     const response = await axios.request({
         method: request.method,
         headers: {
@@ -48,5 +53,9 @@ export const useSendRequest = async (request: ISendRequest) => {
         responseType: "json",
     })
 
-    console.log(response.data)
+    console.log(response)
+    return Promise.resolve({
+        statusCode: response?.status ?? 0,
+        statusText: response?.statusText ?? 'UNKNOWN'
+    })
 }

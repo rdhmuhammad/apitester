@@ -3,30 +3,25 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx
 import {Button} from "@/components/ui/button.tsx";
 import {Download, Link2, Lock} from "lucide-react";
 import {Textarea} from "@/components/ui/textarea.tsx";
-const sampleResponse = `{
-  "success": true,
-  "message": "Request completed successfully",
-  "data": [
-    {
-      "id": "usr_1001",
-      "name": "Avery Johnson",
-      "email": "avery@example.com"
-    },
-    {
-      "id": "usr_1002",
-      "name": "Samira Noor",
-      "email": "samira@example.com"
-    }
-  ],
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 234
-  }
-}`;
+import {useAppSelector} from "@/app/store/hooks.ts";
+import {selectResponse} from "@/app/slices/collectionSlices.ts";
+import {useEffect, useState} from "react";
+import AceEditor from "react-ace";
+
+import 'ace-builds/src-noconflict/theme-monokai.js'
+
 const ResponseView: React.FC = () => {
+    const currResponse = useAppSelector(selectResponse)
+
+    useEffect(() => {
+        setResponse(currResponse)
+    }, [currResponse]);
+
+    const [response, setResponse] = useState<string>('')
+
     return (
-        <section className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <section
+            className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
                 <div className="flex items-center gap-2">
                     <h2 className="text-sm font-semibold text-slate-800">Response</h2>
@@ -62,18 +57,37 @@ const ResponseView: React.FC = () => {
                 </div>
 
                 <TabsContent value="pretty" className="h-[calc(100%-3.2rem)]">
-                    <Textarea
-                        className="h-full min-h-[220px] resize-none bg-slate-950 font-mono text-sm text-slate-100"
-                        value={sampleResponse}
-                        readOnly
-                    />
+                    <div>
+                        <AceEditor
+                            placeholder=""
+                            mode="json"
+                            theme="monokai"
+                            width="full"
+                            name="response"
+                            fontSize={14}
+                            lineHeight={19}
+                            showPrintMargin={false}
+                            showGutter={false}
+                            highlightActiveLine={true}
+                            value={response}
+                            setOptions={{
+                                enableBasicAutocompletion: false,
+                                enableLiveAutocompletion: false,
+                                enableSnippets: false,
+                                enableMobileMenu: false,
+                                showLineNumbers: false,
+                                tabSize: 2,
+                            }}/>
+                    </div>
                 </TabsContent>
 
                 <TabsContent value="raw" className="h-[calc(100%-3.2rem)]">
                     <Textarea
                         className="h-full min-h-[220px] resize-none font-mono text-sm"
-                        value={sampleResponse}
-                        readOnly
+                        value={response}
+                        onChange={(val) => {
+                            setResponse(val.target.value)
+                        }}
                     />
                 </TabsContent>
 

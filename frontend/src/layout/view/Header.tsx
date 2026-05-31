@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {Images} from "@/config/constant/Images.tsx";
 import {cn} from "@/lib/utils.ts";
 
@@ -17,9 +17,16 @@ import {
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
 import {ArrowDownToLine, ArrowUpFromLine, Send} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
-import {type ColtReqMethod, fetchCollections, selectBaseUrl, selectRequest} from "@/app/slices/collectionSlices.ts";
+import {
+    type ColtReqMethod,
+    fetchCollections,
+    selectBaseUrl,
+    selectRequest,
+    setCurrentResponse
+} from "@/app/slices/collectionSlices.ts";
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
 import {useSendRequest} from "@/layout/hooks/useSendRequest.ts";
+import CustomToast from "@/components/common/toast";
 
 const HeaderLayout: React.FC<{onSend: HeaderAction}> = (
     {
@@ -28,6 +35,14 @@ const HeaderLayout: React.FC<{onSend: HeaderAction}> = (
     const dispatch = useAppDispatch()
     const currRequest = useAppSelector(selectRequest)
     const baseUrlOptions = useAppSelector(selectBaseUrl)
+
+    useEffect(() => {
+        setEndpoint(currRequest?.request?.url?.raw ?? '')
+    }, [currRequest?.request?.url?.raw]);
+
+    useEffect(() => {
+        setRequestMethod(currRequest?.request?.method ?? 'GET')
+    }, [currRequest?.request?.method]);
 
     const [gitAction, setGitAction] = useState<"pull" | "push" | null>(null);
     const requestMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
@@ -58,7 +73,13 @@ const HeaderLayout: React.FC<{onSend: HeaderAction}> = (
             contentType: currRequest?.request?.body?.mode ?? "application/json",
             raw: currRequest?.request?.body?.raw,
             formData: currRequest?.request?.body?.formdata
-        }).catch(err=> console.log(err))
+        }).catch(response=>{
+            console.log(response)
+            response && dispatch(setCurrentResponse({data: JSON.stringify(response?.response?.data)}))
+            CustomToast.error(response.message);
+        }).then((response)=>{
+           response && dispatch(setCurrentResponse({data: JSON.stringify(response)}))
+        })
     };
 
     const handleConfirmGitAction = (action: string | null) => {
