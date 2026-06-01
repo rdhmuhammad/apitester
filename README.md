@@ -30,14 +30,11 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/github_username/repo_name">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
-  </a>
 
-<h3 align="center">project_title</h3>
+<h3 align="center">API Tester</h3>
 
   <p align="center">
-    project_description
+    And integrate ecosystem for integration testing, read specification directly from code then run on gui like a postman
     <br />
     <a href="https://github.com/github_username/repo_name"><strong>Explore the docs »</strong></a>
     <br />
@@ -83,9 +80,24 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
+<div align="center">
+    <img src="https://raw.githubusercontent.com/rdhmuhammad/apitester/refs/heads/main/frontend/src/assets/images/logo.svg" width="250" alt="Logo api tester">
+</div>
 
-Here's a blank template to get started. To avoid retyping too much info, do a search and replace with your text editor for the following: `github_username`, `repo_name`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description`, `project_license`
+Have you ever gotten tired of manually creating Postman requests every time you finish an endpoint?
+It gets even worse when you're working with endpoints that have massive request payloads like transaction APIs in e-commerce systems.
+Which often contain multiple nested objects, arrays, and dozens of fields that all need valid values.
+On top of that, you usually need to prepare several variations of the request to cover different test scenarios. 
+It can be repetitive, time-consuming, and honestly, pretty frustrating.
+<br>
+</br>
+Driven by these frustrations, my initial workaround was to delegate the task to agentic AI. While it worked, I felt that using AI for something highly repetitive and deterministic was a waste of resources. Many of these tasks can be automated without requiring an LLM at all.
+
+That's what motivated me to create this project.
+
+The goal of this project is to reduce repetitive work during development. The first milestone is to build a generator that scans all controllers in a project and automatically generates API documentation, such as a `postman.json` collection.
+The generated documentation can then be hosted using this project's ecosystem. You can run it on the same machine as your main service or deploy it to a dedicated server, it doesn't really matter. The only requirement is that the API tester can communicate with the target service through the generated API documentation.
+By automating API documentation generation and hosting, developers can spend less time maintaining test collections and more time building features.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -93,15 +105,15 @@ Here's a blank template to get started. To avoid retyping too much info, do a se
 
 ### Built With
 
-* [![Next][Next.js]][Next-url]
-* [![React][React.js]][React-url]
-* [![Vue][Vue.js]][Vue-url]
-* [![Angular][Angular.io]][Angular-url]
-* [![Svelte][Svelte.dev]][Svelte-url]
-* [![Laravel][Laravel.com]][Laravel-url]
-* [![Bootstrap][Bootstrap.com]][Bootstrap-url]
-* [![JQuery][JQuery.com]][JQuery-url]
-
+* ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+* ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+* ![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
+* ![Tailwind](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
+* ![Redux](https://img.shields.io/badge/redux-%23593d88.svg?style=for-the-badge&logo=redux&logoColor=white)
+* ![Go](https://img.shields.io/badge/Language-V1.23.0-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+* ![Gin](https://img.shields.io/badge/Framework-Gin_Gonic-00ADD8?style=for-the-badge&logo=gin&logoColor=white)
+* ![GORM](https://img.shields.io/badge/ORM-GORM-00ADD8?style=for-the-badge)
+* ![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
