@@ -30,6 +30,9 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
+  <a>
+    <img src="https://raw.githubusercontent.com/rdhmuhammad/apitester/refs/heads/main/frontend/src/assets/images/logo.svg" alt="Logo" width="80" height="80">
+  </a>
 
 <h3 align="center">API Tester</h3>
 
@@ -52,7 +55,8 @@
 ## 📖 About The Project
 
 <div align="center">
-    <img src="https://raw.githubusercontent.com/rdhmuhammad/apitester/refs/heads/main/frontend/src/assets/images/logo.svg" width="250" alt="Logo api tester">
+    <img src="https://raw.githubusercontent.com/rdhmuhammad/apitester/refs/heads/main/resource/example_gui/request.png" width="250" alt="Example request">
+    <img src="https://raw.githubusercontent.com/rdhmuhammad/apitester/refs/heads/main/resource/example_gui/response.png" width="250" alt="Example response">
 </div>
 
 Have you ever gotten tired of manually creating Postman requests every time you finish an endpoint?
@@ -168,7 +172,9 @@ Before running the project **locally**, ensure the following tools are installed
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+Use this space to show useful examples of how a project can be used. 
+Additional screenshots, code examples and demos work well in this space. 
+You may also link to more resources.
 
 _For more examples, please refer to the [Documentation](https://example.com)_
 
