@@ -48,37 +48,8 @@
 </div>
 
 
-
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
-
-
-
 <!-- ABOUT THE PROJECT -->
-## About The Project
+## 📖 About The Project
 
 <div align="center">
     <img src="https://raw.githubusercontent.com/rdhmuhammad/apitester/refs/heads/main/frontend/src/assets/images/logo.svg" width="250" alt="Logo api tester">
@@ -116,42 +87,79 @@ By automating API documentation generation and hosting, developers can spend les
 * ![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## 📚 Table of Contents
+
+<details>
+<summary>Click to expand</summary>
+
+- 🚀 [Getting Started](#-getting-started)
+    - 📦 [Prerequisites](#-prerequisites)
+    - ▶️ [How to Run](#-how-to-run)
+- 🛠️ [Development Guide](#-development-guide)
+    - ➕ [Creating New Endpoint](#-creating-new-endpoint)
+    - 🔩 [Using Generic Repository](#-using-generic-repository)
+    - 🔁 [Using DB Transaction](#-using-db-transaction)
+    - 🔒 [Security Guide](#-security-guide)
+    - 🧩 [Project Structure](#-project-structure)
+- 🚢 [Deployment](#-deployment)
+    - 🏗️ [Build Binary](#-build-binary)
+    - ⚙️ [Run with systemd](#-run-with-systemd)
+- 📖 [Additional Information](#-additional-information)
+
+</details>
 
 
 <!-- GETTING STARTED -->
-## Getting Started
+## 🚀 Getting Started
+This project consists of two applications:
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+* A Golang backend (To serve the api docs file)
+* A React frontend (GUI)
 
-### Prerequisites
+For development, I usually run both applications locally with the required
+language runtimes and tools installed on my machine.
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
+If you prefer a containerized setup, I already include Docker Compose configuration. 
+This allows anyone to get the entire stack up and running quickly without manually 
+installing and configuring each dependency.
 
-### Installation
+### 📦 Prerequisites
+Before running the project **locally**, ensure the following tools are installed and available in your environment.
+> **Note**: This project is bound to Golang dev environment, since i start this project
+> for my own purporse. Next i would try to expand the ability, to decoupling this project toward specific environment
+* **Golang**: Version [1.24.0](https://go.dev/dl/) or higher
+* **MySQL**: Version 8.0
+* **NodeJS**: Version 22.0
+* **PNPM**: Version [10.23.0](https://pnpm.io/10.x/installation#on-windows)
 
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
-   ```sh
-   git clone https://github.com/github_username/repo_name.git
+### ▶️ How to Run
+
+1. Prepare your api docs file which following postman format e.g: `collection.json`
+   > **Note**: the actual workflow for api docs would use an api docs generator. 
+   > For the further explanation to enable these tools, reference to this repo.
+2. Place the file at `resource/apidocs/your_file_name.json`
+3. Copy ```env.example``` to ```env.[dev|stag|prod]```, choose your desired environment phase.
+4. Install Backend dependencies
+   ```bash
+    go mod download
+    ```
+5. Start Backend application by running these command
+   ```bash
+   go run cmd/main.go --env .env.stag
    ```
-3. Install NPM packages
-   ```sh
-   npm install
+6. Set backend base url to `frontend/.env`
+   ```dotenv
+   VITE_API_URL=http://localhost:8999/api/v1
    ```
-4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
-   ```
-5. Change git remote url to avoid accidental pushes to base project
-   ```sh
-   git remote set-url origin github_username/repo_name
-   git remote -v # confirm the changes
-   ```
+7. Install Frontend application dependencies
+   ```bash
+   cd frontend
+   pnpm run install
+   ``` 
+8. Start Frontend application by running these command
+   ```bash
+   pnpm run dev
+   ``` 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
