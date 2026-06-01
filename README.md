@@ -255,10 +255,10 @@ Project Link: [https://github.com/github_username/repo_name](https://github.com/
 [stars-url]: https://github.com/rdhmuhammad/apitester/stargazers
 [issues-shield]: https://img.shields.io/github/issues/rdhmuhammad/apitester.svg?style=for-the-badge
 [issues-url]: https://github.com/rdhmuhammad/apitester/issues
-[license-shield]: https://img.shields.io/github/license/rdhmuhammad/apitester.svg?style=for-the-badge
-[license-url]: https://github.com/rdhmuhammad/apitester/blob/master/LICENSE.txt
+[license-shield]: https://img.shields.io/badge/license-MIT-blue?style=for-the-badge
+[license-url]: https://github.com/rdhmuhammad/apitester/blob/main/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/ridhomuhammad57{:target="_blank"}
+[linkedin-url]: https://linkedin.com/in/ridhomuhammad57
 [product-screenshot]: images/screenshot.png
 <!-- Shields.io badges. You can a comprehensive list with many more badges at: https://github.com/inttter/md-badges -->
 [Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
