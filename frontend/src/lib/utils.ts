@@ -1,8 +1,19 @@
 import {type ClassValue, clsx} from "clsx"
 import {twMerge} from "tailwind-merge"
+import type {CollectionItem} from "@/pages/editor/types/api.ts";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
+}
+
+export const getContentType = (currRequest: CollectionItem | null) => {
+    if (!currRequest) return '';
+    let header = currRequest?.request
+        ?.header?.filter(h => h?.key === 'Content-Type') ?? [];
+    if (header.length > 0) {
+        return header[0].value;
+    }
+    return '';
 }
 
 export const replaceUrlParams = (

@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
 import {Images} from "@/config/constant/Images.tsx";
-import {cn} from "@/lib/utils.ts";
+import {cn, getContentType} from "@/lib/utils.ts";
 
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
@@ -27,8 +27,9 @@ import {
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
 import {useSendRequest} from "@/layout/hooks/useSendRequest.ts";
 import CustomToast from "@/components/common/toast";
+import type {CollectionItem} from "@/pages/editor/types/api.ts";
 
-const HeaderLayout: React.FC<{onSend: HeaderAction}> = (
+const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     {
         onSend
     }) => {
@@ -54,7 +55,6 @@ const HeaderLayout: React.FC<{onSend: HeaderAction}> = (
         DELETE: "bg-red-600"
     };
     const [requestMethod, setRequestMethod] = useState<ColtReqMethod[number]>("GET");
-
     const [selectedBaseUrl, setSelectedBaseUrl] = useState("");
     const [endpoint, setEndpoint] = useState(currRequest?.request?.url.raw ?? "");
     const formatEndpoint = (endpoint: string): string => {
@@ -70,15 +70,20 @@ const HeaderLayout: React.FC<{onSend: HeaderAction}> = (
             method: requestMethod,
             headers: currRequest?.request?.header ?? [],
             requestParams: currRequest?.request?.url.query ?? [],
-            contentType: currRequest?.request?.body?.mode ?? "application/json",
+            contentType: getContentType(currRequest),
             raw: currRequest?.request?.body?.raw,
             formData: currRequest?.request?.body?.formdata
-        }).catch(response=>{
+        }).catch(response => {
             console.log(response)
-            response && dispatch(setCurrentResponse({data: JSON.stringify(response?.response?.data)}))
+            response && dispatch(setCurrentResponse(response?.response?.data))
+            response && dispatch(setCurrentResponse({
+                statusCode: response?.response?.status,
+                data: response?.response?.data,
+                statusText: response?.response?.statusText
+            }))
             CustomToast.error(response.message);
-        }).then((response)=>{
-           response && dispatch(setCurrentResponse({data: JSON.stringify(response)}))
+        }).then((response) => {
+            response && dispatch(setCurrentResponse(response))
         })
     };
 

@@ -5,3 +5,9 @@ export interface Response<T>{
     success: boolean
     data: T
 }
+
+export interface SendResponse {
+    statusCode: number;
+    statusText: string;
+    data: object;
+}

@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react'
+import React, {useEffect, useMemo, useState, useCallback} from 'react'
 
 // Component Import
 import {Badge} from "@/components/ui/badge.tsx";
@@ -6,7 +6,7 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
-import {cn, getIPAddress} from "@/lib/utils.ts";
+import {cn, getContentType, getIPAddress} from "@/lib/utils.ts";
 import {AuthDropdownOps, AuthLabel, type AuthType} from "@/pages/editor/components/RequestConfig/AuthContent.tsx";
 
 // Third Party Import
@@ -26,22 +26,10 @@ const IndicatorConfigTabs: React.FC = () => {
     const {setHeaderAction} = useHeaderAction()
 
     useEffect(() => {
-        setHeaderAction(flushRequest)
-    }, [setHeaderAction]);
-
-    const flushRequest = () => {
-        if (!currRequest?.request) return
-        currRequest.request.url.query = queryParams.filter(dt=>!dt.disabled)
-        currRequest.request.header = headers.filter(dt=>!dt.disabled)
-        if (!currRequest.request.body) {
-            dispatch(setCurrentRequest(currRequest))
-            return;
+        if (getContentType(currRequest) === 'application/json'){
+            setBodyJsonEdited(currRequest?.request?.body?.raw ?? '')
         }
-        currRequest.request.body.mode = contentType
-        currRequest.request.body.raw = bodyJsonCached
-        currRequest.request.body.formdata = multipartEdited
-        dispatch(setCurrentRequest(currRequest))
-    }
+    }, [currRequest?.request?.body]);
 
     // ===============> Request Params
     const [enabledParams, setEnabledParams] = useState<Record<string, boolean>>(
@@ -90,13 +78,57 @@ const IndicatorConfigTabs: React.FC = () => {
     const [contentType, setContentType] = useState<ContentType>("application/json")
     const [multipartEdited, setMultipartEdited] = useState<ItemUrl[] | []>(currRequest?.request?.body?.formdata ?? [])
 
-    const [bodyJsonEdited, setBodyJsonEdited] = useState(currRequest?.request?.body?.raw ?? "")
+    const [bodyJsonEdited, setBodyJsonEdited] = useState("")
     const bodyJsonCached = useMemo(() => bodyJsonEdited, [bodyJsonEdited])
     const handleUpdateBody = (body: string | ItemUrl[]) => {
+        console.log(body)
         typeof body === "string"
             ? setBodyJsonEdited(body) :
             setMultipartEdited(body)
     }
+
+    const flushRequest = useCallback(() => {
+        console.log(contentType)
+        if (!currRequest?.request) return
+        const nextRequest = {
+            ...currRequest,
+            request: {
+                ...currRequest.request,
+                url: {
+                    ...currRequest.request.url,
+                    query: queryParams.filter((dt) => !dt.disabled),
+                },
+                header: headers.filter((dt) => !dt.disabled),
+                body: currRequest.request.body
+                    ? {
+                        ...currRequest.request.body,
+                        mode: contentType,
+                        raw: bodyJsonCached,
+                        formdata: multipartEdited,
+                    }
+                    : null,
+            },
+        };
+
+        dispatch(setCurrentRequest(nextRequest))
+    }, [bodyJsonCached, contentType, currRequest, dispatch, headers, multipartEdited, queryParams])
+
+
+    useEffect(() => {
+        setHeaderAction(() => flushRequest)
+
+        return () => setHeaderAction(null)
+    }, [flushRequest, setHeaderAction]);
+
+    useEffect(() => {
+        setHeaders(headers.map((h)=>{
+            if (h.key === 'Content-Type') {
+                h.value = contentType
+                return h
+            }
+            return h
+        }))
+    }, [contentType]);
 
     return (
         <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -281,7 +313,7 @@ const IndicatorConfigTabs: React.FC = () => {
                         </div>
                         <BodyEditor
                             contentType={contentType}
-                            bodyJSON={currRequest?.request?.body?.raw ?? ""}
+                            bodyJSON={bodyJsonEdited?? ""}
                             multipart={currRequest?.request?.body?.formdata ?? []}
                             handleUpdateBody={handleUpdateBody}
                         />

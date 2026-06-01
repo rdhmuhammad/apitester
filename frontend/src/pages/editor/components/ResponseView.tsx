@@ -5,19 +5,38 @@ import {Download, Link2, Lock} from "lucide-react";
 import {Textarea} from "@/components/ui/textarea.tsx";
 import {useAppSelector} from "@/app/store/hooks.ts";
 import {selectResponse} from "@/app/slices/collectionSlices.ts";
-import {useEffect, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import AceEditor from "react-ace";
 
 import 'ace-builds/src-noconflict/theme-monokai.js'
+import type {SendResponse} from "@/types/response.ts";
 
 const ResponseView: React.FC = () => {
     const currResponse = useAppSelector(selectResponse)
 
     useEffect(() => {
-        setResponse(currResponse)
+        if (currResponse){
+            setResponse(currResponse)
+        }
+        console.log(response)
     }, [currResponse]);
 
-    const [response, setResponse] = useState<string>('')
+    const formatJson = (value: string) => {
+        if (!value) return "";
+
+        try {
+            return JSON.stringify(JSON.parse(value), null, 2);
+        } catch {
+            return value;
+        }
+    };
+
+    const [response, setResponse] = useState<SendResponse>({
+        statusCode: 200,
+        statusText: 'OK',
+        data: {}
+    })
+    const prettyResponse = useMemo(() => formatJson(JSON.stringify(response?.data)), [response]);
 
     return (
         <section
@@ -25,7 +44,7 @@ const ResponseView: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
                 <div className="flex items-center gap-2">
                     <h2 className="text-sm font-semibold text-slate-800">Response</h2>
-                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">200 OK</Badge>
+                    <Badge className={currResponse?.statusCode === 200? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{`${currResponse?.statusCode ?? 200} ${currResponse?.statusText ?? 'OK'}`}</Badge>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-500">
                     <span>412 ms</span>
@@ -38,7 +57,7 @@ const ResponseView: React.FC = () => {
                     <TabsList className="h-9 rounded-lg bg-slate-100">
                         <TabsTrigger value="pretty">Pretty</TabsTrigger>
                         <TabsTrigger value="raw">Raw</TabsTrigger>
-                        <TabsTrigger value="preview">Preview</TabsTrigger>
+                        {/*<TabsTrigger value="preview">Preview</TabsTrigger>*/}
                     </TabsList>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm">
@@ -59,6 +78,7 @@ const ResponseView: React.FC = () => {
                 <TabsContent value="pretty" className="h-[calc(100%-3.2rem)]">
                     <div>
                         <AceEditor
+                            readOnly
                             placeholder=""
                             mode="json"
                             theme="monokai"
@@ -69,7 +89,7 @@ const ResponseView: React.FC = () => {
                             showPrintMargin={false}
                             showGutter={false}
                             highlightActiveLine={true}
-                            value={response}
+                            value={prettyResponse}
                             setOptions={{
                                 enableBasicAutocompletion: false,
                                 enableLiveAutocompletion: false,
@@ -84,19 +104,22 @@ const ResponseView: React.FC = () => {
                 <TabsContent value="raw" className="h-[calc(100%-3.2rem)]">
                     <Textarea
                         className="h-full min-h-[220px] resize-none font-mono text-sm"
-                        value={response}
+                        value={JSON.stringify(response?.data)}
                         onChange={(val) => {
-                            setResponse(val.target.value)
+                            setResponse((prev=>({
+                                ...prev,
+                                data: JSON.parse(val.target.value)
+                            })))
                         }}
                     />
                 </TabsContent>
 
-                <TabsContent value="preview" className="h-[calc(100%-3.2rem)]">
-                    <div
-                        className="h-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                        Preview mode can render HTML or documentation response output here.
-                    </div>
-                </TabsContent>
+                {/*<TabsContent value="preview" className="h-[calc(100%-3.2rem)]">*/}
+                {/*    <div*/}
+                {/*        className="h-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">*/}
+                {/*        Preview mode can render HTML or documentation response output here.*/}
+                {/*    </div>*/}
+                {/*</TabsContent>*/}
             </Tabs>
         </section>
     )

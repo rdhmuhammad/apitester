@@ -4,6 +4,7 @@ import {CollectionServices} from "@/layout/services/collection.ts";
 import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import type {RootState} from "@/app/store/store.ts";
 import {isArrayEmpty} from "@/lib/utils.ts";
+import type {SendResponse} from "@/types/response.ts";
 
 
 export type ColtReqMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -22,7 +23,7 @@ export interface DirTree {
 interface CollectionState {
     data: DocsContent | null
     currRequest: CollectionItem | null
-    currResponse: string
+    currResponse: SendResponse | null
     dirTree: Map<string, DirTree>
     status: ColtStatusLoad
 }
@@ -52,8 +53,8 @@ const collectionSlices = createSlice({
         setCurrentRequest(state, action: PayloadAction<CollectionItem>){
           state.currRequest = action.payload
         },
-        setCurrentResponse(state, action: PayloadAction<{ data: string }>){
-          if (action.payload) state.currResponse = action.payload.data
+        setCurrentResponse(state, action: PayloadAction<SendResponse>){
+          if (action.payload) state.currResponse = action.payload
         },
         setActiveRequest(state, action: PayloadAction<{ id: string }>) {
             const selected = diveActiveRequest(action.payload.id, state?.data?.item ?? []);
@@ -95,7 +96,7 @@ export const selectBaseUrl = (state: RootState): string[] =>{
 
 export const selectRequest = (state: RootState): CollectionItem | null => state.collection?.currRequest
 
-export const selectResponse = (state: RootState): string => state.collection?.currResponse
+export const selectResponse = (state: RootState): SendResponse | null => state.collection?.currResponse
 export const selectDirTree = (state: RootState): Map<string, DirTree> => {
     if (!isArrayEmpty(state.collection?.data?.item)) {
         // @ts-ignore

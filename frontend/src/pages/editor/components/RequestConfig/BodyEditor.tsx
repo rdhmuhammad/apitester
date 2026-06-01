@@ -5,7 +5,7 @@ import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import CustomToast from "@/components/common/toast";
 import {cn} from "@/lib/utils.ts";
-import React, {useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import type {IAceEditor} from "react-ace/lib/types";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
 
@@ -31,6 +31,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
         y: number;
         selectedText: string;
     }
+
     const editorRef = useRef<IAceEditor | null>(null)
     const [menu, setMenu] = useState<MenuState>({
         open: false,
@@ -104,7 +105,9 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                             width="full"
                             lineHeight={19}
                             onLoad={onEditorLoad}
-                            onChange={handleUpdateBody}
+                            onChange={e=>{
+                                handleUpdateBody(e)
+                            }}
                             showPrintMargin={true}
                             showGutter={true}
                             value={bodyJSON ?? ""}

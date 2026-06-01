@@ -1,5 +1,6 @@
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
 import axios from "@/config/axios.ts";
+import type {SendResponse} from "@/types/response.ts";
 
 export interface ISendRequest {
     baseUrl: string
@@ -24,11 +25,6 @@ const formData = (request: ItemUrl[]): FormData => {
         dt.append(item.key, item.value ?? "")
     }
     return dt
-}
-
-export interface SendResponse {
-    statusCode: number;
-    statusText: string;
 }
 
 export const useSendRequest = async (request: ISendRequest):Promise<SendResponse> => {
@@ -56,6 +52,7 @@ export const useSendRequest = async (request: ISendRequest):Promise<SendResponse
     console.log(response)
     return Promise.resolve({
         statusCode: response?.status ?? 0,
-        statusText: response?.statusText ?? 'UNKNOWN'
+        statusText: response?.statusText ?? 'UNKNOWN',
+        data: response?.data ?? {}
     })
 }
