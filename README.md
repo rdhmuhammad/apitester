@@ -99,16 +99,11 @@ By automating API documentation generation and hosting, developers can spend les
 - 🚀 [Getting Started](#-getting-started)
     - 📦 [Prerequisites](#-prerequisites)
     - ▶️ [How to Run](#-how-to-run)
-- 🛠️ [Development Guide](#-development-guide)
-    - ➕ [Creating New Endpoint](#-creating-new-endpoint)
-    - 🔩 [Using Generic Repository](#-using-generic-repository)
-    - 🔁 [Using DB Transaction](#-using-db-transaction)
-    - 🔒 [Security Guide](#-security-guide)
-    - 🧩 [Project Structure](#-project-structure)
-- 🚢 [Deployment](#-deployment)
-    - 🏗️ [Build Binary](#-build-binary)
-    - ⚙️ [Run with systemd](#-run-with-systemd)
-- 📖 [Additional Information](#-additional-information)
+- 🧩 [Roadmap](#-roadmap)
+- 👨‍💻 [Contributing](#-contributing)
+    - 🤷️ [Top contributors](#-top-contributors)
+- 🗃 [License](#-license)
+- ☎️ [Contact](#-contact)
 
 </details>
 
@@ -129,8 +124,10 @@ installing and configuring each dependency.
 
 ### 📦 Prerequisites
 Before running the project **locally**, ensure the following tools are installed and available in your environment.
-> **Note**: This project is bound to Golang dev environment, since i start this project
-> for my own purporse. Next i would try to expand the ability, to decoupling this project toward specific environment
+> **Note**: This project is currently focused on the Golang ecosystem
+> because that's what I use in my day-to-day development. 
+> It started as a tool for my own needs, but I plan to gradually extend it to support
+> other languages and environments in the future.
 * **Golang**: Version [1.24.0](https://go.dev/dl/) or higher
 * **MySQL**: Version 8.0
 * **NodeJS**: Version 22.0
@@ -139,8 +136,10 @@ Before running the project **locally**, ensure the following tools are installed
 ### ▶️ How to Run
 
 1. Prepare your api docs file which following postman format e.g: `collection.json`
-   > **Note**: the actual workflow for api docs would use an api docs generator. 
-   > For the further explanation to enable these tools, reference to this repo.
+   > **Note**: You normally won't need to create this file manually. 
+   > The intended workflow is to generate it automatically using 
+   > an API docs generator. Check out the generator repository for setup 
+   > instructions and more details[TODO].
 2. Place the file at `resource/apidocs/your_file_name.json`
 3. Copy ```env.example``` to ```env.[dev|stag|prod]```, choose your desired environment phase.
 4. Install Backend dependencies
@@ -167,61 +166,61 @@ Before running the project **locally**, ensure the following tools are installed
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
-<!-- USAGE EXAMPLES -->
-## Usage
-
-Use this space to show useful examples of how a project can be used. 
-Additional screenshots, code examples and demos work well in this space. 
-You may also link to more resources.
-
-_For more examples, please refer to the [Documentation](https://example.com)_
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
 <!-- ROADMAP -->
-## Roadmap
+## 🧩 Roadmap
+The following items represent the planned direction of the 
+project and upcoming features currently under consideration.
 
-- [ ] Feature 1
-- [ ] Feature 2
-- [ ] Feature 3
-    - [ ] Nested Feature
+- [ ] Request page can open multiple request. and able to create new request
+- [ ] API Docs generator for Golang
+- [ ] API Docs generator for Java Spring
+- [ ] Folder Tree has the meets the following criteria
+  - [ ] Can show the new request.
+  - [ ] Can modify the position, name of folder and request.
+  - [ ] Can create, remove folder and request.
+- [ ] Login page for user and user management for admin
+- [ ] Collection change history from source pull
 
-See the [open issues](https://github.com/github_username/repo_name/issues) for a full list of proposed features (and known issues).
+See the [project backlog](https://github.com/users/rdhmuhammad/projects/1) for a full list of proposed features.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 
 <!-- CONTRIBUTING -->
-## Contributing
+## 👨‍💻 Contributing
+I'd love to see this project grow with help from the community. 
+If you'd like to contribute, please make sure to follow the protocols 
+and guidelines described below before opening a pull request.
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+These rules aren't meant to be restrictive—they simply help keep the
+project organized, maintainable, and easy to review. If you have 
+questions, suggestions, or feature ideas, feel free to open an
+issue and start a discussion.
 
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Send an email to rdhmuhammad57@gmail.com with the subject line: APITESTER CONTRIBUTE
+2. In the email, describe your idea, feature proposal, enhancement,
+   or any improvement you would like to contribute to the project.
+3. After reviewing the email, I will create a backlog item for the project so we
+   can track the progress and evaluate whether the contribution 
+   aligns with the project's primary goals and vision.
+4. Create your Feature Branch from the Issue which related to backlog (`git checkout -b feature/AmazingFeature`)
+5. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+6. Push to the Branch (`git push origin feature/AmazingFeature`)
+7. Open a Pull Request
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Top contributors:
+### 🤷️ Top contributors
 
-<a href="https://github.com/github_username/repo_name/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=github_username/repo_name" alt="contrib.rocks image" />
+<a href="https://github.com/rdhmuhammad/apitester/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=rdhmuhammad/apitester" alt="contrib.rocks image" />
 </a>
 
 
 
 <!-- LICENSE -->
-## License
+## 🗃 License
 
 Distributed under the project_license. See `LICENSE.txt` for more information.
 
@@ -230,25 +229,13 @@ Distributed under the project_license. See `LICENSE.txt` for more information.
 
 
 <!-- CONTACT -->
-## Contact
+## ☎️ Contact
 
-Your Name - [@twitter_handle](https://twitter.com/twitter_handle) - email@email_client.com
+Ridho Muhammad - [medium.com/@5mblackburn7](https://medium.com/@5mblackburn7) - rdhmuhammad57@gmail.com
 
-Project Link: [https://github.com/github_username/repo_name](https://github.com/github_username/repo_name)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-* []()
-* []()
-* []()
+Project Link: [https://github.com/rdhmuhammad/apitester](https://github.com/rdhmuhammad/apitester)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
