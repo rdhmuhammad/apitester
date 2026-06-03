@@ -1,40 +1,92 @@
-import type {CollectionItem, CollectionVar, ItemUrl, RequestBody} from "@/pages/editor/types/api.ts";
+import type {CollectionItem, CollectionVar} from "@/pages/editor/types/api.ts";
 import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import type {RootState} from "@/app/store/store.ts";
 import {isArrayEmpty} from "@/lib/utils.ts";
 import type {SendResponse} from "@/types/response.ts";
-import {type ColtCat, type ColtReqMethod, type DirTree, fetchCollections, initialState} from "@/app/slices/index.ts";
+import {type ActiveItem, type ColtCat, type ColtReqMethod, type DirTree, fetchCollections, initialState} from "@/app/slices/index.ts";
+import {
+    addHeader,
+    addHeaderReducer,
+    addUrlPath,
+    addUrlPathReducer,
+    removeHeader,
+    removeHeaderReducer,
+    removeUrlPath,
+    removeUrlPathReducer,
+    setBody,
+    setBodyReducer,
+    setMethod,
+    setMethodReducer,
+    setUrlPath,
+    setUrlPathReducer,
+    setUrlRaw,
+    setUrlRawReducer,
+    updateHeader,
+    updateHeaderReducer,
+    updateUrlPath,
+    updateUrlPathReducer,
+} from "@/app/slices/requestSlices.ts";
 
 const collectionSlices = createSlice({
     name: 'collections',
     initialState,
     reducers: {
         addActiveRequest(state, action: PayloadAction<{ id: string }>) {
-            if (!state.activeRequest) state.activeRequest = []
             if (!state.data?.item) return
-            const selected = state.data.item.filter(item => item && item.id === action.payload.id);
-            if (selected.length === 1 && selected[0]?.request && selected[0].response)
-                state.activeRequest.push({
-                    id: action.payload.id,
-                    request: selected[0].request,
-                    response: selected[0].response,
-                })
+            const selected = diveActiveRequest(action.payload.id, state.data.item)
+            if (!selected?.request) return
+
+            state.activeRequest = state.activeRequest.filter((item) => item.id !== action.payload.id)
+            state.activeRequest.push({
+                id: action.payload.id,
+                request: selected.request,
+                response: selected.response ?? null,
+            })
         },
         removeActiveRequest(state, action: PayloadAction<{ id: string }>) {
-            if (!state.activeRequest) return
-            state.activeRequest = state.activeRequest.filter(item => item.request && item.id !== action.payload.id)
+            state.activeRequest = state.activeRequest.filter(item => item.id !== action.payload.id)
         },
-        addVariable(state, action: PayloadAction<CollectionVar>){
-            if (!state.variable) state.variable = []
-            state.variable.push(action.payload)
-        },
-        removeVariable(state, action: PayloadAction<{id: string}>){
-            if (!state.variable) return
+        setCurrentRequest(state, action: PayloadAction<CollectionItem>) {
+            const currentIndex = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
+            if (currentIndex < 0) {
+                state.activeRequest.push({
+                    id: action.payload.id,
+                    request: action.payload.request ?? null,
+                    response: action.payload.response ?? null,
+                })
+                return
+            }
 
-        }
+            state.activeRequest[currentIndex].request = action.payload.request ?? null
+            if (action.payload.response) {
+                state.activeRequest[currentIndex].response = action.payload.response
+            }
+        },
+        setCurrentResponse(state, action: PayloadAction<{ id: string; response: SendResponse | null }>) {
+            const currentIndex = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
+            if (currentIndex < 0) return
+
+            state.activeRequest[currentIndex].response = action.payload.response
+        },
+        addVariable(state, action: PayloadAction<CollectionVar>) {
+            state.variable.push(action.payload)
+            syncCollectionVariables(state)
+        },
+        removeVariable(state, action: PayloadAction<{ id: string }>) {
+            state.variable = state.variable.filter((item) => item.id !== action.payload.id)
+            syncCollectionVariables(state)
+        },
+        addBaseUrl(state, action: PayloadAction<CollectionVar>) {
+            state.baseUrl.push(action.payload)
+            syncCollectionVariables(state)
+        },
+        removeBaseUrl(state, action: PayloadAction<{ id: string }>) {
+            state.baseUrl = state.baseUrl.filter((item) => item.id !== action.payload.id)
+            syncCollectionVariables(state)
+        },
     },
     extraReducers: (builder) => {
-        builder.addCase(fetchCollections.pending, (state, action) => {
+        builder.addCase(fetchCollections.pending, (state) => {
             state.status = 'pending'
         })
         builder.addCase(fetchCollections.fulfilled, (state, action) => {
@@ -42,8 +94,9 @@ const collectionSlices = createSlice({
             if (docsContent) {
                 state.data = docsContent
                 state.cachedRequest = flattenCollections(docsContent.item)
+                state.dirTree = diveCollection(docsContent.item)
                 const reduced = docsContent?.variable?.reduce((acc, item)=>{
-                    if (item.key.toLowerCase().includes('base_url')){
+                    if (isBaseUrlVariable(item)){
                         acc.baseUrl.push(item)
                     }else {
                         acc.variable.push(item)
@@ -53,44 +106,102 @@ const collectionSlices = createSlice({
                     baseUrl: [] as CollectionVar[],
                     variable: [] as CollectionVar[]
                 });
-                state.baseUrl = reduced?.baseUrl ?? [{key: 'base_url', value: 'http://localhost:8080'}]
-                state.variable = reduced?.variable
+                state.baseUrl = reduced?.baseUrl ?? [{
+                    id: 'base_url',
+                    key: 'base_url',
+                    value: 'http://localhost:8080',
+                    category: 'BASE_URL',
+                    type: 'string'
+                }]
+                state.variable = reduced?.variable ?? []
             }
             state.status = 'succeeded'
         })
-        builder.addCase(fetchCollections.rejected, (state, action) => {
+        builder.addCase(fetchCollections.rejected, (state) => {
             state.status = 'rejected'
         })
+        builder.addCase(setMethod, setMethodReducer)
+        builder.addCase(addHeader, addHeaderReducer)
+        builder.addCase(updateHeader, updateHeaderReducer)
+        builder.addCase(removeHeader, removeHeaderReducer)
+        builder.addCase(setBody, setBodyReducer)
+        builder.addCase(addUrlPath, addUrlPathReducer)
+        builder.addCase(updateUrlPath, updateUrlPathReducer)
+        builder.addCase(removeUrlPath, removeUrlPathReducer)
+        builder.addCase(setUrlPath, setUrlPathReducer)
+        builder.addCase(setUrlRaw, setUrlRawReducer)
     }
 })
 
 export default collectionSlices.reducer
 
-export const {} = collectionSlices.actions
+export const {
+    addActiveRequest,
+    removeActiveRequest,
+    setCurrentRequest,
+    setCurrentResponse,
+    addVariable,
+    removeVariable,
+    addBaseUrl,
+    removeBaseUrl,
+} = collectionSlices.actions
+
+export const setActiveRequest = addActiveRequest
+export type {ColtReqMethod, DirTree} from "@/app/slices/index.ts"
 
 // SELECTOR
-export const selectBaseUrl = (state: RootState): string[] => {
-    let urls = []
-    if (state.collection?.data?.variable) {
-        for (const vr of state.collection?.data?.variable) {
-            if (vr?.category === 'BASE_URL') urls.push(vr?.value)
-        }
-    }
-    return urls
+export const selectVariable = (state: RootState): CollectionVar[] => state.collection?.variable ?? []
+
+export const selectBaseUrl = (state: RootState): CollectionVar[] => state.collection?.baseUrl ?? []
+
+export const selectBaseUrlValues = (state: RootState): string[] =>
+    selectBaseUrl(state).map((item) => item.value)
+
+export const selectActiveRequest = (state: RootState): ActiveItem[] => state.collection?.activeRequest ?? []
+
+export const selectRequest = (state: RootState): CollectionItem | null => {
+    const current = getCurrentActiveRequest(state)
+    if (!current) return null
+    return buildSelectedRequest(state, current)
 }
 
-export const selectRequest = (state: RootState): CollectionItem | null => state.collection?.currRequest
+export const selectRequestById = (state: RootState, id: string): CollectionItem | null => {
+    const current = getActiveRequestById(state, id)
+    if (!current) return null
+    return buildSelectedRequest(state, current)
+}
 
-export const selectResponse = (state: RootState): SendResponse | null => state.collection?.currResponse
+export const selectResponse = (state: RootState): SendResponse | null =>
+    getCurrentActiveRequest(state)?.response ?? null
 
-export const selectRequestBody = (state: RootState): RequestBody | undefined => state.collection?.currRequest?.request?.body
+export const selectResponseById = (state: RootState, id: string): SendResponse | null =>
+    getActiveRequestById(state, id)?.response ?? null
 
 export const selectDirTree = (state: RootState): Map<string, DirTree> => {
-    if (!isArrayEmpty(state.collection?.data?.item)) {
-        // @ts-ignore
-        return diveCollection(state.collection?.data?.item);
+    if (state.collection?.dirTree) {
+        return state.collection.dirTree
     }
     return new Map<string, DirTree>()
+}
+
+const buildSelectedRequest = (state: RootState, current: ActiveItem): CollectionItem | null => {
+    const collectionItem = state.collection?.data?.item
+        ? diveActiveRequest(current.id, state.collection.data.item)
+        : null
+    if (!collectionItem) {
+        return {
+            id: current.id,
+            name: '',
+            request: current.request ?? undefined,
+            response: current.response ?? undefined,
+        }
+    }
+
+    return {
+        ...collectionItem,
+        request: current.request ?? collectionItem.request,
+        response: current.response ?? collectionItem.response,
+    }
 }
 
 // HELPER HOOKS
@@ -123,6 +234,30 @@ const setDeactiveTree = (item: Map<string, DirTree>) => {
         it.isActive = false
         if (it.item) setDeactiveTree(it.item)
     })
+}
+
+const findCurrentActiveRequestIndex = (items: ActiveItem[], id?: string) => {
+    if (!items.length) return -1
+    if (!id) return items.length - 1
+    return items.findIndex((item) => item.id === id)
+}
+
+const getCurrentActiveRequest = (state: RootState): ActiveItem | null => {
+    const activeRequests = state.collection?.activeRequest ?? []
+    return activeRequests.length > 0 ? activeRequests[activeRequests.length - 1] : null
+}
+
+const getActiveRequestById = (state: RootState, id: string): ActiveItem | null => {
+    const activeRequests = state.collection?.activeRequest ?? []
+    return activeRequests.find((item) => item.id === id) ?? null
+}
+
+const isBaseUrlVariable = (item: CollectionVar) =>
+    item.key.toLowerCase().includes('base_url') || item.category?.toUpperCase() === 'BASE_URL'
+
+const syncCollectionVariables = (state: typeof initialState) => {
+    if (!state.data) return
+    state.data.variable = [...state.baseUrl, ...state.variable]
 }
 
 const flattenCollections = (item: CollectionItem[]): CollectionItem[] => {

@@ -1,4 +1,5 @@
 import type {SendResponse} from "@/types/response.ts";
+import type {ColtBodyType} from "@/app/slices";
 
 export interface GetCollectionResponse {
   changed: boolean;
@@ -40,7 +41,7 @@ export interface Request {
 }
 
 export interface RequestBody {
-  mode: string;
+  mode: ColtBodyType;
   raw?: string;
   formdata?: ItemUrl[]
 }

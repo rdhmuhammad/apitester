@@ -1,4 +1,4 @@
-import type {CollectionItem, CollectionVar, DocsContent, ItemUrl, Request} from "@/pages/editor/types/api.ts";
+import type {CollectionItem, CollectionVar, DocsContent, Request} from "@/pages/editor/types/api.ts";
 import type {SendResponse} from "@/types/response.ts";
 import {createAppAsyncThunk} from "@/app/store/withTypes.ts";
 import {CollectionServices} from "@/layout/services/collection.ts";
@@ -6,6 +6,7 @@ import {CollectionServices} from "@/layout/services/collection.ts";
 export type ColtReqMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 export type ColtStatusLoad = 'idle' | 'pending' | 'succeeded' | 'rejected'
 export type ColtCat = 'REQ' | 'FOLD'
+export type ColtBodyType= 'raw' | 'formdata'
 
 export interface DirTree {
     id: string
