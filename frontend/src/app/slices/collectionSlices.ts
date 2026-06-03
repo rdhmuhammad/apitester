@@ -1,64 +1,36 @@
-import type {CollectionItem, CollectionVar, DocsContent, ItemUrl} from "@/pages/editor/types/api.ts";
-import {createAppAsyncThunk} from "@/app/store/withTypes.ts";
-import {CollectionServices} from "@/layout/services/collection.ts";
+import type {CollectionItem, CollectionVar, ItemUrl, RequestBody} from "@/pages/editor/types/api.ts";
 import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import type {RootState} from "@/app/store/store.ts";
 import {isArrayEmpty} from "@/lib/utils.ts";
 import type {SendResponse} from "@/types/response.ts";
-
-
-export type ColtReqMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
-export type ColtStatusLoad = 'idle' | 'pending' | 'succeeded' | 'rejected'
-export type ColtCat = 'REQ' | 'FOLD'
-
-export interface DirTree {
-    id: string
-    name: string
-    item?: Map<string, DirTree>
-    isActive: boolean
-    method?: ColtReqMethod
-    category: ColtCat
-}
-
-interface CollectionState {
-    data: DocsContent | null
-    currRequest: CollectionItem | null
-    currResponse: SendResponse | null
-    dirTree: Map<string, DirTree>
-    status: ColtStatusLoad
-}
-
-export const fetchCollections = createAppAsyncThunk(
-    'collections/fetchCollections',
-    async () => {
-        return await CollectionServices.getCollection()
-    }
-)
-
-const initialState: CollectionState = {
-    data: null,
-    currRequest: null,
-    status: 'idle',
-    dirTree: new Map<string, DirTree>(),
-    currResponse: ''
-}
+import {type ColtCat, type ColtReqMethod, type DirTree, fetchCollections, initialState} from "@/app/slices/index.ts";
 
 const collectionSlices = createSlice({
     name: 'collections',
     initialState,
     reducers: {
-        setActiveTree(state, action: PayloadAction<{ id: string }>) {
-            diveActiveTree(action.payload.id, state?.dirTree);
+        addActiveRequest(state, action: PayloadAction<{ id: string }>) {
+            if (!state.activeRequest) state.activeRequest = []
+            if (!state.data?.item) return
+            const selected = state.data.item.filter(item => item && item.id === action.payload.id);
+            if (selected.length === 1 && selected[0]?.request && selected[0].response)
+                state.activeRequest.push({
+                    id: action.payload.id,
+                    request: selected[0].request,
+                    response: selected[0].response,
+                })
         },
-        setCurrentRequest(state, action: PayloadAction<CollectionItem>){
-          state.currRequest = action.payload
+        removeActiveRequest(state, action: PayloadAction<{ id: string }>) {
+            if (!state.activeRequest) return
+            state.activeRequest = state.activeRequest.filter(item => item.request && item.id !== action.payload.id)
         },
-        setCurrentResponse(state, action: PayloadAction<SendResponse>){
-          if (action.payload) state.currResponse = action.payload
+        addVariable(state, action: PayloadAction<CollectionVar>){
+            if (!state.variable) state.variable = []
+            state.variable.push(action.payload)
         },
-        setActiveRequest(state, action: PayloadAction<{ id: string }>) {
-            const selected = diveActiveRequest(action.payload.id, state?.data?.item ?? []);
-            if (selected) state.currRequest = selected
+        removeVariable(state, action: PayloadAction<{id: string}>){
+            if (!state.variable) return
+
         }
     },
     extraReducers: (builder) => {
@@ -66,8 +38,23 @@ const collectionSlices = createSlice({
             state.status = 'pending'
         })
         builder.addCase(fetchCollections.fulfilled, (state, action) => {
-            if (action.payload.content) {
-                state.data = action.payload.content
+            let docsContent = action.payload.content;
+            if (docsContent) {
+                state.data = docsContent
+                state.cachedRequest = flattenCollections(docsContent.item)
+                const reduced = docsContent?.variable?.reduce((acc, item)=>{
+                    if (item.key.toLowerCase().includes('base_url')){
+                        acc.baseUrl.push(item)
+                    }else {
+                        acc.variable.push(item)
+                    }
+                    return acc
+                }, {
+                    baseUrl: [] as CollectionVar[],
+                    variable: [] as CollectionVar[]
+                });
+                state.baseUrl = reduced?.baseUrl ?? [{key: 'base_url', value: 'http://localhost:8080'}]
+                state.variable = reduced?.variable
             }
             state.status = 'succeeded'
         })
@@ -79,15 +66,13 @@ const collectionSlices = createSlice({
 
 export default collectionSlices.reducer
 
-export const { setActiveRequest, setCurrentRequest, setActiveTree, setCurrentResponse } = collectionSlices.actions
+export const {} = collectionSlices.actions
 
 // SELECTOR
-export const selectColVar = (state: RootState): CollectionVar[] => state.collection?.data?.variable ?? []
-
-export const selectBaseUrl = (state: RootState): string[] =>{
+export const selectBaseUrl = (state: RootState): string[] => {
     let urls = []
-    if (state.collection?.data?.variable){
-        for (const vr of state.collection?.data?.variable){
+    if (state.collection?.data?.variable) {
+        for (const vr of state.collection?.data?.variable) {
             if (vr?.category === 'BASE_URL') urls.push(vr?.value)
         }
     }
@@ -97,6 +82,9 @@ export const selectBaseUrl = (state: RootState): string[] =>{
 export const selectRequest = (state: RootState): CollectionItem | null => state.collection?.currRequest
 
 export const selectResponse = (state: RootState): SendResponse | null => state.collection?.currResponse
+
+export const selectRequestBody = (state: RootState): RequestBody | undefined => state.collection?.currRequest?.request?.body
+
 export const selectDirTree = (state: RootState): Map<string, DirTree> => {
     if (!isArrayEmpty(state.collection?.data?.item)) {
         // @ts-ignore
@@ -135,6 +123,16 @@ const setDeactiveTree = (item: Map<string, DirTree>) => {
         it.isActive = false
         if (it.item) setDeactiveTree(it.item)
     })
+}
+
+const flattenCollections = (item: CollectionItem[]): CollectionItem[] => {
+    return Array.from(diveCollection(item), ([_, value]) => ({value})).map(it => ({
+        id: it.value.id,
+        name: it.value.name,
+        isActive: false,
+        category: it.value.category as ColtCat,
+        method: (it.value.method as ColtReqMethod) ?? "GET"
+    }));
 }
 
 const diveCollection = (item: CollectionItem[]): Map<string, DirTree> => {

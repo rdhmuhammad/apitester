@@ -18,8 +18,6 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 import {ArrowDownToLine, ArrowUpFromLine, Send} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
-    type ColtReqMethod,
-    fetchCollections,
     selectBaseUrl,
     selectRequest,
     setCurrentResponse
@@ -27,7 +25,7 @@ import {
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
 import {useSendRequest} from "@/layout/hooks/useSendRequest.ts";
 import CustomToast from "@/components/common/toast";
-import type {CollectionItem} from "@/pages/editor/types/api.ts";
+import {type ColtReqMethod, fetchCollections} from "@/app/slices";
 
 const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     {

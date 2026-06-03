@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState, useCallback} from 'react'
+import React, {useEffect, useState} from 'react'
 
 // Component Import
 import {Badge} from "@/components/ui/badge.tsx";
@@ -6,30 +6,22 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
-import {cn, getContentType, getIPAddress} from "@/lib/utils.ts";
+import {cn, getIPAddress} from "@/lib/utils.ts";
 import {AuthDropdownOps, AuthLabel, type AuthType} from "@/pages/editor/components/RequestConfig/AuthContent.tsx";
 
 // Third Party Import
 import {Clock3, Eye, EyeOff, FileJson2, FileText, ToggleLeft, ToggleRight} from "lucide-react";
-import {selectRequest} from "@/app/slices/collectionSlices.ts";
+import {selectRequest, setBody} from "@/app/slices/collectionSlices.ts";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
 import {BodyEditor, type ContentType} from "@/pages/editor/components/RequestConfig/BodyEditor.tsx";
 
 // Data Store import
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
-import {setCurrentRequest} from '@/app/slices/collectionSlices.ts'
-import {useHeaderAction} from "@/layout/view/MainLayout.tsx";
 
 const IndicatorConfigTabs: React.FC = () => {
     const currRequest = useAppSelector(selectRequest)
     const dispatch = useAppDispatch()
-    const {setHeaderAction} = useHeaderAction()
 
-    useEffect(() => {
-        if (getContentType(currRequest) === 'application/json'){
-            setBodyJsonEdited(currRequest?.request?.body?.raw ?? '')
-        }
-    }, [currRequest?.request?.body]);
 
     // ===============> Request Params
     const [enabledParams, setEnabledParams] = useState<Record<string, boolean>>(
@@ -76,52 +68,45 @@ const IndicatorConfigTabs: React.FC = () => {
 
     // ===============> Request Body
     const [contentType, setContentType] = useState<ContentType>("application/json")
-    const [multipartEdited, setMultipartEdited] = useState<ItemUrl[] | []>(currRequest?.request?.body?.formdata ?? [])
-
-    const [bodyJsonEdited, setBodyJsonEdited] = useState("")
-    const bodyJsonCached = useMemo(() => bodyJsonEdited, [bodyJsonEdited])
     const handleUpdateBody = (body: string | ItemUrl[]) => {
-        console.log(body)
-        typeof body === "string"
-            ? setBodyJsonEdited(body) :
-            setMultipartEdited(body)
+        dispatch(setBody(body))
     }
 
-    const flushRequest = useCallback(() => {
-        console.log(contentType)
-        if (!currRequest?.request) return
-        const nextRequest = {
-            ...currRequest,
-            request: {
-                ...currRequest.request,
-                url: {
-                    ...currRequest.request.url,
-                    query: queryParams.filter((dt) => !dt.disabled),
-                },
-                header: headers.filter((dt) => !dt.disabled),
-                body: currRequest.request.body
-                    ? {
-                        ...currRequest.request.body,
-                        mode: contentType,
-                        raw: bodyJsonCached,
-                        formdata: multipartEdited,
-                    }
-                    : null,
-            },
-        };
+    // const flushRequest = useCallback(() => {
+    //     console.log(contentType)
+    //     if (!currRequest?.request) return
+    //     const nextRequest = {
+    //         ...currRequest,
+    //         request: {
+    //             ...currRequest.request,
+    //             url: {
+    //                 ...currRequest.request.url,
+    //                 query: queryParams.filter((dt) => !dt.disabled),
+    //             },
+    //             header: headers.filter((dt) => !dt.disabled),
+    //             body: currRequest.request.body
+    //                 ? {
+    //                     ...currRequest.request.body,
+    //                     mode: contentType,
+    //                     raw: currRequest,
+    //                     formdata: multipartEdited,
+    //                 }
+    //                 : null,
+    //         },
+    //     };
+    //
+    //     dispatch(setCurrentRequest(nextRequest))
+    // }, [bodyJsonCached, contentType, currRequest, dispatch, headers, multipartEdited, queryParams])
 
-        dispatch(setCurrentRequest(nextRequest))
-    }, [bodyJsonCached, contentType, currRequest, dispatch, headers, multipartEdited, queryParams])
 
+    // useEffect(() => {
+    //     setHeaderAction(() => flushRequest)
+    //
+    //     return () => setHeaderAction(null)
+    // }, [flushRequest, setHeaderAction]);
 
     useEffect(() => {
-        setHeaderAction(() => flushRequest)
-
-        return () => setHeaderAction(null)
-    }, [flushRequest, setHeaderAction]);
-
-    useEffect(() => {
-        setHeaders(headers.map((h)=>{
+        setHeaders(headers.map((h) => {
             if (h.key === 'Content-Type') {
                 h.value = contentType
                 return h
@@ -164,18 +149,18 @@ const IndicatorConfigTabs: React.FC = () => {
                             <span className="col-span-3">Value</span>
                             <span className="col-span-4">Description</span>
                         </div>
-                        {queryParams.map((item) => (
+                        {currRequest?.request?.header.map((item) => (
                             <div key={item.key}
                                  className={cn(
                                      "grid grid-cols-12 border-t border-slate-200 px-3 py-2",
-                                     enabledParams[item.key] ? "bg-white-300" : "bg-gray-400"
+                                     item.disabled ? "bg-gray-400" : "bg-white-300"
                                  )}>
                                 <div className="col-span-3">
                                     <Input
                                         value={item.key}
                                         readOnly
                                         className="h-8 bg-white"
-                                        disabled={!enabledParams[item.key]}
+                                        disabled={item.disabled}
                                     />
                                 </div>
                                 <div className="col-span-3 pl-3">
@@ -190,7 +175,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                                     } : param
                                                 ))}
                                         className="h-8 bg-white"
-                                        disabled={!enabledParams[item.key]}
+                                        disabled={item.disabled}
                                     />
                                 </div>
                                 <div className="col-span-5 pl-3 flex items-center justify-start">
@@ -313,8 +298,6 @@ const IndicatorConfigTabs: React.FC = () => {
                         </div>
                         <BodyEditor
                             contentType={contentType}
-                            bodyJSON={bodyJsonEdited?? ""}
-                            multipart={currRequest?.request?.body?.formdata ?? []}
                             handleUpdateBody={handleUpdateBody}
                         />
                     </div>

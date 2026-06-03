@@ -1,3 +1,4 @@
+import type {SendResponse} from "@/types/response.ts";
 
 export interface GetCollectionResponse {
   changed: boolean;
@@ -19,18 +20,18 @@ export interface CollectionInfo {
 }
 
 export interface CollectionItem {
-  funIden: string;
+  funIden?: string;
   name: string;
   item?: CollectionItem[];
   request?: Request;
-  response?: unknown[];
+  response?: SendResponse;
   event?: CollectionEvent[];
   id: string;
   description?: string;
 }
 
 export interface Request {
-  funIden: string;
+  funIden?: string;
   method: string;
   header: ItemUrl[];
   body?: RequestBody;

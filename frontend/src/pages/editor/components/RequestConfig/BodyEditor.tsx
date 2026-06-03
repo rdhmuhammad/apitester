@@ -5,26 +5,28 @@ import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import CustomToast from "@/components/common/toast";
 import {cn} from "@/lib/utils.ts";
-import React, {useEffect, useRef, useState} from "react";
+import React, {useRef, useState} from "react";
 import type {IAceEditor} from "react-ace/lib/types";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
+import {useAppSelector} from "@/app/store/hooks.ts";
+import {selectRequestBody} from "@/app/slices/collectionSlices.ts";
 
 export type ContentType = "application/json" | "multipart/form-data";
 
 interface IBodyEditor {
     contentType: ContentType
-    bodyJSON: string
-    multipart: ItemUrl[]
     handleUpdateBody: (body: string | ItemUrl[]) => void
 }
 
 export const BodyEditor: React.FC<IBodyEditor> = (
     {
         contentType,
-        bodyJSON,
-        multipart,
         handleUpdateBody
     }) => {
+
+    const selectBody = useAppSelector(selectRequestBody);
+
+
     type MenuState = {
         open: boolean;
         x: number;
@@ -75,7 +77,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
     );
 
     const toggleMultipartField = (field: keyof ItemUrl, pKey: string) => {
-        multipart.forEach((item) => {
+        selectBody?.formdata &&  selectBody?.formdata.forEach((item) => {
             if (item.key !== pKey) return item;
             const nextValue =
                 field === "disabled"
@@ -86,7 +88,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                 [field]: nextValue
             };
         })
-        handleUpdateBody(multipart)
+        // handleUpdateBody(multipart)
     }
 
     switch (contentType) {
@@ -110,7 +112,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                             }}
                             showPrintMargin={true}
                             showGutter={true}
-                            value={bodyJSON ?? ""}
+                            value={selectBody?.raw ?? ""}
                             highlightActiveLine={true}
                             setOptions={{
                                 enableBasicAutocompletion: false,
@@ -171,7 +173,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                         <span className="col-span-3">Value</span>
                         <span className="col-span-4">Description</span>
                     </div>
-                    {multipart ? multipart.map((item) => (
+                    {selectBody?.formdata && selectBody?.formdata.map((item) => (
                         <div key={item.key}
                              className={cn(
                                  "grid grid-cols-12 border-t border-slate-200 px-3 py-2",
@@ -252,7 +254,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                 </Button>
                             </div>
                         </div>
-                    )) : <></>}
+                    ))}
                 </div>
             )
         default:
