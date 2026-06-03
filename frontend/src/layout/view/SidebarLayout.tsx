@@ -154,8 +154,11 @@ const SidebarLayout: React.FC = () => {
     };
 
     return (
-        <Sidebar className="left-0 pt-18 z-40 flex flex-col border-r h-full border-gray-200" collapsible={"none"}>
-            <SidebarContent className="flex flex-col px-3 py-2 bg-white">
+        <Sidebar
+            className="fixed left-0 top-[60px] z-30 h-[calc(100dvh-60px)] w-64 flex-col border-r border-gray-200 bg-white"
+            collapsible={"none"}
+        >
+            <SidebarContent className="flex flex-col overflow-y-auto px-3 py-2 bg-white">
                 <div className="mb-2 px-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Collections</p>
                 </div>

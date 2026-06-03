@@ -9,7 +9,7 @@ import React, {useRef, useState} from "react";
 import type {IAceEditor} from "react-ace/lib/types";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
 import {useAppSelector} from "@/app/store/hooks.ts";
-import {selectRequestBody} from "@/app/slices/collectionSlices.ts";
+import {selectRequestBody} from "@/app/slices/requestSlices.ts";
 
 export type ContentType = "application/json" | "multipart/form-data";
 

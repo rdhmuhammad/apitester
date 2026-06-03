@@ -28,7 +28,7 @@ const MainLayout: React.FC<IMainLayout> = ({children}: IMainLayout) => {
             <HeaderActionCtx.Provider value={ctxValue}>
                 <HeaderLayout onSend={headerAction}/>
                 <SidebarLayout/>
-                <main className="flex-1 pt-[73px] overflow-hidden h-100dvh">
+                <main className="flex-1 pt-[73px] overflow-hidden h-100dvh md:pl-64">
                     {children}
                 </main>
             </HeaderActionCtx.Provider>

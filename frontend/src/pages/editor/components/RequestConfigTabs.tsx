@@ -11,7 +11,8 @@ import {AuthDropdownOps, AuthLabel, type AuthType} from "@/pages/editor/componen
 
 // Third Party Import
 import {Clock3, Eye, EyeOff, FileJson2, FileText, ToggleLeft, ToggleRight} from "lucide-react";
-import {selectRequest, setBody} from "@/app/slices/collectionSlices.ts";
+import {selectRequest} from "@/app/slices/collectionSlices.ts";
+import {setBody} from "@/app/slices/requestSlices.ts";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
 import {BodyEditor, type ContentType} from "@/pages/editor/components/RequestConfig/BodyEditor.tsx";
 
@@ -69,41 +70,12 @@ const IndicatorConfigTabs: React.FC = () => {
     // ===============> Request Body
     const [contentType, setContentType] = useState<ContentType>("application/json")
     const handleUpdateBody = (body: string | ItemUrl[]) => {
-        dispatch(setBody(body))
+        if (!currRequest?.id) return
+        dispatch(setBody({
+            id: currRequest.id,
+            body,
+        }))
     }
-
-    // const flushRequest = useCallback(() => {
-    //     console.log(contentType)
-    //     if (!currRequest?.request) return
-    //     const nextRequest = {
-    //         ...currRequest,
-    //         request: {
-    //             ...currRequest.request,
-    //             url: {
-    //                 ...currRequest.request.url,
-    //                 query: queryParams.filter((dt) => !dt.disabled),
-    //             },
-    //             header: headers.filter((dt) => !dt.disabled),
-    //             body: currRequest.request.body
-    //                 ? {
-    //                     ...currRequest.request.body,
-    //                     mode: contentType,
-    //                     raw: currRequest,
-    //                     formdata: multipartEdited,
-    //                 }
-    //                 : null,
-    //         },
-    //     };
-    //
-    //     dispatch(setCurrentRequest(nextRequest))
-    // }, [bodyJsonCached, contentType, currRequest, dispatch, headers, multipartEdited, queryParams])
-
-
-    // useEffect(() => {
-    //     setHeaderAction(() => flushRequest)
-    //
-    //     return () => setHeaderAction(null)
-    // }, [flushRequest, setHeaderAction]);
 
     useEffect(() => {
         setHeaders(headers.map((h) => {
@@ -116,7 +88,7 @@ const IndicatorConfigTabs: React.FC = () => {
     }, [contentType]);
 
     return (
-        <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <section className="rounded-b-xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
                 <div>
                     <h2 className="text-sm font-semibold text-slate-800">Request Configuration</h2>

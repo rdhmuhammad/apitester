@@ -18,7 +18,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 import {ArrowDownToLine, ArrowUpFromLine, Send} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
-    selectBaseUrl,
+    selectBaseUrlValues,
     selectRequest,
     setCurrentResponse
 } from "@/app/slices/collectionSlices.ts";
@@ -33,7 +33,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     }) => {
     const dispatch = useAppDispatch()
     const currRequest = useAppSelector(selectRequest)
-    const baseUrlOptions = useAppSelector(selectBaseUrl)
+    const baseUrlOptions = useAppSelector(selectBaseUrlValues)
 
     useEffect(() => {
         setEndpoint(currRequest?.request?.url?.raw ?? '')
@@ -61,6 +61,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     }
 
     const handleSendRequest = () => {
+        if (!currRequest?.id) return
         if (onSend) onSend()
         useSendRequest({
             baseUrl: selectedBaseUrl,
@@ -73,15 +74,24 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             formData: currRequest?.request?.body?.formdata
         }).catch(response => {
             console.log(response)
-            response && dispatch(setCurrentResponse(response?.response?.data))
             response && dispatch(setCurrentResponse({
-                statusCode: response?.response?.status,
-                data: response?.response?.data,
-                statusText: response?.response?.statusText
+                id: currRequest.id,
+                response: response?.response?.data ?? null
+            }))
+            response && dispatch(setCurrentResponse({
+                id: currRequest.id,
+                response: {
+                    statusCode: response?.response?.status,
+                    data: response?.response?.data,
+                    statusText: response?.response?.statusText
+                }
             }))
             CustomToast.error(response.message);
         }).then((response) => {
-            response && dispatch(setCurrentResponse(response))
+            response && dispatch(setCurrentResponse({
+                id: currRequest.id,
+                response
+            }))
         })
     };
 
