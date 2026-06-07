@@ -2,7 +2,14 @@ import {Sidebar, SidebarContent} from "@/components/ui/sidebar.tsx";
 import {type ReactNode, useEffect, useState} from "react";
 import {ChevronDown, ChevronRight, FileCode2, Folder, FolderOpen} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
-import {type ColtReqMethod, type DirTree, selectDirTree, setActiveRequest} from "@/app/slices/collectionSlices.ts";
+import {
+    type ColtReqMethod,
+    type DirTree,
+    selectDirTree,
+    setActiveRequest,
+    setActiveTree
+} from "@/app/slices/collectionSlices.ts";
+import {cn} from "@/lib/utils.ts";
 
 // interface RequestNode {
 //     type: "request";
@@ -82,6 +89,7 @@ const SidebarLayout: React.FC = () => {
 
     const toggleRequest = (reqId: string)=>{
         dispatch(setActiveRequest({id: reqId}))
+        dispatch(setActiveTree({id: reqId, status: true}))
     }
 
     const toggleFolder = (folderId: string) => {
@@ -94,8 +102,6 @@ const SidebarLayout: React.FC = () => {
     useEffect(() => {
         let record = {}
         loadExpandFolder(tree, record)
-        setExpandedFolders(record)
-        console.log(expandedFolders)
     }, [tree]);
 
     const loadExpandFolder = (tree: Map<string, DirTree>, record: Record<string, boolean>) =>{
@@ -138,13 +144,14 @@ const SidebarLayout: React.FC = () => {
             );
         }
 
+        console.log(node?.isActive)
         return (
             <button
                 key={node.id}
                 type="button"
                 style={indentStyle}
                 onClick={()=>toggleRequest(node.id)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-slate-100"
+                className={cn('flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-slate-100 ', node.isActive && 'bg-indigo-100')}
             >
                 <FileCode2 className="h-4 w-4 text-slate-400"/>
                 <span className={`w-12 text-xs font-semibold ${methodColorClass[node?.method ?? "GET"]}`}>{node?.method ?? "GET"}</span>

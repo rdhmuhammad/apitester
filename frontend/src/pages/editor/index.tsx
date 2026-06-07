@@ -8,8 +8,9 @@ import {
     type ColtReqMethod,
     removeActiveRequest,
     selectActiveRequest,
+    selectSelectedRequestId,
     selectRequestById,
-    setActiveRequest
+    setSelectedRequestId, setActiveTree
 } from "@/app/slices/collectionSlices.ts";
 import {cn} from "@/lib/utils.ts";
 
@@ -25,6 +26,7 @@ const Editor: React.FC = () => {
     const dispatch = useAppDispatch()
     const {requestTabs, activeTabId} = useAppSelector((state) => {
         const activeRequest = selectActiveRequest(state)
+        const selectedRequestId = selectSelectedRequestId(state)
 
         return {
             requestTabs: activeRequest.map((item) => {
@@ -35,17 +37,18 @@ const Editor: React.FC = () => {
                     method: ((item.request?.method ?? requestItem?.request?.method ?? "GET").toUpperCase() as ColtReqMethod),
                 }
             }),
-            activeTabId: activeRequest[activeRequest.length - 1]?.id ?? "",
+            activeTabId: selectedRequestId || activeRequest[activeRequest.length - 1]?.id || "",
         }
     })
 
     const handleTabChange = (id: string) => {
         if (!id) return
-        dispatch(setActiveRequest({id}))
+        dispatch(setSelectedRequestId({id}))
     }
 
     const handleRemoveTab = (id: string) => {
         dispatch(removeActiveRequest({id}))
+        dispatch(setActiveTree({id: id, status: false}))
     }
 
     return (
@@ -79,14 +82,17 @@ const Editor: React.FC = () => {
                                         <span className="max-w-[140px] truncate text-sm font-medium">{tab.label}</span>
                                         <span
                                             className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 group-data-[state=active]:text-slate-500">
-                                            <XIcon
-                                                size={12}
-                                                onClick={(event) => {
-                                                    event.preventDefault()
-                                                    event.stopPropagation()
-                                                    handleRemoveTab(tab.id)
-                                                }}
-                                            />
+                                            <Button variant='ghost'
+                                                    onClick={(event) => {
+                                                        event.preventDefault()
+                                                        event.stopPropagation()
+                                                        handleRemoveTab(tab.id)
+                                                    }}
+                                            >
+                                                <XIcon
+                                                    size={12}
+                                                />
+                                            </Button>
                                         </span>
                                     </TabsTrigger>
                                 ))}

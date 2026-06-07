@@ -14,53 +14,68 @@ const mapParam = (param: ItemUrl, payload: ItemUrl): ItemUrl => {
     } : param
 }
 
-type RequestIdPayload = {
-    id: string
-}
-
-type SetMethodPayload = RequestIdPayload & {
+type SetMethodPayload = {
     method: string
 }
 
-type HeaderPayload = RequestIdPayload & {
+type HeaderPayload = {
     header: ItemUrl
 }
 
-type RemoveHeaderPayload = RequestIdPayload & {
+type RemoveHeaderPayload = {
     key: string
 }
 
-type SetBodyPayload = RequestIdPayload & {
+type QueryParamPayload = {
+    query: ItemUrl
+}
+
+type RemoveQueryParamPayload = {
+    key: string
+}
+
+type SetBodyPayload = {
     body: string | ItemUrl[]
 }
 
-type AddUrlPathPayload = RequestIdPayload & {
+type AddUrlPathPayload = {
     path: string
 }
 
-type UpdateUrlPathPayload = RequestIdPayload & {
+type UpdateUrlPathPayload = {
     index: number
     value: string
 }
 
-type RemoveUrlPathPayload = RequestIdPayload & {
+type RemoveUrlPathPayload = {
     index: number
 }
 
-type SetUrlPathPayload = RequestIdPayload & {
+type SetUrlPathPayload = {
     path: string[]
 }
 
-type SetUrlRawPayload = RequestIdPayload & {
+type SetUrlRawPayload = {
     raw: string
 }
 
-const getRequestById = (state: CollectionState, id: string): Request | null => {
-    const currentActive = state.activeRequest.find((item) => item.id === id)
+const getSelectedRequest = (state: CollectionState): Request | null => {
+    const selectedRequestId = state.selectedRequestId
+    if (selectedRequestId) {
+        const currentActive = state.activeRequest.find((item) => item.id === selectedRequestId)
+        if (currentActive?.request) return currentActive.request
+    }
+
+    const currentActive = state.activeRequest[state.activeRequest.length - 1]
     return currentActive?.request ?? null
 }
 
 const getCurrentRequestFromState = (state: RootState): Request | null => {
+    const selectedRequestId = state.collection?.selectedRequestId
+    if (selectedRequestId) {
+        return getRequestByIdFromState(state, selectedRequestId)
+    }
+
     const currentActive = state.collection?.activeRequest?.[state.collection.activeRequest.length - 1]
     return currentActive?.request ?? null
 }
@@ -102,35 +117,67 @@ const syncRawWithPath = (url: RequestURL) => {
 }
 
 export const setMethodReducer = (state: CollectionState, action: PayloadAction<SetMethodPayload>) => {
-    const currentRequest = getRequestById(state, action.payload.id)
+    const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
     currentRequest.method = action.payload.method
 }
 
 export const addHeaderReducer = (state: CollectionState, action: PayloadAction<HeaderPayload>) => {
-    const currentRequest = getRequestById(state, action.payload.id)
+    const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
     currentRequest.header.push(action.payload.header)
 }
 
 export const updateHeaderReducer = (state: CollectionState, action: PayloadAction<HeaderPayload>) => {
-    const currentRequest = getRequestById(state, action.payload.id)
-    if (!currentRequest) return
+    const currentRequest = getSelectedRequest(state)
+    if (!currentRequest?.header) return;
 
-    currentRequest.header = currentRequest.header.map((param) => mapParam(param, action.payload.header))
+    const hasKey = currentRequest.header.some(header => header.key === action.payload.header.key);
+    if (hasKey) {
+        currentRequest.header.forEach((item) => {
+            if (item.key === action.payload.header.key) {
+                return action.payload.header
+            }
+            return item
+        })
+        return;
+    }
+
+    currentRequest.header.push(action.payload.header)
 }
 
 export const removeHeaderReducer = (state: CollectionState, action: PayloadAction<RemoveHeaderPayload>) => {
-    const currentRequest = getRequestById(state, action.payload.id)
+    const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
     currentRequest.header = currentRequest.header.filter((item) => item.key !== action.payload.key)
 }
 
+export const addQueryParamReducer = (state: CollectionState, action: PayloadAction<QueryParamPayload>) => {
+    const currentRequest = getSelectedRequest(state)
+    if (!currentRequest) return
+
+    currentRequest.url.query.push(action.payload.query)
+}
+
+export const updateQueryParamReducer = (state: CollectionState, action: PayloadAction<QueryParamPayload>) => {
+    const currentRequest = getSelectedRequest(state)
+    if (!currentRequest) return
+
+    currentRequest.url.query = currentRequest.url.query.map((param) => mapParam(param, action.payload.query))
+}
+
+export const removeQueryParamReducer = (state: CollectionState, action: PayloadAction<RemoveQueryParamPayload>) => {
+    const currentRequest = getSelectedRequest(state)
+    if (!currentRequest) return
+
+    currentRequest.url.query = currentRequest.url.query.filter((item) => item.key !== action.payload.key)
+}
+
 export const setBodyReducer = (state: CollectionState, action: PayloadAction<SetBodyPayload>) => {
-    const currentRequest = getRequestById(state, action.payload.id)
+    const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
     if (!currentRequest.body) {
@@ -150,7 +197,7 @@ export const setBodyReducer = (state: CollectionState, action: PayloadAction<Set
 }
 
 export const addUrlPathReducer = (state: CollectionState, action: PayloadAction<AddUrlPathPayload>) => {
-    const currentRequest = getRequestById(state, action.payload.id)
+    const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
     currentRequest.url.path.push(action.payload.path)
@@ -161,7 +208,7 @@ export const updateUrlPathReducer = (
     state: CollectionState,
     action: PayloadAction<UpdateUrlPathPayload>
 ) => {
-    const currentRequest = getRequestById(state, action.payload.id)
+    const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
     if (action.payload.index < 0 || action.payload.index >= currentRequest.url.path.length) return
 
@@ -170,7 +217,7 @@ export const updateUrlPathReducer = (
 }
 
 export const removeUrlPathReducer = (state: CollectionState, action: PayloadAction<RemoveUrlPathPayload>) => {
-    const currentRequest = getRequestById(state, action.payload.id)
+    const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
     currentRequest.url.path = currentRequest.url.path.filter((_, index) => index !== action.payload.index)
@@ -178,7 +225,7 @@ export const removeUrlPathReducer = (state: CollectionState, action: PayloadActi
 }
 
 export const setUrlPathReducer = (state: CollectionState, action: PayloadAction<SetUrlPathPayload>) => {
-    const currentRequest = getRequestById(state, action.payload.id)
+    const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
     currentRequest.url.path = action.payload.path
@@ -186,7 +233,7 @@ export const setUrlPathReducer = (state: CollectionState, action: PayloadAction<
 }
 
 export const setUrlRawReducer = (state: CollectionState, action: PayloadAction<SetUrlRawPayload>) => {
-    const currentRequest = getRequestById(state, action.payload.id)
+    const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
     currentRequest.url.raw = action.payload.raw
@@ -201,6 +248,9 @@ const requestSlices = createSlice({
         addHeader: addHeaderReducer,
         updateHeader: updateHeaderReducer,
         removeHeader: removeHeaderReducer,
+        addQueryParam: addQueryParamReducer,
+        updateQueryParam: updateQueryParamReducer,
+        removeQueryParam: removeQueryParamReducer,
         setBody: setBodyReducer,
         addUrlPath: addUrlPathReducer,
         updateUrlPath: updateUrlPathReducer,
@@ -217,6 +267,9 @@ export const {
     addHeader,
     updateHeader,
     removeHeader,
+    addQueryParam,
+    updateQueryParam,
+    removeQueryParam,
     setBody,
     addUrlPath,
     updateUrlPath,
@@ -227,46 +280,26 @@ export const {
 
 export const setEndpoint = setUrlRaw
 export const setHeader = updateHeader
+export const setParams = updateQueryParam
 
 export const selectRequestMethod = (state: RootState): string =>
     getCurrentRequestFromState(state)?.method ?? "GET"
 
-export const selectRequestMethodById = (state: RootState, id: string): string =>
-    getRequestByIdFromState(state, id)?.method ?? "GET"
-
 export const selectRequestHeader = (state: RootState): ItemUrl[] =>
     getCurrentRequestFromState(state)?.header ?? []
-
-export const selectRequestHeaderById = (state: RootState, id: string): ItemUrl[] =>
-    getRequestByIdFromState(state, id)?.header ?? []
 
 export const selectRequestBody = (state: RootState): RequestBody | undefined =>
     getCurrentRequestFromState(state)?.body
 
-export const selectRequestBodyById = (state: RootState, id: string): RequestBody | undefined =>
-    getRequestByIdFromState(state, id)?.body
-
 export const selectRequestUrlPath = (state: RootState): string[] =>
     getCurrentRequestFromState(state)?.url?.path ?? []
-
-export const selectRequestUrlPathById = (state: RootState, id: string): string[] =>
-    getRequestByIdFromState(state, id)?.url?.path ?? []
 
 export const selectRequestUrlRaw = (state: RootState): string =>
     getCurrentRequestFromState(state)?.url?.raw ?? ""
 
-export const selectRequestUrlRawById = (state: RootState, id: string): string =>
-    getRequestByIdFromState(state, id)?.url?.raw ?? ""
-
 export const selectRequestUrl = (state: RootState): RequestURL | null =>
     getCurrentRequestFromState(state)?.url ?? null
-
-export const selectRequestUrlById = (state: RootState, id: string): RequestURL | null =>
-    getRequestByIdFromState(state, id)?.url ?? null
 
 export const selectHeader = selectRequestHeader
 export const selectReqParam = (state: RootState): ItemUrl[] =>
     getCurrentRequestFromState(state)?.url?.query ?? []
-
-export const selectReqParamById = (state: RootState, id: string): ItemUrl[] =>
-    getRequestByIdFromState(state, id)?.url?.query ?? []

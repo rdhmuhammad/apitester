@@ -8,24 +8,22 @@ import {cn} from "@/lib/utils.ts";
 import React, {useRef, useState} from "react";
 import type {IAceEditor} from "react-ace/lib/types";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
-import {useAppSelector} from "@/app/store/hooks.ts";
-import {selectRequestBody} from "@/app/slices/requestSlices.ts";
+import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
+import {selectRequestBody, setBody} from "@/app/slices/requestSlices.ts";
 
 export type ContentType = "application/json" | "multipart/form-data";
 
 interface IBodyEditor {
     contentType: ContentType
-    handleUpdateBody: (body: string | ItemUrl[]) => void
 }
 
 export const BodyEditor: React.FC<IBodyEditor> = (
     {
         contentType,
-        handleUpdateBody
     }) => {
 
     const selectBody = useAppSelector(selectRequestBody);
-
+    const dispatch = useAppDispatch()
 
     type MenuState = {
         open: boolean;
@@ -77,18 +75,18 @@ export const BodyEditor: React.FC<IBodyEditor> = (
     );
 
     const toggleMultipartField = (field: keyof ItemUrl, pKey: string) => {
-        selectBody?.formdata &&  selectBody?.formdata.forEach((item) => {
+        const body = (selectBody?.formdata ?? []).map((item) => {
             if (item.key !== pKey) return item;
             const nextValue =
                 field === "disabled"
-                    ? !item[field] :
-                    item[field] === "text" ? "file" : "text"
+                    ? !item[field]
+                    : item[field] === "text" ? "file" : "text"
             return {
                 ...item,
                 [field]: nextValue
             };
         })
-        // handleUpdateBody(multipart)
+        dispatch(setBody({body: body}))
     }
 
     switch (contentType) {
@@ -107,8 +105,8 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                             width="full"
                             lineHeight={19}
                             onLoad={onEditorLoad}
-                            onChange={e=>{
-                                handleUpdateBody(e)
+                            onChange={e => {
+                                dispatch(setBody({body: e}))
                             }}
                             showPrintMargin={true}
                             showGutter={true}
@@ -197,13 +195,13 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                         value={item.value}
                                         type={item.type}
                                         onChange={(event) => {
-                                            multipart.forEach((param) =>
+                                            const body = (selectBody?.formdata ?? []).map((param) =>
                                                 param.key === item.key ? {
                                                     ...param,
                                                     value: event.target.value
                                                 } : param
                                             )
-                                            handleUpdateBody(multipart)
+                                            dispatch(setBody({body: body}))
                                         }}
                                         className={cn(
                                             "h-8 flex-1 border-0 bg-transparent rounded-none shadow-none focus-visible:ring-0 focus-visible:border-0",

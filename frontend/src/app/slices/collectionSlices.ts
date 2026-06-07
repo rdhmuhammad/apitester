@@ -1,16 +1,27 @@
-import type {CollectionItem, CollectionVar} from "@/pages/editor/types/api.ts";
+import type {CollectionAuth, CollectionItem, CollectionVar} from "@/pages/editor/types/api.ts";
 import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import type {RootState} from "@/app/store/store.ts";
 import {isArrayEmpty} from "@/lib/utils.ts";
 import type {SendResponse} from "@/types/response.ts";
-import {type ActiveItem, type ColtCat, type ColtReqMethod, type DirTree, fetchCollections, initialState} from "@/app/slices/index.ts";
+import {
+    type ActiveItem,
+    type ColtCat,
+    type ColtReqMethod,
+    type DirTree,
+    fetchCollections,
+    initialState
+} from "@/app/slices/index.ts";
 import {
     addHeader,
     addHeaderReducer,
+    addQueryParam,
+    addQueryParamReducer,
     addUrlPath,
     addUrlPathReducer,
     removeHeader,
     removeHeaderReducer,
+    removeQueryParam,
+    removeQueryParamReducer,
     removeUrlPath,
     removeUrlPathReducer,
     setBody,
@@ -23,6 +34,8 @@ import {
     setUrlRawReducer,
     updateHeader,
     updateHeaderReducer,
+    updateQueryParam,
+    updateQueryParamReducer,
     updateUrlPath,
     updateUrlPathReducer,
 } from "@/app/slices/requestSlices.ts";
@@ -42,9 +55,19 @@ const collectionSlices = createSlice({
                 request: selected.request,
                 response: selected.response ?? null,
             })
+            state.selectedRequestId = action.payload.id
         },
         removeActiveRequest(state, action: PayloadAction<{ id: string }>) {
             state.activeRequest = state.activeRequest.filter(item => item.id !== action.payload.id)
+            if (state.selectedRequestId === action.payload.id) {
+                state.selectedRequestId = state.activeRequest[state.activeRequest.length - 1]?.id ?? ''
+            }
+        },
+        setSelectedRequestId(state, action: PayloadAction<{ id: string }>) {
+            const selected = state.activeRequest.find((item) => item.id === action.payload.id)
+            if (!selected) return
+
+            state.selectedRequestId = action.payload.id
         },
         setCurrentRequest(state, action: PayloadAction<CollectionItem>) {
             const currentIndex = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
@@ -54,6 +77,9 @@ const collectionSlices = createSlice({
                     request: action.payload.request ?? null,
                     response: action.payload.response ?? null,
                 })
+                if (!state.selectedRequestId) {
+                    state.selectedRequestId = action.payload.id
+                }
                 return
             }
 
@@ -84,6 +110,9 @@ const collectionSlices = createSlice({
             state.baseUrl = state.baseUrl.filter((item) => item.id !== action.payload.id)
             syncCollectionVariables(state)
         },
+        setActiveTree(state, action: PayloadAction<{id: string, status: boolean}>){
+            diveActiveTree(action.payload.id, action.payload.status, state.dirTree)
+        }
     },
     extraReducers: (builder) => {
         builder.addCase(fetchCollections.pending, (state) => {
@@ -124,6 +153,9 @@ const collectionSlices = createSlice({
         builder.addCase(addHeader, addHeaderReducer)
         builder.addCase(updateHeader, updateHeaderReducer)
         builder.addCase(removeHeader, removeHeaderReducer)
+        builder.addCase(addQueryParam, addQueryParamReducer)
+        builder.addCase(updateQueryParam, updateQueryParamReducer)
+        builder.addCase(removeQueryParam, removeQueryParamReducer)
         builder.addCase(setBody, setBodyReducer)
         builder.addCase(addUrlPath, addUrlPathReducer)
         builder.addCase(updateUrlPath, updateUrlPathReducer)
@@ -138,6 +170,8 @@ export default collectionSlices.reducer
 export const {
     addActiveRequest,
     removeActiveRequest,
+    setSelectedRequestId,
+    setActiveTree,
     setCurrentRequest,
     setCurrentResponse,
     addVariable,
@@ -152,10 +186,19 @@ export type {ColtReqMethod, DirTree} from "@/app/slices/index.ts"
 // SELECTOR
 export const selectVariable = (state: RootState): CollectionVar[] => state.collection?.variable ?? []
 
+export const selectAuth = (state: RootState): CollectionAuth  => state.collection?.data?.auth ?? {type: 'string'}
+
 export const selectBaseUrl = (state: RootState): CollectionVar[] => state.collection?.baseUrl ?? []
 
 export const selectBaseUrlValues = (state: RootState): string[] =>
     selectBaseUrl(state).map((item) => item.value)
+
+export const selectSelectedRequestId = (state: RootState): string =>
+    state.collection?.selectedRequestId ?? ''
+
+export const selectSelectedRequest = (state: RootState): ActiveItem | null => {
+    return getActiveRequestById(state, state.collection?.selectedRequestId)
+}
 
 export const selectActiveRequest = (state: RootState): ActiveItem[] => state.collection?.activeRequest ?? []
 
@@ -218,14 +261,13 @@ const diveActiveRequest = (id: string, item: CollectionItem[]): CollectionItem |
     return null
 }
 
-const diveActiveTree = (id: string, item: Map<string, DirTree>) => {
+const diveActiveTree = (id: string, status: boolean, item: Map<string, DirTree>) => {
     const it = item.get(id);
     if (it) {
-        setDeactiveTree(item)
-        it.isActive = true
+        it.isActive = status
     }
     item.forEach(val => {
-        if (val.item) diveActiveTree(id, val.item)
+        if (val.item) diveActiveTree(id,status, val.item)
     })
 }
 
@@ -243,6 +285,11 @@ const findCurrentActiveRequestIndex = (items: ActiveItem[], id?: string) => {
 }
 
 const getCurrentActiveRequest = (state: RootState): ActiveItem | null => {
+    if (state.collection?.selectedRequestId) {
+        const selectedRequest = getActiveRequestById(state, state.collection.selectedRequestId)
+        if (selectedRequest) return selectedRequest
+    }
+
     const activeRequests = state.collection?.activeRequest ?? []
     return activeRequests.length > 0 ? activeRequests[activeRequests.length - 1] : null
 }

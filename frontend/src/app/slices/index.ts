@@ -21,6 +21,7 @@ export interface CollectionState {
     data: DocsContent | null
     variable: CollectionVar[]
     baseUrl: CollectionVar[]
+    selectedRequestId: string
     activeRequest: ActiveItem[]
     cachedRequest: CollectionItem[]
     dirTree: Map<string, DirTree>
@@ -42,6 +43,7 @@ export const fetchCollections = createAppAsyncThunk(
 
 export const initialState: CollectionState = {
     data: null,
+    selectedRequestId: '',
     activeRequest: [],
     cachedRequest: [],
     variable: [],

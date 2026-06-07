@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react'
+import React, {useEffect, useMemo, useState} from 'react'
 
 // Component Import
 import {Badge} from "@/components/ui/badge.tsx";
@@ -11,8 +11,15 @@ import {AuthDropdownOps, AuthLabel, type AuthType} from "@/pages/editor/componen
 
 // Third Party Import
 import {Clock3, Eye, EyeOff, FileJson2, FileText, ToggleLeft, ToggleRight} from "lucide-react";
-import {selectRequest} from "@/app/slices/collectionSlices.ts";
-import {setBody} from "@/app/slices/requestSlices.ts";
+import {selectAuth, selectSelectedRequest} from "@/app/slices/collectionSlices.ts";
+import {
+    removeHeader,
+    selectHeader,
+    selectReqParam,
+    selectRequestBody,
+    updateHeader,
+    updateQueryParam
+} from "@/app/slices/requestSlices.ts";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
 import {BodyEditor, type ContentType} from "@/pages/editor/components/RequestConfig/BodyEditor.tsx";
 
@@ -20,34 +27,48 @@ import {BodyEditor, type ContentType} from "@/pages/editor/components/RequestCon
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 
 const IndicatorConfigTabs: React.FC = () => {
-    const currRequest = useAppSelector(selectRequest)
+    const currRequest = useAppSelector(selectSelectedRequest)
     const dispatch = useAppDispatch()
 
 
-    // ===============> Request Params
-    const [enabledParams, setEnabledParams] = useState<Record<string, boolean>>(
-        currRequest?.request?.url?.query?.reduce((acc, dt) => {
-            acc[dt.key] = false;
+    const enabledParams = useAppSelector((state) => {
+        return selectReqParam(state).reduce((acc, dt) => {
+            acc[dt.key] = dt?.disabled ? !dt.disabled : true;
             return acc;
         }, {} as Record<string, boolean>) ?? {}
-    );
-    const [queryParams, setQueryParams] = useState<ItemUrl[]>(currRequest?.request?.url?.query ?? []);
+
+    })
+
+    const headers = useAppSelector((state) => {
+        const header = selectHeader(state).map((item) => ({...item}));
+        const auth = selectAuth(state);
+        if (auth.bearer && auth.bearer.length > 0) {
+            header.push({key: 'Authorization', value: auth.bearer[0].value})
+        }
+
+        return header
+    })
+    const rootAuth = useAppSelector(selectAuth)
 
     // ===============> Authorization
     const [authValue, setAuthValue] = useState<AuthType>("inherit")
+    useEffect(() => {
+        if (authValue === 'inherit') {
+            dispatch(updateHeader({
+                header: {
+                    key: 'Authorization',
+                    value: (rootAuth.bearer && rootAuth.bearer[0].value) ?? ''
+                }
+            }))
+        } else if (authValue === 'bearer') {
+            dispatch(updateHeader({header: {key: 'Authorization', value: ''}}))
+        } else if (authValue === 'none') {
+            dispatch(removeHeader({key: "Authorization"}))
+        }
+    }, [authValue]);
 
-    // ===============> Headers
-    const [headers, setHeaders] = useState<ItemUrl[]>(
-        currRequest?.request?.header.map((h) => ({
-            key: h.key,
-            value: h.value,
-            description: h.description,
-            disabled: false
-        })) ?? []
-    )
 
     const [showSysHeader, setShowSysHeader] = useState(false)
-    const [headerShow, setHeaderShow] = useState(headers)
     const sysHeader: ItemUrl[] = [
         {key: "Cache-Control", value: "no-cache"},
         {key: "User-Agent", value: "ApiTesterAgent/0.0.1"},
@@ -55,35 +76,21 @@ const IndicatorConfigTabs: React.FC = () => {
         {key: "Accept", value: "*/**"},
         {key: "Accept-Encoding", value: "gzip, deflate, br"}
     ]
-    const handleShowSysHeader = (show: boolean) => {
-        setShowSysHeader(show);
-        if (show) {
-            setHeaderShow([
-                ...headers,
-                ...sysHeader
-            ])
-        } else {
-            setHeaderShow(headers)
-        }
-    }
+
+    const headerShow = useMemo(() => {
+        if (!showSysHeader) return headers
+        return [...headers, ...sysHeader]
+    }, [headers, showSysHeader])
 
     // ===============> Request Body
     const [contentType, setContentType] = useState<ContentType>("application/json")
-    const handleUpdateBody = (body: string | ItemUrl[]) => {
-        if (!currRequest?.id) return
-        dispatch(setBody({
-            id: currRequest.id,
-            body,
-        }))
-    }
-
     useEffect(() => {
-        setHeaders(headers.map((h) => {
-            if (h.key === 'Content-Type') {
-                h.value = contentType
-                return h
+        dispatch(updateHeader({
+            header: {
+                key: 'Content-Type',
+                value: contentType,
+                disabled: false
             }
-            return h
         }))
     }, [contentType]);
 
@@ -121,7 +128,7 @@ const IndicatorConfigTabs: React.FC = () => {
                             <span className="col-span-3">Value</span>
                             <span className="col-span-4">Description</span>
                         </div>
-                        {currRequest?.request?.header.map((item) => (
+                        {currRequest?.request?.url?.query?.map((item) => (
                             <div key={item.key}
                                  className={cn(
                                      "grid grid-cols-12 border-t border-slate-200 px-3 py-2",
@@ -138,14 +145,9 @@ const IndicatorConfigTabs: React.FC = () => {
                                 <div className="col-span-3 pl-3">
                                     <Input
                                         value={item.value}
-                                        onChange={(event) =>
-                                            setQueryParams((prev) =>
-                                                prev.map((param) =>
-                                                    param.key === item.key ? {
-                                                        ...param,
-                                                        value: event.target.value
-                                                    } : param
-                                                ))}
+                                        onChange={(event) => dispatch(updateQueryParam({
+                                            query: {...item, value: event.target.value}
+                                        }))}
                                         className="h-8 bg-white"
                                         disabled={item.disabled}
                                     />
@@ -160,9 +162,11 @@ const IndicatorConfigTabs: React.FC = () => {
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => setEnabledParams((prev) => ({
-                                            ...prev,
-                                            [item.key]: !prev[item.key]
+                                        onClick={() => dispatch(updateQueryParam({
+                                            query: {
+                                                ...item,
+                                                disabled: !item.disabled
+                                            }
                                         }))}
                                         className="h-8 justify-center self-end"
                                     >
@@ -211,7 +215,7 @@ const IndicatorConfigTabs: React.FC = () => {
                 <TabsContent value="headers" className="p-4">
                     <Button variant="ghost" size="xs"
                             className="bg-gray-100 hover:bg-gray-200 rounded-full items-center mb-4"
-                            onClick={() => handleShowSysHeader(!showSysHeader)}>
+                            onClick={() => setShowSysHeader((current) => !current)}>
                         {showSysHeader ?
                             <>
                                 <Eye className="text-slate-600" size={10}/>
@@ -270,7 +274,6 @@ const IndicatorConfigTabs: React.FC = () => {
                         </div>
                         <BodyEditor
                             contentType={contentType}
-                            handleUpdateBody={handleUpdateBody}
                         />
                     </div>
                 </TabsContent>

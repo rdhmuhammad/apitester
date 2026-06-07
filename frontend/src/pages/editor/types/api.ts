@@ -10,6 +10,7 @@ export interface GetCollectionResponse {
 export interface DocsContent {
   info: CollectionInfo;
   item: CollectionItem[];
+  auth?: CollectionAuth;
   variable: CollectionVar[];
 }
 
@@ -60,6 +61,17 @@ export interface RequestURL {
   host: string[];
   path: string[];
   query: ItemUrl[];
+}
+
+export interface CollectionAuth {
+  type: string;
+  bearer?: AuthProperty[];
+}
+
+export interface AuthProperty {
+  key: string;
+  value: string;
+  type: string;
 }
 
 export interface CollectionEvent {
