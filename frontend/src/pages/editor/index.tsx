@@ -10,7 +10,7 @@ import {
     selectActiveRequest,
     selectSelectedRequestId,
     selectRequestById,
-    setSelectedRequestId, setActiveTree
+    setSelectedRequestId, setActiveTree, selectCollectionInfo
 } from "@/app/slices/collectionSlices.ts";
 import {cn} from "@/lib/utils.ts";
 
@@ -24,6 +24,7 @@ const methodStyle: Record<ColtReqMethod, string> = {
 
 const Editor: React.FC = () => {
     const dispatch = useAppDispatch()
+    const collectionInfo = useAppSelector(selectCollectionInfo)
     const {requestTabs, activeTabId} = useAppSelector((state) => {
         const activeRequest = selectActiveRequest(state)
         const selectedRequestId = selectSelectedRequestId(state)
@@ -62,7 +63,8 @@ const Editor: React.FC = () => {
                         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
                             Workspace
                         </p>
-                        <h3 className="mt-1 text-3xl font-semibold text-slate-900">Auth Collection</h3>
+                        <h3 className="mt-1 text-3xl font-semibold text-slate-900">{collectionInfo ? collectionInfo?.name : 'Collection' }</h3>
+                        <h3 className="mt-1 text-sm font-normal text-slate-500">{collectionInfo ? collectionInfo?.description : '' }</h3>
                     </div>
 
                     <Tabs value={activeTabId} onValueChange={handleTabChange} className="gap-0">

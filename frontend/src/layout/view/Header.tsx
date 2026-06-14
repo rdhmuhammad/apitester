@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
 import {Images} from "@/config/constant/Images.tsx";
-import {cn, getContentType} from "@/lib/utils.ts";
+import {cn, getContentType, getJsonSizeInKB} from "@/lib/utils.ts";
 
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
@@ -19,7 +19,7 @@ import {ArrowDownToLine, ArrowUpFromLine, Send} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
     selectBaseUrlValues,
-    selectRequest,
+    selectRequest, selectVariable,
     setCurrentResponse
 } from "@/app/slices/collectionSlices.ts";
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
@@ -34,6 +34,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const dispatch = useAppDispatch()
     const currRequest = useAppSelector(selectRequest)
     const baseUrlOptions = useAppSelector(selectBaseUrlValues)
+    const variables = useAppSelector(selectVariable)
 
     useEffect(() => {
         setEndpoint(currRequest?.request?.url?.raw ?? '')
@@ -55,10 +56,19 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const [requestMethod, setRequestMethod] = useState<ColtReqMethod[number]>("GET");
     const [selectedBaseUrl, setSelectedBaseUrl] = useState("");
     const [endpoint, setEndpoint] = useState(currRequest?.request?.url.raw ?? "");
+    const resolveVariableValue = (value: string): string => {
+        return value.replace(/\{\{([^{}]+)\}\}/g, (_, key: string) => {
+            const matchedVariable = variables.find((item) => item.key === key.trim())
+            return matchedVariable?.value ?? `{{${key}}}`
+        })
+    }
+
     const formatEndpoint = (endpoint: string): string => {
         console.log(endpoint)
         return endpoint.replace(/\{\{[^{}]+\}\}/g, "");
     }
+
+
 
     const handleSendRequest = () => {
         if (!currRequest?.id) return
@@ -67,7 +77,10 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             baseUrl: selectedBaseUrl,
             endpoint: formatEndpoint(endpoint),
             method: requestMethod,
-            headers: currRequest?.request?.header ?? [],
+            headers: currRequest?.request?.header.map((header) => ({
+                ...header,
+                value: resolveVariableValue(header.value ?? "")
+            })) ?? [],
             requestParams: currRequest?.request?.url.query ?? [],
             contentType: getContentType(currRequest),
             raw: currRequest?.request?.body?.raw,
@@ -81,6 +94,9 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             response && dispatch(setCurrentResponse({
                 id: currRequest.id,
                 response: {
+                    protocol: 'HTTP/1.1',
+                    responseSize: getJsonSizeInKB(response?.response?.data),
+                    responseTime: response?.duration,
                     statusCode: response?.response?.status,
                     data: response?.response?.data,
                     statusText: response?.response?.statusText

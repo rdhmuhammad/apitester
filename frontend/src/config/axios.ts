@@ -21,25 +21,13 @@ export interface ApiError {
 axios.interceptors.request.use(
     async (config) => {
         const token = getData(LOCALSTORAGE_KEY.TOKEN)
-        const timestamp = getTimestamp();
 
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
-
-        const signature = makeSignature(
-            0,
-            timestamp,
-            config.data || {},
-            config.data instanceof FormData
-        );
-
-        // Add signature and timestamp to headers
-        config.headers["sig"] = signature;
-        config.headers["email"] = "0";
-        config.headers["timestamp"] = timestamp.toString();
-
-        return config;
+        const newConfig = {...config}
+        newConfig.metadata  = {startTime: new Date()}
+        return newConfig;
     },
     (error) => {
         return Promise.reject(error);
@@ -48,14 +36,24 @@ axios.interceptors.request.use(
 
 // Add a response interceptor to handle errors
 axios.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        const newRes = { ...response }
+        // @ts-ignore
+        newRes.config.metadata.endTime = new Date()
+        newRes.duration =
+            newRes.config.metadata.endTime - newRes.config.metadata.startTime
+        return response
+    },
     async (error) => {
         const status = error.response?.status;
         const data = error.response?.data;
 
         console.log("Interceptor status:", status);
         console.log("Error data:", data);
-
+        console.log("error => ", error)
+        const newError = {...error, duration: 0}
+        const endTime = new Date()
+        newError.duration = endTime - error?.config?.metadata?.startTime
         if (status === 401) {
             const isLoginPage = window.location.pathname.includes("/login") || window.location.hash.includes("/login");
             console.log("Is on login page?", isLoginPage);
@@ -88,7 +86,7 @@ axios.interceptors.response.use(
             console.error("API Error:", data?.message || error.message || "An error occurred");
         }
 
-        return Promise.reject(error);
+        return Promise.reject(newError);
     }
 );
 

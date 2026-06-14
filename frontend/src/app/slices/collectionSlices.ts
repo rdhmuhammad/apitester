@@ -1,4 +1,4 @@
-import type {CollectionAuth, CollectionItem, CollectionVar} from "@/pages/editor/types/api.ts";
+import type {CollectionAuth, CollectionInfo, CollectionItem, CollectionVar} from "@/pages/editor/types/api.ts";
 import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import type {RootState} from "@/app/store/store.ts";
 import {isArrayEmpty} from "@/lib/utils.ts";
@@ -94,6 +94,11 @@ const collectionSlices = createSlice({
 
             state.activeRequest[currentIndex].response = action.payload.response
         },
+        setCollectionInfo(state, action: PayloadAction<CollectionInfo>) {
+            if (!state.data) return
+
+            state.data.info = action.payload
+        },
         addVariable(state, action: PayloadAction<CollectionVar>) {
             state.variable.push(action.payload)
             syncCollectionVariables(state)
@@ -174,6 +179,7 @@ export const {
     setActiveTree,
     setCurrentRequest,
     setCurrentResponse,
+    setCollectionInfo,
     addVariable,
     removeVariable,
     addBaseUrl,
@@ -187,6 +193,9 @@ export type {ColtReqMethod, DirTree} from "@/app/slices/index.ts"
 export const selectVariable = (state: RootState): CollectionVar[] => state.collection?.variable ?? []
 
 export const selectAuth = (state: RootState): CollectionAuth  => state.collection?.data?.auth ?? {type: 'string'}
+
+export const selectCollectionInfo = (state: RootState): CollectionInfo | null =>
+    state.collection?.data?.info ?? null
 
 export const selectBaseUrl = (state: RootState): CollectionVar[] => state.collection?.baseUrl ?? []
 

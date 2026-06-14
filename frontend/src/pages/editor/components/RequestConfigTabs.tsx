@@ -10,13 +10,12 @@ import {cn, getIPAddress} from "@/lib/utils.ts";
 import {AuthDropdownOps, AuthLabel, type AuthType} from "@/pages/editor/components/RequestConfig/AuthContent.tsx";
 
 // Third Party Import
-import {Clock3, Eye, EyeOff, FileJson2, FileText, ToggleLeft, ToggleRight} from "lucide-react";
+import {Eye, EyeOff, FileJson2, FileText, ToggleLeft, ToggleRight} from "lucide-react";
 import {selectAuth, selectSelectedRequest} from "@/app/slices/collectionSlices.ts";
 import {
     removeHeader,
     selectHeader,
     selectReqParam,
-    selectRequestBody,
     updateHeader,
     updateQueryParam
 } from "@/app/slices/requestSlices.ts";
@@ -39,15 +38,7 @@ const IndicatorConfigTabs: React.FC = () => {
 
     })
 
-    const headers = useAppSelector((state) => {
-        const header = selectHeader(state).map((item) => ({...item}));
-        const auth = selectAuth(state);
-        if (auth.bearer && auth.bearer.length > 0) {
-            header.push({key: 'Authorization', value: auth.bearer[0].value})
-        }
 
-        return header
-    })
     const rootAuth = useAppSelector(selectAuth)
 
     // ===============> Authorization
@@ -61,12 +52,15 @@ const IndicatorConfigTabs: React.FC = () => {
                 }
             }))
         } else if (authValue === 'bearer') {
+            dispatch(removeHeader({key: 'Authorization'}))
             dispatch(updateHeader({header: {key: 'Authorization', value: ''}}))
         } else if (authValue === 'none') {
-            dispatch(removeHeader({key: "Authorization"}))
+            dispatch(removeHeader({key: 'Authorization'}))
         }
     }, [authValue]);
 
+    // ===============> Headers
+    const headers = useAppSelector(selectHeader)
 
     const [showSysHeader, setShowSysHeader] = useState(false)
     const sysHeader: ItemUrl[] = [
@@ -101,13 +95,13 @@ const IndicatorConfigTabs: React.FC = () => {
                     <h2 className="text-sm font-semibold text-slate-800">Request Configuration</h2>
                     <p className="text-xs text-slate-500">Manage query params, auth, headers, and payload.</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Connected</Badge>
-                    <Badge variant="outline" className="text-slate-600">
-                        <Clock3 className="mr-1 h-3.5 w-3.5"/>
-                        Last run 4m ago
-                    </Badge>
-                </div>
+                {/*<div className="flex items-center gap-2">*/}
+                {/*    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Connected</Badge>*/}
+                {/*    <Badge variant="outline" className="text-slate-600">*/}
+                {/*        <Clock3 className="mr-1 h-3.5 w-3.5"/>*/}
+                {/*        Last run 4m ago*/}
+                {/*    </Badge>*/}
+                {/*</div>*/}
             </div>
             <Tabs defaultValue="params" className="gap-0">
                 <div className="border-b border-slate-200 px-4 pt-3">
