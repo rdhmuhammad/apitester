@@ -6,6 +6,17 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
+export function getJsonSizeInKB(data: Record<string, any> | string): string {
+    // 1. Ensure the data is serialized into a JSON string
+    const jsonString = typeof data === 'string' ? data : JSON.stringify(data);
+
+    // 2. Convert to UTF-8 bytes and count the bytes
+    const bytes = new TextEncoder().encode(jsonString).length;
+
+    // 3. Convert bytes to Kilobytes
+    return (bytes / 1024).toFixed(3);
+}
+
 export const getContentType = (currRequest: CollectionItem | null) => {
     if (!currRequest) return '';
     let header = currRequest?.request

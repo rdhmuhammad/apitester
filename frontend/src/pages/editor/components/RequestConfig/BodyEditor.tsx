@@ -8,23 +8,23 @@ import {cn} from "@/lib/utils.ts";
 import React, {useEffect, useRef, useState} from "react";
 import type {IAceEditor} from "react-ace/lib/types";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
+import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
+import {selectRequestBody, setBody} from "@/app/slices/requestSlices.ts";
 
 export type ContentType = "application/json" | "multipart/form-data";
 
 interface IBodyEditor {
     contentType: ContentType
-    bodyJSON: string
-    multipart: ItemUrl[]
-    handleUpdateBody: (body: string | ItemUrl[]) => void
 }
 
 export const BodyEditor: React.FC<IBodyEditor> = (
     {
         contentType,
-        bodyJSON,
-        multipart,
-        handleUpdateBody
     }) => {
+
+    const selectBody = useAppSelector(selectRequestBody);
+    const dispatch = useAppDispatch()
+
     type MenuState = {
         open: boolean;
         x: number;
@@ -33,12 +33,34 @@ export const BodyEditor: React.FC<IBodyEditor> = (
     }
 
     const editorRef = useRef<IAceEditor | null>(null)
+    const editorContainerRef = useRef<HTMLDivElement | null>(null)
+    const [editorHeight, setEditorHeight] = useState(280)
     const [menu, setMenu] = useState<MenuState>({
         open: false,
         x: 0,
         y: 0,
         selectedText: ""
     })
+
+    useEffect(() => {
+        const container = editorContainerRef.current
+        if (!container) return
+
+        setEditorHeight(container.clientHeight)
+
+        const resizeObserver = new ResizeObserver((entries) => {
+            const nextHeight = entries[0]?.contentRect.height
+            if (!nextHeight) return
+            setEditorHeight(nextHeight)
+            editorRef.current?.editor.resize()
+        })
+
+        resizeObserver.observe(container)
+
+        return () => {
+            resizeObserver.disconnect()
+        }
+    }, [])
 
     const onClosePopup = () => {
         setMenu((m) => (m.open ? {...m, open: false} : m))
@@ -75,18 +97,18 @@ export const BodyEditor: React.FC<IBodyEditor> = (
     );
 
     const toggleMultipartField = (field: keyof ItemUrl, pKey: string) => {
-        multipart.forEach((item) => {
+        const body = (selectBody?.formdata ?? []).map((item) => {
             if (item.key !== pKey) return item;
             const nextValue =
                 field === "disabled"
-                    ? !item[field] :
-                    item[field] === "text" ? "file" : "text"
+                    ? !item[field]
+                    : item[field] === "text" ? "file" : "text"
             return {
                 ...item,
                 [field]: nextValue
             };
         })
-        handleUpdateBody(multipart)
+        dispatch(setBody({body: body}))
     }
 
     switch (contentType) {
@@ -94,6 +116,8 @@ export const BodyEditor: React.FC<IBodyEditor> = (
             return (
                 <div className="relative rounded-lg overflow-hidden">
                     <div
+                        ref={editorContainerRef}
+                        className="min-h-[280px] resize-y overflow-auto rounded-lg border border-slate-200"
                         onClick={menu.open ? onClosePopup : undefined}
                     >
                         <AceEditor
@@ -102,15 +126,16 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                             theme="github"
                             name="blah2"
                             fontSize={14}
-                            width="full"
+                            width="100%"
+                            height={`${editorHeight}px`}
                             lineHeight={19}
                             onLoad={onEditorLoad}
-                            onChange={e=>{
-                                handleUpdateBody(e)
+                            onChange={e => {
+                                dispatch(setBody({body: e}))
                             }}
                             showPrintMargin={true}
                             showGutter={true}
-                            value={bodyJSON ?? ""}
+                            value={selectBody?.raw ?? ""}
                             highlightActiveLine={true}
                             setOptions={{
                                 enableBasicAutocompletion: false,
@@ -171,7 +196,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                         <span className="col-span-3">Value</span>
                         <span className="col-span-4">Description</span>
                     </div>
-                    {multipart ? multipart.map((item) => (
+                    {selectBody?.formdata && selectBody?.formdata.map((item) => (
                         <div key={item.key}
                              className={cn(
                                  "grid grid-cols-12 border-t border-slate-200 px-3 py-2",
@@ -195,13 +220,13 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                         value={item.value}
                                         type={item.type}
                                         onChange={(event) => {
-                                            multipart.forEach((param) =>
+                                            const body = (selectBody?.formdata ?? []).map((param) =>
                                                 param.key === item.key ? {
                                                     ...param,
                                                     value: event.target.value
                                                 } : param
                                             )
-                                            handleUpdateBody(multipart)
+                                            dispatch(setBody({body: body}))
                                         }}
                                         className={cn(
                                             "h-8 flex-1 border-0 bg-transparent rounded-none shadow-none focus-visible:ring-0 focus-visible:border-0",
@@ -252,7 +277,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                 </Button>
                             </div>
                         </div>
-                    )) : <></>}
+                    ))}
                 </div>
             )
         default:

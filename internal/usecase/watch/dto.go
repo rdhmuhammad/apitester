@@ -11,6 +11,7 @@ type ReadResponse struct {
 type DocsContent struct {
 	Info     CollectionInfo   `json:"info"`
 	Item     []CollectionItem `json:"item"`
+	Auth     *CollectionAuth  `json:"auth,omitempty"`
 	Variable []CollectionVar  `json:"variable"`
 }
 
@@ -52,9 +53,21 @@ type RequestBody struct {
 }
 
 type RequestURL struct {
-	Raw  string   `json:"raw"`
-	Host []string `json:"host"`
-	Path []string `json:"path"`
+	Raw   string     `json:"raw"`
+	Host  []string   `json:"host"`
+	Path  []string   `json:"path"`
+	Query []Property `json:"query"`
+}
+
+type CollectionAuth struct {
+	Type   string     `json:"type"`
+	Bearer []Property `json:"bearer,omitempty"`
+}
+
+type Property struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+	Type  string `json:"type,omitempty"`
 }
 
 type CollectionEvent struct {

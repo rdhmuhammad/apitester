@@ -50,6 +50,7 @@
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "i18next": "^25.3.2",
+    "immer": "^11.1.8",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.533.0",
     "moment": "^2.30.1",

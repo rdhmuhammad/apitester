@@ -5,21 +5,12 @@ import {Download, Link2, Lock} from "lucide-react";
 import {Textarea} from "@/components/ui/textarea.tsx";
 import {useAppSelector} from "@/app/store/hooks.ts";
 import {selectResponse} from "@/app/slices/collectionSlices.ts";
-import {useEffect, useMemo, useState} from "react";
+import {useMemo} from "react";
 import AceEditor from "react-ace";
 
 import 'ace-builds/src-noconflict/theme-monokai.js'
-import type {SendResponse} from "@/types/response.ts";
-
 const ResponseView: React.FC = () => {
     const currResponse = useAppSelector(selectResponse)
-
-    useEffect(() => {
-        if (currResponse){
-            setResponse(currResponse)
-        }
-        console.log(response)
-    }, [currResponse]);
 
     const formatJson = (value: string) => {
         if (!value) return "";
@@ -31,12 +22,7 @@ const ResponseView: React.FC = () => {
         }
     };
 
-    const [response, setResponse] = useState<SendResponse>({
-        statusCode: 200,
-        statusText: 'OK',
-        data: {}
-    })
-    const prettyResponse = useMemo(() => formatJson(JSON.stringify(response?.data)), [response]);
+    const prettyResponse = useMemo(() => formatJson(JSON.stringify(currResponse?.data)), [currResponse]);
 
     return (
         <section
@@ -47,9 +33,9 @@ const ResponseView: React.FC = () => {
                     <Badge className={currResponse?.statusCode === 200? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{`${currResponse?.statusCode ?? 200} ${currResponse?.statusText ?? 'OK'}`}</Badge>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <span>412 ms</span>
-                    <span>3.1 KB</span>
-                    <span>HTTP/1.1</span>
+                    <span>{currResponse?.responseTime ?? 0} ms</span>
+                    <span>{currResponse?.responseSize ?? 0} kb</span>
+                    <span>{currResponse?.protocol}</span>
                 </div>
             </div>
             <Tabs defaultValue="pretty" className="flex-1 overflow-hidden p-4">
@@ -104,13 +90,8 @@ const ResponseView: React.FC = () => {
                 <TabsContent value="raw" className="h-[calc(100%-3.2rem)]">
                     <Textarea
                         className="h-full min-h-[220px] resize-none font-mono text-sm"
-                        value={JSON.stringify(response?.data)}
-                        onChange={(val) => {
-                            setResponse((prev=>({
-                                ...prev,
-                                data: JSON.parse(val.target.value)
-                            })))
-                        }}
+                        value={JSON.stringify(currResponse?.data)}
+                        disabled
                     />
                 </TabsContent>
 

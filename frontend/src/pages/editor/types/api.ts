@@ -1,3 +1,5 @@
+import type {SendResponse} from "@/types/response.ts";
+import type {ColtBodyType} from "@/app/slices";
 
 export interface GetCollectionResponse {
   changed: boolean;
@@ -8,6 +10,7 @@ export interface GetCollectionResponse {
 export interface DocsContent {
   info: CollectionInfo;
   item: CollectionItem[];
+  auth?: CollectionAuth;
   variable: CollectionVar[];
 }
 
@@ -19,18 +22,18 @@ export interface CollectionInfo {
 }
 
 export interface CollectionItem {
-  funIden: string;
+  funIden?: string;
   name: string;
   item?: CollectionItem[];
   request?: Request;
-  response?: unknown[];
+  response?: SendResponse;
   event?: CollectionEvent[];
   id: string;
   description?: string;
 }
 
 export interface Request {
-  funIden: string;
+  funIden?: string;
   method: string;
   header: ItemUrl[];
   body?: RequestBody;
@@ -39,7 +42,7 @@ export interface Request {
 }
 
 export interface RequestBody {
-  mode: string;
+  mode: ColtBodyType;
   raw?: string;
   formdata?: ItemUrl[]
 }
@@ -58,6 +61,17 @@ export interface RequestURL {
   host: string[];
   path: string[];
   query: ItemUrl[];
+}
+
+export interface CollectionAuth {
+  type: string;
+  bearer?: AuthProperty[];
+}
+
+export interface AuthProperty {
+  key: string;
+  value: string;
+  type: string;
 }
 
 export interface CollectionEvent {

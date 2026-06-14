@@ -1,5 +1,8 @@
 import {type Action, configureStore, type ThunkAction} from "@reduxjs/toolkit";
+import {enableMapSet} from "immer";
 import collectionReducer from "@/app/slices/collectionSlices.ts";
+
+enableMapSet();
 
 export const store = configureStore({
     reducer: {
