@@ -94,6 +94,32 @@ const collectionSlices = createSlice({
 
             state.activeRequest[currentIndex].response = action.payload.response
         },
+        setSelectedRequestScript(state, action: PayloadAction<{ script: string }>) {
+            if (!state.data?.item || !state.selectedRequestId) return
+
+            const selected = diveActiveRequest(state.selectedRequestId, state.data.item)
+            if (!selected) return
+
+            if (!selected.event?.length) {
+                selected.event = [{
+                    listen: 'test',
+                    script: {
+                        exec: action.payload.script.split('\n'),
+                        type: 'text/javascript'
+                    }
+                }]
+                return
+            }
+
+            selected.event[0] = {
+                ...selected.event[0],
+                script: {
+                    ...selected.event[0].script,
+                    exec: action.payload.script.split('\n'),
+                    type: selected.event[0].script?.type ?? 'text/javascript'
+                }
+            }
+        },
         setCollectionInfo(state, action: PayloadAction<CollectionInfo>) {
             if (!state.data) return
 
@@ -179,6 +205,7 @@ export const {
     setActiveTree,
     setCurrentRequest,
     setCurrentResponse,
+    setSelectedRequestScript,
     setCollectionInfo,
     addVariable,
     removeVariable,
@@ -207,6 +234,12 @@ export const selectSelectedRequestId = (state: RootState): string =>
 
 export const selectSelectedRequest = (state: RootState): ActiveItem | null => {
     return getActiveRequestById(state, state.collection?.selectedRequestId)
+}
+
+export const selectSelectedRequestScript = (state: RootState): string => {
+    const selectedRequest = selectRequest(state)
+    const exec = selectedRequest?.event?.[0]?.script?.exec ?? []
+    return exec.join('\n')
 }
 
 export const selectActiveRequest = (state: RootState): ActiveItem[] => state.collection?.activeRequest ?? []

@@ -209,7 +209,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     className="bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap"
                 >
                     <Send className="h-4 w-4 mr-2"/>
-                    Send Request & Save
+                    Send Request
                 </Button>
             </div>
             <AlertDialog open={Boolean(gitAction)} onOpenChange={(open) => !open && setGitAction(null)}>

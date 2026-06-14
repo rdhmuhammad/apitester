@@ -11,7 +11,7 @@ import {AuthDropdownOps, AuthLabel, type AuthType} from "@/pages/editor/componen
 
 // Third Party Import
 import {Eye, EyeOff, FileJson2, FileText, ToggleLeft, ToggleRight} from "lucide-react";
-import {selectAuth, selectSelectedRequest} from "@/app/slices/collectionSlices.ts";
+import {selectAuth, selectRequest} from "@/app/slices/collectionSlices.ts";
 import {
     removeHeader,
     selectHeader,
@@ -21,12 +21,13 @@ import {
 } from "@/app/slices/requestSlices.ts";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
 import {BodyEditor, type ContentType} from "@/pages/editor/components/RequestConfig/BodyEditor.tsx";
+import ScriptEditor from "@/pages/editor/components/RequestConfig/ScriptEditor.tsx";
 
 // Data Store import
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 
 const IndicatorConfigTabs: React.FC = () => {
-    const currRequest = useAppSelector(selectSelectedRequest)
+    const currRequest = useAppSelector(selectRequest)
     const dispatch = useAppDispatch()
 
 
@@ -110,6 +111,7 @@ const IndicatorConfigTabs: React.FC = () => {
                         <TabsTrigger value="auth">Authorization</TabsTrigger>
                         <TabsTrigger value="headers">Headers</TabsTrigger>
                         <TabsTrigger value="body">Body</TabsTrigger>
+                        <TabsTrigger value="scripts">Scripts</TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -269,6 +271,12 @@ const IndicatorConfigTabs: React.FC = () => {
                         <BodyEditor
                             contentType={contentType}
                         />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="scripts" className="p-4">
+                    <div className="space-y-3">
+                        <ScriptEditor/>
                     </div>
                 </TabsContent>
             </Tabs>
