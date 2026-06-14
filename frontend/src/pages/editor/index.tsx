@@ -121,7 +121,7 @@ const Editor: React.FC = () => {
                         ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')
                     }>
                     <RequestConfigTabs/>
-                    <div className="border-t border-slate-200 bg-slate-50/60 p-3">
+                    <div className="pt-3">
                         <ResponseView/>
                     </div>
                 </div>

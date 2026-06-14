@@ -5,7 +5,7 @@ import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import CustomToast from "@/components/common/toast";
 import {cn} from "@/lib/utils.ts";
-import React, {useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import type {IAceEditor} from "react-ace/lib/types";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
@@ -33,12 +33,34 @@ export const BodyEditor: React.FC<IBodyEditor> = (
     }
 
     const editorRef = useRef<IAceEditor | null>(null)
+    const editorContainerRef = useRef<HTMLDivElement | null>(null)
+    const [editorHeight, setEditorHeight] = useState(280)
     const [menu, setMenu] = useState<MenuState>({
         open: false,
         x: 0,
         y: 0,
         selectedText: ""
     })
+
+    useEffect(() => {
+        const container = editorContainerRef.current
+        if (!container) return
+
+        setEditorHeight(container.clientHeight)
+
+        const resizeObserver = new ResizeObserver((entries) => {
+            const nextHeight = entries[0]?.contentRect.height
+            if (!nextHeight) return
+            setEditorHeight(nextHeight)
+            editorRef.current?.editor.resize()
+        })
+
+        resizeObserver.observe(container)
+
+        return () => {
+            resizeObserver.disconnect()
+        }
+    }, [])
 
     const onClosePopup = () => {
         setMenu((m) => (m.open ? {...m, open: false} : m))
@@ -94,6 +116,8 @@ export const BodyEditor: React.FC<IBodyEditor> = (
             return (
                 <div className="relative rounded-lg overflow-hidden">
                     <div
+                        ref={editorContainerRef}
+                        className="min-h-[280px] resize-y overflow-auto rounded-lg border border-slate-200"
                         onClick={menu.open ? onClosePopup : undefined}
                     >
                         <AceEditor
@@ -102,7 +126,8 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                             theme="github"
                             name="blah2"
                             fontSize={14}
-                            width="full"
+                            width="100%"
+                            height={`${editorHeight}px`}
                             lineHeight={19}
                             onLoad={onEditorLoad}
                             onChange={e => {
