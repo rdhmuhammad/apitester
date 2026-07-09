@@ -1,6 +1,7 @@
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
 import axios from "@/config/axios.ts";
 import type {SendResponse} from "@/types/response.ts";
+import type {AxiosResponse} from "axios";
 
 export interface ISendRequest {
     baseUrl: string
@@ -11,6 +12,10 @@ export interface ISendRequest {
     contentType: string
     raw?: string
     formData?: ItemUrl[]
+}
+
+type AxiosResponseWithDuration<T = unknown> = AxiosResponse<T> & {
+    duration?: number
 }
 
 const formData = (request: ItemUrl[]): FormData => {
@@ -47,10 +52,13 @@ export const useSendRequest = async (request: ISendRequest):Promise<SendResponse
             ? request.raw ?? "" :
             formData(request.formData ?? []),
         responseType: "json",
-    })
+    }) as AxiosResponseWithDuration
 
     console.log(response)
     return Promise.resolve({
+        protocol: "HTTP/1.1",
+        responseTime: response.duration ?? 0,
+        responseSize: JSON.stringify(response?.data ?? {}).length.toString(),
         statusCode: response?.status ?? 0,
         statusText: response?.statusText ?? 'UNKNOWN',
         data: response?.data ?? {}

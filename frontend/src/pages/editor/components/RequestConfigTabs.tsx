@@ -10,10 +10,13 @@ import {cn, getIPAddress} from "@/lib/utils.ts";
 import {AuthDropdownOps, AuthLabel, type AuthType} from "@/pages/editor/components/RequestConfig/AuthContent.tsx";
 
 // Third Party Import
-import {Eye, EyeOff, FileJson2, FileText, ToggleLeft, ToggleRight} from "lucide-react";
+import {Eye, EyeOff, FileJson2, FileText, Plus, ToggleLeft, ToggleRight, Trash2} from "lucide-react";
 import {selectAuth, selectRequest} from "@/app/slices/collectionSlices.ts";
 import {
+    addHeader,
+    addQueryParam,
     removeHeader,
+    removeQueryParam,
     selectHeader,
     selectReqParam,
     updateHeader,
@@ -77,6 +80,15 @@ const IndicatorConfigTabs: React.FC = () => {
         return [...headers, ...sysHeader]
     }, [headers, showSysHeader])
 
+    // ===============> Add Param State
+    const [newParamKey, setNewParamKey] = useState("")
+    const [newParamValue, setNewParamValue] = useState("")
+    const [newParamDesc, setNewParamDesc] = useState("")
+
+    // ===============> Add Header State
+    const [newHeaderKey, setNewHeaderKey] = useState("")
+    const [newHeaderValue, setNewHeaderValue] = useState("")
+
     // ===============> Request Body
     const [contentType, setContentType] = useState<ContentType>("application/json")
     useEffect(() => {
@@ -123,12 +135,13 @@ const IndicatorConfigTabs: React.FC = () => {
                             <span className="col-span-3">Key</span>
                             <span className="col-span-3">Value</span>
                             <span className="col-span-4">Description</span>
+                            <span className="col-span-2"/>
                         </div>
                         {currRequest?.request?.url?.query?.map((item) => (
                             <div key={item.key}
                                  className={cn(
-                                     "grid grid-cols-12 border-t border-slate-200 px-3 py-2",
-                                     item.disabled ? "bg-gray-400" : "bg-white-300"
+                                     "grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center",
+                                     item.disabled && "opacity-50"
                                  )}>
                                 <div className="col-span-3">
                                     <Input
@@ -148,12 +161,18 @@ const IndicatorConfigTabs: React.FC = () => {
                                         disabled={item.disabled}
                                     />
                                 </div>
-                                <div className="col-span-5 pl-3 flex items-center justify-start">
-                                    <p className="text-gray-500 text-[12px]">
-                                        {item.description}
-                                    </p>
+                                <div className="col-span-4 pl-3 flex items-center justify-start">
+                                    <Input
+                                        value={item.description ?? ""}
+                                        onChange={(event) => dispatch(updateQueryParam({
+                                            query: {...item, description: event.target.value}
+                                        }))}
+                                        className="h-8 bg-white text-xs text-gray-500"
+                                        disabled={item.disabled}
+                                        placeholder="description"
+                                    />
                                 </div>
-                                <div className="col-span-1 pl-3 flex justify-end">
+                                <div className="col-span-2 pl-3 flex items-center justify-end gap-1">
                                     <Button
                                         type="button"
                                         variant="outline"
@@ -164,7 +183,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                                 disabled: !item.disabled
                                             }
                                         }))}
-                                        className="h-8 justify-center self-end"
+                                        className="h-8 w-8 p-0"
                                     >
                                         {enabledParams[item.key] ? (
                                             <ToggleRight className="h-4 w-4 text-emerald-600"/>
@@ -172,9 +191,68 @@ const IndicatorConfigTabs: React.FC = () => {
                                             <ToggleLeft className="h-4 w-4 text-slate-400"/>
                                         )}
                                     </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => dispatch(removeQueryParam({key: item.key}))}
+                                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                        <Trash2 className="h-4 w-4"/>
+                                    </Button>
                                 </div>
                             </div>
                         ))}
+                        {/* Add Param Row */}
+                        <div className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center gap-2">
+                            <div className="col-span-3">
+                                <Input
+                                    value={newParamKey}
+                                    onChange={(e) => setNewParamKey(e.target.value)}
+                                    className="h-8"
+                                    placeholder="key"
+                                />
+                            </div>
+                            <div className="col-span-3">
+                                <Input
+                                    value={newParamValue}
+                                    onChange={(e) => setNewParamValue(e.target.value)}
+                                    className="h-8"
+                                    placeholder="value"
+                                />
+                            </div>
+                            <div className="col-span-4">
+                                <Input
+                                    value={newParamDesc}
+                                    onChange={(e) => setNewParamDesc(e.target.value)}
+                                    className="h-8 text-xs"
+                                    placeholder="description"
+                                />
+                            </div>
+                            <div className="col-span-2 flex justify-end">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        if (!newParamKey.trim()) return
+                                        dispatch(addQueryParam({
+                                            query: {
+                                                key: newParamKey.trim(),
+                                                value: newParamValue,
+                                                description: newParamDesc,
+                                            }
+                                        }))
+                                        setNewParamKey("")
+                                        setNewParamValue("")
+                                        setNewParamDesc("")
+                                    }}
+                                    className="h-8 w-8 p-0"
+                                >
+                                    <Plus className="h-4 w-4"/>
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </TabsContent>
 
@@ -225,21 +303,79 @@ const IndicatorConfigTabs: React.FC = () => {
                     </Button>
                     <div className="overflow-hidden rounded-lg border border-slate-200">
                         <div
-                            className="grid grid-cols-8 bg-slate-100 px-3 py-2 text-xs font-medium uppercase tracking-wide text-slate-600">
-                            <span className="col-span-3">Header</span>
+                            className="grid grid-cols-12 bg-slate-100 px-3 py-2 text-xs font-medium uppercase tracking-wide text-slate-600">
+                            <span className="col-span-5">Header</span>
                             <span className="col-span-5">Value</span>
+                            <span className="col-span-2"/>
                         </div>
                         {headerShow.map((item) => (
                             <div key={item.key}
-                                 className="grid grid-cols-8 border-t border-slate-200 px-3 py-2">
-                                <div className="col-span-3">
+                                 className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center">
+                                <div className="col-span-5">
                                     <Input value={item.key} readOnly className="h-8 bg-white"/>
                                 </div>
                                 <div className="col-span-5 pl-3">
-                                    <Input value={item.value} readOnly className="h-8 bg-white"/>
+                                    <Input
+                                        value={item.value}
+                                        onChange={(event) => dispatch(updateHeader({
+                                            header: {...item, value: event.target.value}
+                                        }))}
+                                        className="h-8 bg-white"
+                                    />
+                                </div>
+                                <div className="col-span-2 pl-3 flex justify-end">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => dispatch(removeHeader({key: item.key}))}
+                                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                        <Trash2 className="h-4 w-4"/>
+                                    </Button>
                                 </div>
                             </div>
                         ))}
+                        {/* Add Header Row */}
+                        <div className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center gap-2">
+                            <div className="col-span-5">
+                                <Input
+                                    value={newHeaderKey}
+                                    onChange={(e) => setNewHeaderKey(e.target.value)}
+                                    className="h-8"
+                                    placeholder="header key"
+                                />
+                            </div>
+                            <div className="col-span-5">
+                                <Input
+                                    value={newHeaderValue}
+                                    onChange={(e) => setNewHeaderValue(e.target.value)}
+                                    className="h-8"
+                                    placeholder="header value"
+                                />
+                            </div>
+                            <div className="col-span-2 flex justify-end">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        if (!newHeaderKey.trim()) return
+                                        dispatch(addHeader({
+                                            header: {
+                                                key: newHeaderKey.trim(),
+                                                value: newHeaderValue,
+                                            }
+                                        }))
+                                        setNewHeaderKey("")
+                                        setNewHeaderValue("")
+                                    }}
+                                    className="h-8 w-8 p-0"
+                                >
+                                    <Plus className="h-4 w-4"/>
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </TabsContent>
 

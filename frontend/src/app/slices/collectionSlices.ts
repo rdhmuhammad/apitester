@@ -1,4 +1,4 @@
-import type {CollectionAuth, CollectionInfo, CollectionItem, CollectionVar} from "@/pages/editor/types/api.ts";
+import type {CollectionAuth, CollectionInfo, CollectionItem, CollectionVar, DocsContent} from "@/pages/editor/types/api.ts";
 import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import type {RootState} from "@/app/store/store.ts";
 import {isArrayEmpty} from "@/lib/utils.ts";
@@ -40,6 +40,8 @@ import {
     updateUrlPathReducer,
 } from "@/app/slices/requestSlices.ts";
 
+const DEFAULT_BASE_URL_VALUE = "__CURRENT_ORIGIN__"
+
 const collectionSlices = createSlice({
     name: 'collections',
     initialState,
@@ -53,7 +55,8 @@ const collectionSlices = createSlice({
             state.activeRequest.push({
                 id: action.payload.id,
                 request: selected.request,
-                response: selected.response ?? null,
+                response: null,
+                exampleResponse: selected.response,
             })
             state.selectedRequestId = action.payload.id
         },
@@ -75,7 +78,8 @@ const collectionSlices = createSlice({
                 state.activeRequest.push({
                     id: action.payload.id,
                     request: action.payload.request ?? null,
-                    response: action.payload.response ?? null,
+                    response: null,
+                    exampleResponse: action.payload.response,
                 })
                 if (!state.selectedRequestId) {
                     state.selectedRequestId = action.payload.id
@@ -85,7 +89,7 @@ const collectionSlices = createSlice({
 
             state.activeRequest[currentIndex].request = action.payload.request ?? null
             if (action.payload.response) {
-                state.activeRequest[currentIndex].response = action.payload.response
+                state.activeRequest[currentIndex].exampleResponse = action.payload.response
             }
         },
         setCurrentResponse(state, action: PayloadAction<{ id: string; response: SendResponse | null }>) {
@@ -169,7 +173,7 @@ const collectionSlices = createSlice({
                 state.baseUrl = reduced?.baseUrl ?? [{
                     id: 'base_url',
                     key: 'base_url',
-                    value: 'http://localhost:8080',
+                    value: DEFAULT_BASE_URL_VALUE,
                     category: 'BASE_URL',
                     type: 'string'
                 }]
@@ -224,10 +228,13 @@ export const selectAuth = (state: RootState): CollectionAuth  => state.collectio
 export const selectCollectionInfo = (state: RootState): CollectionInfo | null =>
     state.collection?.data?.info ?? null
 
+export const selectCollectionData = (state: RootState): DocsContent | null =>
+    state.collection?.data ?? null
+
 export const selectBaseUrl = (state: RootState): CollectionVar[] => state.collection?.baseUrl ?? []
 
 export const selectBaseUrlValues = (state: RootState): string[] =>
-    selectBaseUrl(state).map((item) => item.value)
+    selectBaseUrl(state).map((item) => resolveBaseUrlValue(item.value))
 
 export const selectSelectedRequestId = (state: RootState): string =>
     state.collection?.selectedRequestId ?? ''
@@ -278,14 +285,14 @@ const buildSelectedRequest = (state: RootState, current: ActiveItem): Collection
             id: current.id,
             name: '',
             request: current.request ?? undefined,
-            response: current.response ?? undefined,
+            response: current.exampleResponse,
         }
     }
 
     return {
         ...collectionItem,
         request: current.request ?? collectionItem.request,
-        response: current.response ?? collectionItem.response,
+        response: current.exampleResponse ?? collectionItem.response,
     }
 }
 
@@ -343,6 +350,34 @@ const getActiveRequestById = (state: RootState, id: string): ActiveItem | null =
 
 const isBaseUrlVariable = (item: CollectionVar) =>
     item.key.toLowerCase().includes('base_url') || item.category?.toUpperCase() === 'BASE_URL'
+
+const resolveBaseUrlValue = (value: string): string => {
+    if (typeof window === 'undefined') {
+        return value === DEFAULT_BASE_URL_VALUE ? '' : value
+    }
+
+    const browserOrigin = window.location.origin
+    if (value === DEFAULT_BASE_URL_VALUE || !value.trim()) {
+        return browserOrigin
+    }
+
+    try {
+        const currentUrl = new URL(browserOrigin)
+        const resolvedUrl = new URL(value)
+        const isBrowserLocal =
+            currentUrl.hostname === 'localhost' || currentUrl.hostname === '127.0.0.1'
+        const isResolvedLocal =
+            resolvedUrl.hostname === 'localhost' || resolvedUrl.hostname === '127.0.0.1'
+
+        if (!isBrowserLocal && isResolvedLocal) {
+            return browserOrigin
+        }
+    } catch (_) {
+        return value
+    }
+
+    return value
+}
 
 const syncCollectionVariables = (state: typeof initialState) => {
     if (!state.data) return

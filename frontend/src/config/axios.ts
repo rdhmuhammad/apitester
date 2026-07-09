@@ -1,12 +1,11 @@
 import Axios from "axios";
-import { getTimestamp, makeSignature } from "./signature";
-
 import { LOCALSTORAGE_KEY } from "./constant/localstorage";
 import { getData } from "@/hooks/useLocalStorage";
 import Swal from "sweetalert2";
+import type {AxiosError, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 
 export const axios = Axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
+    baseURL: import.meta.env.VITE_API_URL || "/api/v1",
 });
 
 
@@ -17,6 +16,25 @@ export interface ApiError {
     result: null;
 }
 
+type RequestMetadata = {
+    startTime: number
+    endTime?: number
+}
+
+type RequestConfigWithMetadata = InternalAxiosRequestConfig & {
+    metadata?: RequestMetadata
+}
+
+type AxiosResponseWithDuration<T = unknown> = AxiosResponse<T> & {
+    duration?: number
+    config: RequestConfigWithMetadata
+}
+
+type AxiosErrorWithDuration<T = unknown> = AxiosError<T> & {
+    duration?: number
+    config?: RequestConfigWithMetadata
+}
+
 // Add a request interceptor to add auth token and signature
 axios.interceptors.request.use(
     async (config) => {
@@ -25,8 +43,8 @@ axios.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
-        const newConfig = {...config}
-        newConfig.metadata  = {startTime: new Date()}
+        const newConfig = config as RequestConfigWithMetadata
+        newConfig.metadata = {startTime: Date.now()}
         return newConfig;
     },
     (error) => {
@@ -37,23 +55,23 @@ axios.interceptors.request.use(
 // Add a response interceptor to handle errors
 axios.interceptors.response.use(
     (response) => {
-        const newRes = { ...response }
-        // @ts-ignore
-        newRes.config.metadata.endTime = new Date()
-        newRes.duration =
-            newRes.config.metadata.endTime - newRes.config.metadata.startTime
-        return response
+        const newRes = response as AxiosResponseWithDuration
+        if (newRes.config.metadata) {
+            newRes.config.metadata.endTime = Date.now()
+            newRes.duration = newRes.config.metadata.endTime - newRes.config.metadata.startTime
+        }
+        return newRes
     },
     async (error) => {
+        const requestError = error as AxiosErrorWithDuration
         const status = error.response?.status;
         const data = error.response?.data;
 
         console.log("Interceptor status:", status);
         console.log("Error data:", data);
         console.log("error => ", error)
-        const newError = {...error, duration: 0}
-        const endTime = new Date()
-        newError.duration = endTime - error?.config?.metadata?.startTime
+        const startTime = requestError.config?.metadata?.startTime
+        requestError.duration = typeof startTime === "number" ? Date.now() - startTime : 0
         if (status === 401) {
             const isLoginPage = window.location.pathname.includes("/login") || window.location.hash.includes("/login");
             console.log("Is on login page?", isLoginPage);
@@ -86,7 +104,7 @@ axios.interceptors.response.use(
             console.error("API Error:", data?.message || error.message || "An error occurred");
         }
 
-        return Promise.reject(newError);
+        return Promise.reject(requestError);
     }
 );
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rdhmuhammad/apitester/pkg/localerror"
@@ -55,6 +56,71 @@ func (u *Usecase) Read() (ReadResponse, error) {
 		Changed:   changed,
 		UpdatedAt: updatedAt,
 	}, nil
+}
+
+func (u *Usecase) UpdateCollection(fileBytes []byte) error {
+	content := strings.TrimPrefix(string(fileBytes), "\uFEFF")
+
+	var updateReq UpdateRequest
+	if err := json.Unmarshal([]byte(content), &updateReq); err != nil {
+		return localerror.InvalidData("Invalid collection.json data")
+	}
+
+	if updateReq.Content.Info.Name == "" {
+		return localerror.InvalidData("Collection info name is required")
+	}
+
+	if len(updateReq.Content.Item) == 0 {
+		return localerror.InvalidData("Collection item is required")
+	}
+
+	raw, err := json.MarshalIndent(updateReq.Content, "", "  ")
+	if err != nil {
+		return u.errHandler.ErrorReturn(err)
+	}
+
+	return u.saveToFile(raw)
+}
+
+func (u *Usecase) UploadCollection(fileBytes []byte) error {
+	content := strings.TrimPrefix(string(fileBytes), "\uFEFF")
+
+	var docsContent DocsContent
+	if err := json.Unmarshal([]byte(content), &docsContent); err != nil {
+		return localerror.InvalidData("Invalid collection.json file")
+	}
+
+	if docsContent.Info.Name == "" {
+		return localerror.InvalidData("Collection info name is required")
+	}
+
+	if len(docsContent.Item) == 0 {
+		return localerror.InvalidData("Collection item is required")
+	}
+
+	return u.saveToFile([]byte(content))
+}
+
+func (u *Usecase) saveToFile(content []byte) error {
+	apiDocsPath := os.Getenv("API_DOCS")
+	if err := os.WriteFile(apiDocsPath, content, 0644); err != nil {
+		return u.errHandler.ErrorReturn(err)
+	}
+
+	info, err := os.Stat(apiDocsPath)
+	if err != nil {
+		return u.errHandler.ErrorReturn(err)
+	}
+
+	if u.watcher != nil && u.watcher.State != nil {
+		u.watcher.State.Update(string(content), info.ModTime())
+	}
+
+	if info.ModTime().IsZero() && u.watcher != nil && u.watcher.State != nil {
+		u.watcher.State.Update(string(content), time.Now())
+	}
+
+	return nil
 }
 
 func setId(item []CollectionItem) []CollectionItem {

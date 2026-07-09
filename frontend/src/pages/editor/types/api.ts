@@ -1,4 +1,3 @@
-import type {SendResponse} from "@/types/response.ts";
 import type {ColtBodyType} from "@/app/slices";
 
 export interface GetCollectionResponse {
@@ -26,10 +25,30 @@ export interface CollectionItem {
   name: string;
   item?: CollectionItem[];
   request?: Request;
-  response?: SendResponse;
+  response?: CollectionResponse[];
   event?: CollectionEvent[];
   id: string;
   description?: string;
+}
+
+export interface CollectionResponse {
+  name: string;
+  originalRequest?: Request;
+  status: string;
+  code: number;
+  _postman_previewlanguage?: string | null;
+  header: ItemUrl[];
+  cookie: ResponseCookie[];
+  body: string;
+}
+
+export interface ResponseCookie {
+  key: string;
+  value: string;
+  domain?: string;
+  path?: string;
+  secure?: boolean;
+  httpOnly?: boolean;
 }
 
 export interface Request {
