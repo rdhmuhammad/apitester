@@ -1,10 +1,7 @@
-
 import React from 'react';
 import {
-  Settings,
   UserCircle,
   Info,
-  HelpCircle,
   LogOut
 } from 'lucide-react';
 import {
@@ -14,19 +11,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ROUTES } from '@/config/constant/routes';
-import { useLogout } from '@/hooks/useLogout';
+import { LOCALSTORAGE_KEY } from '@/config/constant/localstorage';
 
 interface UserDropdownProps {
   trigger: React.ReactNode;
 }
 
 export const UserDropdown = ({ trigger }: UserDropdownProps) => {
-  const navigate = useNavigate()
-  const { handleLogout } = useLogout()
   const { t } = useTranslation()
+  const handleLogout = () => {
+    localStorage.removeItem(LOCALSTORAGE_KEY.TOKEN)
+    localStorage.removeItem(LOCALSTORAGE_KEY.USER)
+    window.location.href = "/"
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -35,7 +34,6 @@ export const UserDropdown = ({ trigger }: UserDropdownProps) => {
       <DropdownMenuContent className="w-56 bg-white" align="end">
         <DropdownMenuItem
           className="flex items-center py-2.5 px-3 cursor-pointer"
-          // onClick={() => navigate(`${ROUTES.ACCOUNT}`)}
         >
           <UserCircle className="mr-2 h-4 w-4" />
           <span>{t("general.account")}</span>
@@ -43,9 +41,6 @@ export const UserDropdown = ({ trigger }: UserDropdownProps) => {
         
         <DropdownMenuItem
           className="flex items-center py-2.5 px-3 cursor-pointer"
-          onClick={() => {
-            // navigate(`${ROUTES.LICENSE}`)
-          }}
         >
           <Info className="mr-2 h-4 w-4" />
           <span>{t("sidebar.license_information")}</span>

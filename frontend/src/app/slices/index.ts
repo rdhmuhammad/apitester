@@ -1,4 +1,4 @@
-import type {CollectionItem, CollectionVar, DocsContent, Request} from "@/pages/editor/types/api.ts";
+import type {CollectionItem, CollectionResponse, CollectionVar, DocsContent, Request} from "@/pages/editor/types/api.ts";
 import type {SendResponse} from "@/types/response.ts";
 import {createAppAsyncThunk} from "@/app/store/withTypes.ts";
 import {CollectionServices} from "@/layout/services/collection.ts";
@@ -32,6 +32,7 @@ export interface ActiveItem{
     id: string
     request: Request | null
     response: SendResponse | null
+    exampleResponse?: CollectionResponse[]
 }
 
 export const fetchCollections = createAppAsyncThunk(
