@@ -40,13 +40,12 @@ services:
 
   frontend:
     container_name: apitester-frontend
-    image: nginx:latest
+    build:
+      context: ..
+      dockerfile: deployment/frontend.Dockerfile
     restart: always
     ports:
       - "8088:8088"
-    volumes:
-      - ../frontend/build:/usr/share/nginx/html/build
-      - ./nginx.conf:/etc/nginx/nginx.conf
     networks:
       - frontend
 

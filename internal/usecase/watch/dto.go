@@ -23,14 +23,34 @@ type CollectionInfo struct {
 }
 
 type CollectionItem struct {
-	FunIden     string            `json:"funIden"`
-	Name        string            `json:"name"`
-	Item        []CollectionItem  `json:"item,omitempty"`
-	Request     *Request          `json:"request,omitempty"`
-	Response    []any             `json:"response,omitempty"`
-	Event       []CollectionEvent `json:"event,omitempty"`
-	ID          string            `json:"id"`
-	Description string            `json:"description,omitempty"`
+	FunIden     string              `json:"funIden"`
+	Name        string              `json:"name"`
+	Item        []CollectionItem    `json:"item,omitempty"`
+	Request     *Request            `json:"request,omitempty"`
+	Response    []CollectionResponse `json:"response,omitempty"`
+	Event       []CollectionEvent   `json:"event,omitempty"`
+	ID          string              `json:"id"`
+	Description string              `json:"description,omitempty"`
+}
+
+type CollectionResponse struct {
+	Name            string           `json:"name"`
+	OriginalRequest *Request         `json:"originalRequest,omitempty"`
+	Status          string           `json:"status"`
+	Code            int              `json:"code"`
+	PreviewLanguage *string          `json:"_postman_previewlanguage,omitempty"`
+	Header          []Header         `json:"header,omitempty"`
+	Cookie          []ResponseCookie `json:"cookie,omitempty"`
+	Body            string           `json:"body"`
+}
+
+type ResponseCookie struct {
+	Key      string `json:"key"`
+	Value    string `json:"value"`
+	Domain   string `json:"domain,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Secure   bool   `json:"secure,omitempty"`
+	HTTPOnly bool   `json:"httpOnly,omitempty"`
 }
 
 type Request struct {
@@ -78,6 +98,10 @@ type CollectionEvent struct {
 type EventScript struct {
 	Exec []string `json:"exec"`
 	Type string   `json:"type"`
+}
+
+type UpdateRequest struct {
+	Content DocsContent `json:"content"`
 }
 
 type CollectionVar struct {
