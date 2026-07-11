@@ -1,3 +1,5 @@
+name: apitester
+
 services:
   db:
     container_name: "apitester-database"
@@ -20,7 +22,8 @@ services:
       - ../resource/db/data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password
     networks:
-      - backend
+      backend:
+        ipv4_address: 172.20.0.2
 
   api:
     container_name: "apitester-backend"
@@ -34,8 +37,10 @@ services:
     depends_on:
       - db
     networks:
-      - backend
-      - frontend
+      backend:
+        ipv4_address: 172.20.0.3
+      frontend:
+        ipv4_address: 172.21.0.2
 
 
   frontend:
@@ -47,8 +52,15 @@ services:
     ports:
       - "8088:8088"
     networks:
-      - frontend
+      frontend:
+        ipv4_address: 172.21.0.3
 
 networks:
   backend:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
   frontend:
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

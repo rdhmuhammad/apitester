@@ -17,6 +17,8 @@ COPY --from=builder /deployment/out/apitester ./apitester
 COPY resource ./resource
 COPY .env.stag ./.env.stag
 
+RUN chown -R appuser:appuser resource/ .env.stag
+
 USER appuser
 
 EXPOSE 8999

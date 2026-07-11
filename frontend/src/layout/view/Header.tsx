@@ -16,7 +16,7 @@ import {
     AlertDialogTitle
 } from "@/components/ui/alert-dialog.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
-import {ArrowDownToLine, ArrowUpFromLine, Plus, Send, Upload} from "lucide-react";
+import {ArrowDownToLine, ArrowUpFromLine, LoaderCircle, Plus, Send, Upload} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
     addBaseUrl,
@@ -82,6 +82,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const [selectedBaseUrl, setSelectedBaseUrl] = useState("");
     const [endpoint, setEndpoint] = useState(currRequest?.request?.url.raw ?? "");
     const [newBaseUrl, setNewBaseUrl] = useState("");
+    const [isSending, setIsSending] = useState(false);
     const resolveVariableValue = (value: string): string => {
         return value.replace(/\{\{([^{}]+)\}\}/g, (_, key: string) => {
             const matchedVariable = variables.find((item) => item.key === key.trim())
@@ -107,20 +108,29 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
 
 
     const handleSendRequest = () => {
-        if (!currRequest?.id) return
+        if (!currRequest?.id || isSending) return
         if (onSend) onSend()
+        setIsSending(true)
         useSendRequest({
             baseUrl: selectedBaseUrl,
             endpoint: formatEndpoint(endpoint),
             method: requestMethod,
-            headers: currRequest?.request?.header.map((header) => ({
-                ...header,
-                value: resolveVariableValue(header.value ?? "")
-            })) ?? [],
-            requestParams: currRequest?.request?.url.query ?? [],
+            headers: (currRequest?.request?.header ?? [])
+                .filter(h => !h.disabled)
+                .map((header) => ({
+                    ...header,
+                    value: resolveVariableValue(header.value ?? "")
+                })),
+            requestParams: (currRequest?.request?.url.query ?? [])
+                .filter(q => !q.disabled),
             contentType: getContentType(currRequest),
             raw: currRequest?.request?.body?.raw,
             formData: currRequest?.request?.body?.formdata
+        }).then((response) => {
+            response && dispatch(setCurrentResponse({
+                id: currRequest.id,
+                response
+            }))
         }).catch(response => {
             console.log(response)
             response && dispatch(setCurrentResponse({
@@ -139,12 +149,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                 }
             }))
             CustomToast.error(response.message);
-        }).then((response) => {
-            response && dispatch(setCurrentResponse({
-                id: currRequest.id,
-                response
-            }))
-        })
+        }).finally(() => setIsSending(false))
     };
 
     const handleConfirmGitAction = async (action: string | null) => {
@@ -177,6 +182,22 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                 break
         }
     };
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (!collectionData || isSending) return
+            if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                event.preventDefault()
+                handleSendRequest()
+            }
+            if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+                event.preventDefault()
+                setGitAction("push")
+            }
+        }
+        window.addEventListener("keydown", handleKeyDown)
+        return () => window.removeEventListener("keydown", handleKeyDown)
+    })
 
     const mergeActiveRequests = (data: DocsContent, requests: typeof activeRequests): DocsContent => {
         for (const active of requests) {
@@ -272,6 +293,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         variant="outline"
                         size="sm"
                         className="h-9"
+                        disabled={!collectionData}
                         onClick={() => setGitAction("push")}
                     >
                         <ArrowUpFromLine className="h-4 w-4 mr-1"/>
@@ -284,6 +306,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             <div className="basis-3/4 flex items-center h-full gap-3">
                 <Select
                     value={requestMethod}
+                    disabled={!collectionData}
                     onValueChange={(value) => setRequestMethod(value as ColtReqMethod[number])}
                 >
                     <SelectTrigger
@@ -302,6 +325,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     {baseUrlOptions.length > 0 ? (
                         <Select
                             value={selectedBaseUrl}
+                            disabled={!collectionData}
                             onValueChange={setSelectedBaseUrl}
                         >
                             <SelectTrigger 
@@ -320,6 +344,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         <div className="flex w-full items-center">
                             <Input
                                 value={newBaseUrl}
+                                disabled={!collectionData}
                                 onChange={(e) => setNewBaseUrl(e.target.value)}
                                 className="border-0 rounded-none shadow-none focus-visible:ring-0"
                                 placeholder="https://api.example.com"
@@ -328,6 +353,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                             <Button
                                 variant="ghost"
                                 size="sm"
+                                disabled={!collectionData || !newBaseUrl.trim()}
                                 className="h-full rounded-none border-l border-input px-2 shrink-0"
                                 onClick={handleAddBaseUrl}
                             >
@@ -337,6 +363,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     )}
                     <Input
                         value={formatEndpoint(endpoint)}
+                        disabled={!collectionData}
                         onChange={(event) => setEndpoint(event.target.value)}
                         className="border-0 rounded-none shadow-none focus-visible:ring-0"
                         placeholder="/v1/users"
@@ -344,10 +371,15 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     />
                 </div>
                 <Button
+                    disabled={!collectionData || isSending}
                     onClick={handleSendRequest}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap"
                 >
-                    <Send className="h-4 w-4 mr-2"/>
+                    {isSending ? (
+                        <LoaderCircle className="h-4 w-4 mr-2 animate-spin"/>
+                    ) : (
+                        <Send className="h-4 w-4 mr-2"/>
+                    )}
                     Send Request
                 </Button>
             </div>

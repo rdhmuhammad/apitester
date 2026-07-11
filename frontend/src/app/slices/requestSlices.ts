@@ -136,12 +136,9 @@ export const updateHeaderReducer = (state: CollectionState, action: PayloadActio
 
     const hasKey = currentRequest.header.some(header => header.key === action.payload.header.key);
     if (hasKey) {
-        currentRequest.header.forEach((item) => {
-            if (item.key === action.payload.header.key) {
-                return action.payload.header
-            }
-            return item
-        })
+        currentRequest.header = currentRequest.header.map((item) =>
+            item.key === action.payload.header.key ? action.payload.header : item
+        )
         return;
     }
 
