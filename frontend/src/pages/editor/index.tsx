@@ -1,5 +1,6 @@
 import RequestConfigTabs from "@/pages/editor/components/RequestConfigTabs.tsx";
 import ResponseView from "@/pages/editor/components/ResponseView.tsx";
+import WelcomeEditor from "@/pages/editor/components/WelcomeEditor.tsx";
 import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import {Plus, XIcon} from "lucide-react";
@@ -8,9 +9,11 @@ import {
     type ColtReqMethod,
     removeActiveRequest,
     selectActiveRequest,
+    selectCollectionData,
     selectSelectedRequestId,
     selectRequestById,
-    setSelectedRequestId, setActiveTree, selectCollectionInfo
+    setSelectedRequestId, setActiveTree, selectCollectionInfo,
+    selectDirtyRequestIds
 } from "@/app/slices/collectionSlices.ts";
 import {cn} from "@/lib/utils.ts";
 
@@ -25,6 +28,8 @@ const methodStyle: Record<ColtReqMethod, string> = {
 const Editor: React.FC = () => {
     const dispatch = useAppDispatch()
     const collectionInfo = useAppSelector(selectCollectionInfo)
+    const collectionData = useAppSelector(selectCollectionData)
+    const dirtyRequestIds = useAppSelector(selectDirtyRequestIds)
     const {requestTabs, activeTabId} = useAppSelector((state) => {
         const activeRequest = selectActiveRequest(state)
         const selectedRequestId = selectSelectedRequestId(state)
@@ -70,7 +75,7 @@ const Editor: React.FC = () => {
                     <Tabs value={activeTabId} onValueChange={handleTabChange} className="gap-0">
                         <div className="flex items-end justify-between gap-3">
                             <TabsList
-                                className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-slate-200 bg-transparent p-0">
+                                className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none  border-slate-200 bg-transparent p-0">
                                 {requestTabs.map((tab) => (
                                     <TabsTrigger
                                         key={tab.id}
@@ -82,6 +87,9 @@ const Editor: React.FC = () => {
                                             {tab.method}
                                         </span>
                                         <span className="max-w-[140px] truncate text-sm font-medium">{tab.label}</span>
+                                        {dirtyRequestIds.includes(tab.id) && (
+                                            <span className="ml-1 h-2 w-2 rounded-full bg-orange-400 inline-block shrink-0" />
+                                        )}
                                         <span
                                             className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 group-data-[state=active]:text-slate-500">
                                             <Button variant='ghost'
@@ -116,15 +124,24 @@ const Editor: React.FC = () => {
             </div>
 
             <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col px-4 pb-4 pt-[140px]">
-                <div
-                    className={cn('rounded-b-2xl rounded-tr-2xl border border-t-0 border-slate-200',
-                        ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')
-                    }>
-                    <RequestConfigTabs/>
-                    <div className="pt-3">
-                        <ResponseView/>
+                {!collectionData ? (
+                    <div
+                        className={cn('rounded-2xl border border-t-0 border-slate-200',
+                            ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')
+                        }>
+                        <WelcomeEditor/>
                     </div>
-                </div>
+                ) : (
+                    <div
+                        className={cn('rounded-b-2xl rounded-tr-2xl border border-t-0 border-slate-200',
+                            ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')
+                        }>
+                        <RequestConfigTabs/>
+                        <div className="pt-3">
+                            <ResponseView/>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

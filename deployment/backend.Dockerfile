@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /src
 
@@ -16,6 +16,8 @@ RUN adduser -D appuser
 COPY --from=builder /deployment/out/apitester ./apitester
 COPY resource ./resource
 COPY .env.stag ./.env.stag
+
+RUN chown -R appuser:appuser resource/ .env.stag
 
 USER appuser
 

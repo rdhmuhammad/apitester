@@ -1,5 +1,5 @@
 import type {ChangeEvent} from "react";
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {Images} from "@/config/constant/Images.tsx";
 import {cn, getContentType, getJsonSizeInKB} from "@/lib/utils.ts";
 
@@ -16,7 +16,7 @@ import {
     AlertDialogTitle
 } from "@/components/ui/alert-dialog.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
-import {ArrowDownToLine, ArrowUpFromLine, Plus, Send, Upload} from "lucide-react";
+import {ArrowDownToLine, ArrowUpFromLine, LoaderCircle, Plus, Send, Upload} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
     addBaseUrl,
@@ -24,14 +24,40 @@ import {
     selectBaseUrlValues,
     selectCollectionData,
     selectRequest, selectVariable,
-    setCurrentResponse
+    setCurrentResponse,
+    selectDirtyRequestIds,
+    clearDirtyRequestIds
 } from "@/app/slices/collectionSlices.ts";
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
 import {useSendRequest} from "@/layout/hooks/useSendRequest.ts";
 import CustomToast from "@/components/common/toast";
 import {type ColtReqMethod, fetchCollections} from "@/app/slices";
-import type {CollectionItem, CollectionVar, DocsContent} from "@/pages/editor/types/api.ts";
+import type {ActiveItem} from "@/app/slices/index.ts";
+import type {CollectionItem, CollectionVar, DocsContent, ItemUrl} from "@/pages/editor/types/api.ts";
 import {CollectionServices} from "@/layout/services/collection.ts";
+import {addQueryParam, updateQueryParam, setUrlRaw} from "@/app/slices/requestSlices.ts";
+
+const findItemInTree = (items: CollectionItem[], id: string): CollectionItem | null => {
+    for (const item of items) {
+        if (item.id === id) return item
+        if (item.item) {
+            const found = findItemInTree(item.item, id)
+            if (found) return found
+        }
+    }
+    return null
+}
+
+const mergeActiveRequests = (data: DocsContent, requests: ActiveItem[]): DocsContent => {
+    for (const active of requests) {
+        if (!active.request) continue
+        const found = findItemInTree(data.item, active.id)
+        if (found) {
+            found.request = active.request
+        }
+    }
+    return data
+}
 
 const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     {
@@ -43,11 +69,20 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const variables = useAppSelector(selectVariable)
     const collectionData = useAppSelector(selectCollectionData)
     const activeRequests = useAppSelector(selectActiveRequest)
+    const dirtyRequestIds = useAppSelector(selectDirtyRequestIds)
+    const dirtyRequestNames = useMemo(() => {
+        return dirtyRequestIds.map(id => {
+            const item = findItemInTree(collectionData?.item ?? [], id)
+            return {id, name: item?.name ?? 'Untitled'}
+        })
+    }, [dirtyRequestIds, collectionData])
     const uploadInputRef = useRef<HTMLInputElement | null>(null)
     const runtimeBaseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
     useEffect(() => {
-        setEndpoint(currRequest?.request?.url?.raw ?? '')
+        const raw = currRequest?.request?.url?.raw ?? ''
+        const queryIndex = raw.indexOf('?')
+        setEndpoint(queryIndex >= 0 ? raw.slice(0, queryIndex) : raw)
     }, [currRequest?.request?.url?.raw]);
 
     useEffect(() => {
@@ -82,11 +117,32 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const [selectedBaseUrl, setSelectedBaseUrl] = useState("");
     const [endpoint, setEndpoint] = useState(currRequest?.request?.url.raw ?? "");
     const [newBaseUrl, setNewBaseUrl] = useState("");
+    const [isSending, setIsSending] = useState(false);
+    const [pendingDestructiveAction, setPendingDestructiveAction] = useState<"pull" | "upload" | null>(null);
     const resolveVariableValue = (value: string): string => {
         return value.replace(/\{\{([^{}]+)\}\}/g, (_, key: string) => {
             const matchedVariable = variables.find((item) => item.key === key.trim())
             return matchedVariable?.value ?? `{{${key}}}`
         })
+    }
+
+    const parseQueryParamsFromUrl = (url: string): { cleanUrl: string; params: ItemUrl[] } => {
+        const queryIndex = url.indexOf('?')
+        if (queryIndex === -1) return {cleanUrl: url, params: []}
+
+        const beforeQuery = url.slice(0, queryIndex)
+        const afterQuery = url.slice(queryIndex + 1)
+        const hashIndex = afterQuery.indexOf('#')
+        const queryString = hashIndex >= 0 ? afterQuery.slice(0, hashIndex) : afterQuery
+        const hash = hashIndex >= 0 ? afterQuery.slice(hashIndex) : ''
+
+        const params: ItemUrl[] = []
+        const searchParams = new URLSearchParams(queryString)
+        searchParams.forEach((value, key) => {
+            params.push({key, value, disabled: false})
+        })
+
+        return {cleanUrl: beforeQuery + hash, params}
     }
 
     const formatEndpoint = (endpoint: string): string => {
@@ -95,32 +151,41 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
         if (/^https?:\/\//i.test(sanitizedEndpoint)) {
             try {
                 const parsedUrl = new URL(sanitizedEndpoint)
-                return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`
+                return `${parsedUrl.pathname}${parsedUrl.hash}`
             } catch (_) {
-                return sanitizedEndpoint
+                return sanitizedEndpoint.split('?')[0]
             }
         }
 
-        return sanitizedEndpoint
+        return sanitizedEndpoint.split('?')[0]
     }
 
 
 
     const handleSendRequest = () => {
-        if (!currRequest?.id) return
+        if (!currRequest?.id || isSending) return
         if (onSend) onSend()
+        setIsSending(true)
         useSendRequest({
             baseUrl: selectedBaseUrl,
             endpoint: formatEndpoint(endpoint),
             method: requestMethod,
-            headers: currRequest?.request?.header.map((header) => ({
-                ...header,
-                value: resolveVariableValue(header.value ?? "")
-            })) ?? [],
-            requestParams: currRequest?.request?.url.query ?? [],
+            headers: (currRequest?.request?.header ?? [])
+                .filter(h => !h.disabled)
+                .map((header) => ({
+                    ...header,
+                    value: resolveVariableValue(header.value ?? "")
+                })),
+            requestParams: (currRequest?.request?.url.query ?? [])
+                .filter(q => !q.disabled),
             contentType: getContentType(currRequest),
             raw: currRequest?.request?.body?.raw,
             formData: currRequest?.request?.body?.formdata
+        }).then((response) => {
+            response && dispatch(setCurrentResponse({
+                id: currRequest.id,
+                response
+            }))
         }).catch(response => {
             console.log(response)
             response && dispatch(setCurrentResponse({
@@ -139,12 +204,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                 }
             }))
             CustomToast.error(response.message);
-        }).then((response) => {
-            response && dispatch(setCurrentResponse({
-                id: currRequest.id,
-                response
-            }))
-        })
+        }).finally(() => setIsSending(false))
     };
 
     const handleConfirmGitAction = async (action: string | null) => {
@@ -178,27 +238,21 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
         }
     };
 
-    const mergeActiveRequests = (data: DocsContent, requests: typeof activeRequests): DocsContent => {
-        for (const active of requests) {
-            if (!active.request) continue
-            const found = findItemInTree(data.item, active.id)
-            if (found) {
-                found.request = active.request
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (!collectionData || isSending) return
+            if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                event.preventDefault()
+                handleSendRequest()
+            }
+            if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+                event.preventDefault()
+                setGitAction("push")
             }
         }
-        return data
-    }
-
-    const findItemInTree = (items: CollectionItem[], id: string): CollectionItem | null => {
-        for (const item of items) {
-            if (item.id === id) return item
-            if (item.item) {
-                const found = findItemInTree(item.item, id)
-                if (found) return found
-            }
-        }
-        return null
-    }
+        window.addEventListener("keydown", handleKeyDown)
+        return () => window.removeEventListener("keydown", handleKeyDown)
+    })
 
     const handleAddBaseUrl = () => {
         const trimmed = newBaseUrl.trim()
@@ -254,7 +308,13 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         variant="outline"
                         size="sm"
                         className="h-9"
-                        onClick={() => setGitAction("pull")}
+                        onClick={() => {
+                            if (dirtyRequestIds.length > 0) {
+                                setPendingDestructiveAction("pull")
+                            } else {
+                                setGitAction("pull")
+                            }
+                        }}
                     >
                         <ArrowDownToLine className="h-4 w-4 mr-1"/>
 
@@ -263,7 +323,14 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         variant="outline"
                         size="sm"
                         className="h-9"
-                        onClick={() => uploadInputRef.current?.click()}
+                        disabled={!collectionData}
+                        onClick={() => {
+                            if (dirtyRequestIds.length > 0 && collectionData) {
+                                setPendingDestructiveAction("upload")
+                            } else {
+                                uploadInputRef.current?.click()
+                            }
+                        }}
                     >
                         <Upload className="h-4 w-4 mr-1"/>
 
@@ -272,6 +339,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         variant="outline"
                         size="sm"
                         className="h-9"
+                        disabled={!collectionData}
                         onClick={() => setGitAction("push")}
                     >
                         <ArrowUpFromLine className="h-4 w-4 mr-1"/>
@@ -284,6 +352,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             <div className="basis-3/4 flex items-center h-full gap-3">
                 <Select
                     value={requestMethod}
+                    disabled={!collectionData}
                     onValueChange={(value) => setRequestMethod(value as ColtReqMethod[number])}
                 >
                     <SelectTrigger
@@ -302,6 +371,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     {baseUrlOptions.length > 0 ? (
                         <Select
                             value={selectedBaseUrl}
+                            disabled={!collectionData}
                             onValueChange={setSelectedBaseUrl}
                         >
                             <SelectTrigger 
@@ -320,6 +390,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         <div className="flex w-full items-center">
                             <Input
                                 value={newBaseUrl}
+                                disabled={!collectionData}
                                 onChange={(e) => setNewBaseUrl(e.target.value)}
                                 className="border-0 rounded-none shadow-none focus-visible:ring-0"
                                 placeholder="https://api.example.com"
@@ -328,6 +399,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                             <Button
                                 variant="ghost"
                                 size="sm"
+                                disabled={!collectionData || !newBaseUrl.trim()}
                                 className="h-full rounded-none border-l border-input px-2 shrink-0"
                                 onClick={handleAddBaseUrl}
                             >
@@ -337,17 +409,39 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     )}
                     <Input
                         value={formatEndpoint(endpoint)}
-                        onChange={(event) => setEndpoint(event.target.value)}
+                        disabled={!collectionData}
+                        onChange={(event) => {
+                            const value = event.target.value
+                            const {cleanUrl, params} = parseQueryParamsFromUrl(value)
+                            setEndpoint(cleanUrl)
+                            dispatch(setUrlRaw({raw: cleanUrl}))
+                            const currentParams = currRequest?.request?.url?.query ?? []
+                            params.forEach((param) => {
+                                const existing = currentParams.find(p => p.key === param.key)
+                                if (existing) {
+                                    dispatch(updateQueryParam({
+                                        query: {...existing, value: param.value}
+                                    }))
+                                } else {
+                                    dispatch(addQueryParam({query: param}))
+                                }
+                            })
+                        }}
                         className="border-0 rounded-none shadow-none focus-visible:ring-0"
                         placeholder="/v1/users"
                         aria-label="Endpoint path"
                     />
                 </div>
                 <Button
+                    disabled={!collectionData || isSending}
                     onClick={handleSendRequest}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap"
                 >
-                    <Send className="h-4 w-4 mr-2"/>
+                    {isSending ? (
+                        <LoaderCircle className="h-4 w-4 mr-2 animate-spin"/>
+                    ) : (
+                        <Send className="h-4 w-4 mr-2"/>
+                    )}
                     Send Request
                 </Button>
             </div>
@@ -366,6 +460,68 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         <AlertDialogAction onClick={() => handleConfirmGitAction(gitAction)}>
                             {gitAction === "push" ? "Confirm Push" : "Confirm Pull"}
                         </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={Boolean(pendingDestructiveAction)}
+                         onOpenChange={(open) => !open && setPendingDestructiveAction(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div>
+                                <p className="mb-2">The following requests have unsaved changes. What would you like to
+                                    do?</p>
+                                <ul className="list-disc pl-5 text-sm text-slate-600 space-y-1">
+                                    {dirtyRequestNames.map(({id, name}) => (
+                                        <li key={id}>{name}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                const action = pendingDestructiveAction
+                                dispatch(clearDirtyRequestIds())
+                                setPendingDestructiveAction(null)
+                                if (action === "pull") {
+                                    setGitAction("pull")
+                                } else {
+                                    setTimeout(() => uploadInputRef.current?.click(), 0)
+                                }
+                            }}
+                        >
+                            Discard & {pendingDestructiveAction === "pull" ? "Pull" : "Upload"}
+                        </Button>
+                        <Button
+                            onClick={async () => {
+                                const action = pendingDestructiveAction
+                                setPendingDestructiveAction(null)
+                                if (!collectionData) return
+                                try {
+                                    const merged = mergeActiveRequests(structuredClone(collectionData), activeRequests)
+                                    await CollectionServices.updateCollection(merged)
+                                    dispatch(fetchCollections())
+                                } catch (error: unknown) {
+                                    const err = error as { response?: { data?: { message?: string } }; message?: string }
+                                    const message = err?.response?.data?.message || err?.message || "Failed to save"
+                                    CustomToast.error(message)
+                                    return
+                                }
+                                if (action === "pull") {
+                                    dispatch(fetchCollections())
+                                } else {
+                                    setTimeout(() => uploadInputRef.current?.click(), 0)
+                                }
+                            }}
+                        >
+                            Push & {pendingDestructiveAction === "pull" ? "Pull" : "Upload"}
+                        </Button>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

@@ -1,0 +1,11 @@
+.git
+.idea
+.vscode
+tmp
+bin
+frontend/node_modules
+frontend/dist
+frontend/build
+frontend/.turbo
+frontend/.next
+deployment/out

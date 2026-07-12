@@ -310,20 +310,40 @@ const IndicatorConfigTabs: React.FC = () => {
                         </div>
                         {headerShow.map((item) => (
                             <div key={item.key}
-                                 className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center">
-                                <div className="col-span-5">
-                                    <Input value={item.key} readOnly className="h-8 bg-white"/>
+                                 className={cn(
+                                     "grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center",
+                                     item.disabled && "opacity-50"
+                                 )}>
+                                <div className="col-span-4">
+                                    <Input value={item.key} readOnly className="h-8 bg-white"
+                                           disabled={item.disabled}/>
                                 </div>
-                                <div className="col-span-5 pl-3">
+                                <div className="col-span-4 pl-3">
                                     <Input
                                         value={item.value}
                                         onChange={(event) => dispatch(updateHeader({
                                             header: {...item, value: event.target.value}
                                         }))}
                                         className="h-8 bg-white"
+                                        disabled={item.disabled}
                                     />
                                 </div>
-                                <div className="col-span-2 pl-3 flex justify-end">
+                                <div className="col-span-4 pl-3 flex items-center justify-end gap-1">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => dispatch(updateHeader({
+                                            header: {...item, disabled: !item.disabled}
+                                        }))}
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        {item.disabled ? (
+                                            <ToggleLeft className="h-4 w-4 text-slate-400"/>
+                                        ) : (
+                                            <ToggleRight className="h-4 w-4 text-emerald-600"/>
+                                        )}
+                                    </Button>
                                     <Button
                                         type="button"
                                         variant="ghost"

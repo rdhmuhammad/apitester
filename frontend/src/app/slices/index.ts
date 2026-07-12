@@ -26,6 +26,7 @@ export interface CollectionState {
     cachedRequest: CollectionItem[]
     dirTree: Map<string, DirTree>
     status: ColtStatusLoad
+    dirtyRequestIds: string[]
 }
 
 export interface ActiveItem{
@@ -51,4 +52,5 @@ export const initialState: CollectionState = {
     baseUrl: [],
     status: 'idle',
     dirTree: new Map<string, DirTree>(),
+    dirtyRequestIds: [],
 }
