@@ -12,7 +12,8 @@ import {
     selectCollectionData,
     selectSelectedRequestId,
     selectRequestById,
-    setSelectedRequestId, setActiveTree, selectCollectionInfo
+    setSelectedRequestId, setActiveTree, selectCollectionInfo,
+    selectDirtyRequestIds
 } from "@/app/slices/collectionSlices.ts";
 import {cn} from "@/lib/utils.ts";
 
@@ -28,6 +29,7 @@ const Editor: React.FC = () => {
     const dispatch = useAppDispatch()
     const collectionInfo = useAppSelector(selectCollectionInfo)
     const collectionData = useAppSelector(selectCollectionData)
+    const dirtyRequestIds = useAppSelector(selectDirtyRequestIds)
     const {requestTabs, activeTabId} = useAppSelector((state) => {
         const activeRequest = selectActiveRequest(state)
         const selectedRequestId = selectSelectedRequestId(state)
@@ -85,6 +87,9 @@ const Editor: React.FC = () => {
                                             {tab.method}
                                         </span>
                                         <span className="max-w-[140px] truncate text-sm font-medium">{tab.label}</span>
+                                        {dirtyRequestIds.includes(tab.id) && (
+                                            <span className="ml-1 h-2 w-2 rounded-full bg-orange-400 inline-block shrink-0" />
+                                        )}
                                         <span
                                             className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 group-data-[state=active]:text-slate-500">
                                             <Button variant='ghost'

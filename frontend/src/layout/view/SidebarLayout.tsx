@@ -7,7 +7,8 @@ import {
     type DirTree,
     selectDirTree,
     setActiveRequest,
-    setActiveTree
+    setActiveTree,
+    selectDirtyRequestIds
 } from "@/app/slices/collectionSlices.ts";
 import {cn} from "@/lib/utils.ts";
 
@@ -82,9 +83,18 @@ const methodColorClass: Record<ColtReqMethod, string> = {
 //     }
 // ];
 
+const isFolderDirty = (node: DirTree, dirtyIds: string[]): boolean => {
+    if (node.category === "REQ") return dirtyIds.includes(node.id)
+    if (node?.item) {
+        return Array.from(node.item.values()).some((child) => isFolderDirty(child, dirtyIds))
+    }
+    return false
+}
+
 const SidebarLayout: React.FC = () => {
     const tree = useAppSelector(selectDirTree)
     const dispatch = useAppDispatch()
+    const dirtyRequestIds = useAppSelector(selectDirtyRequestIds)
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
 
     const toggleRequest = (reqId: string)=>{
@@ -132,6 +142,9 @@ const SidebarLayout: React.FC = () => {
                         {isOpen ? <FolderOpen className="h-4 w-4 text-indigo-500"/> :
                             <Folder className="h-4 w-4 text-indigo-500"/>}
                         <span className="truncate">{node.name}</span>
+                        {isFolderDirty(node, dirtyRequestIds) && (
+                            <span className="ml-auto h-2 w-2 rounded-full bg-orange-400 shrink-0" />
+                        )}
                     </button>
                     {isOpen && node?.item && (
                         <div className="space-y-1">
@@ -156,6 +169,9 @@ const SidebarLayout: React.FC = () => {
                 <FileCode2 className="h-4 w-4 text-slate-400"/>
                 <span className={`w-12 text-xs font-semibold ${methodColorClass[node?.method ?? "GET"]}`}>{node?.method ?? "GET"}</span>
                 <span className="truncate text-slate-700">{node.name}</span>
+                {dirtyRequestIds.includes(node.id) && (
+                    <span className="ml-auto h-2 w-2 rounded-full bg-orange-400 shrink-0" />
+                )}
             </button>
         );
     };

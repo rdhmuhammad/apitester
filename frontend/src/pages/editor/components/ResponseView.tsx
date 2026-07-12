@@ -53,7 +53,7 @@ const ResponseView: React.FC = () => {
                     <h2 className="text-sm font-semibold text-slate-800">Response</h2>
                     {
                         responseCode &&<Badge className={badgeColor}>{`${responseCode} ${responseStatus}`}</Badge>
-                    }        
+                    }
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-500">
                     {sourceTab === 'actual' && (

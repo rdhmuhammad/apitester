@@ -116,11 +116,19 @@ const syncRawWithPath = (url: RequestURL) => {
     url.raw = `${nextPath.length > 0 ? `/${nextPath.join("/")}` : ""}${queryString}`
 }
 
+const markDirty = (state: CollectionState) => {
+    const id = state.selectedRequestId || state.activeRequest[state.activeRequest.length - 1]?.id
+    if (id && !state.dirtyRequestIds.includes(id)) {
+        state.dirtyRequestIds.push(id)
+    }
+}
+
 export const setMethodReducer = (state: CollectionState, action: PayloadAction<SetMethodPayload>) => {
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
     currentRequest.method = action.payload.method
+    markDirty(state)
 }
 
 export const addHeaderReducer = (state: CollectionState, action: PayloadAction<HeaderPayload>) => {
@@ -128,6 +136,7 @@ export const addHeaderReducer = (state: CollectionState, action: PayloadAction<H
     if (!currentRequest) return
 
     currentRequest.header.push(action.payload.header)
+    markDirty(state)
 }
 
 export const updateHeaderReducer = (state: CollectionState, action: PayloadAction<HeaderPayload>) => {
@@ -139,10 +148,10 @@ export const updateHeaderReducer = (state: CollectionState, action: PayloadActio
         currentRequest.header = currentRequest.header.map((item) =>
             item.key === action.payload.header.key ? action.payload.header : item
         )
-        return;
+    } else {
+        currentRequest.header.push(action.payload.header)
     }
-
-    currentRequest.header.push(action.payload.header)
+    markDirty(state)
 }
 
 export const removeHeaderReducer = (state: CollectionState, action: PayloadAction<RemoveHeaderPayload>) => {
@@ -150,6 +159,7 @@ export const removeHeaderReducer = (state: CollectionState, action: PayloadActio
     if (!currentRequest) return
 
     currentRequest.header = currentRequest.header.filter((item) => item.key !== action.payload.key)
+    markDirty(state)
 }
 
 export const addQueryParamReducer = (state: CollectionState, action: PayloadAction<QueryParamPayload>) => {
@@ -157,6 +167,7 @@ export const addQueryParamReducer = (state: CollectionState, action: PayloadActi
     if (!currentRequest) return
 
     currentRequest.url.query.push(action.payload.query)
+    markDirty(state)
 }
 
 export const updateQueryParamReducer = (state: CollectionState, action: PayloadAction<QueryParamPayload>) => {
@@ -164,6 +175,7 @@ export const updateQueryParamReducer = (state: CollectionState, action: PayloadA
     if (!currentRequest) return
 
     currentRequest.url.query = currentRequest.url.query.map((param) => mapParam(param, action.payload.query))
+    markDirty(state)
 }
 
 export const removeQueryParamReducer = (state: CollectionState, action: PayloadAction<RemoveQueryParamPayload>) => {
@@ -171,6 +183,7 @@ export const removeQueryParamReducer = (state: CollectionState, action: PayloadA
     if (!currentRequest) return
 
     currentRequest.url.query = currentRequest.url.query.filter((item) => item.key !== action.payload.key)
+    markDirty(state)
 }
 
 export const setBodyReducer = (state: CollectionState, action: PayloadAction<SetBodyPayload>) => {
@@ -185,12 +198,12 @@ export const setBodyReducer = (state: CollectionState, action: PayloadAction<Set
         currentRequest.body.mode = "raw"
         currentRequest.body.raw = action.payload.body
         delete currentRequest.body.formdata
-        return
+    } else {
+        currentRequest.body.mode = "formdata"
+        currentRequest.body.formdata = action.payload.body
+        delete currentRequest.body.raw
     }
-
-    currentRequest.body.mode = "formdata"
-    currentRequest.body.formdata = action.payload.body
-    delete currentRequest.body.raw
+    markDirty(state)
 }
 
 export const addUrlPathReducer = (state: CollectionState, action: PayloadAction<AddUrlPathPayload>) => {
@@ -199,6 +212,7 @@ export const addUrlPathReducer = (state: CollectionState, action: PayloadAction<
 
     currentRequest.url.path.push(action.payload.path)
     syncRawWithPath(currentRequest.url)
+    markDirty(state)
 }
 
 export const updateUrlPathReducer = (
@@ -211,6 +225,7 @@ export const updateUrlPathReducer = (
 
     currentRequest.url.path[action.payload.index] = action.payload.value
     syncRawWithPath(currentRequest.url)
+    markDirty(state)
 }
 
 export const removeUrlPathReducer = (state: CollectionState, action: PayloadAction<RemoveUrlPathPayload>) => {
@@ -219,6 +234,7 @@ export const removeUrlPathReducer = (state: CollectionState, action: PayloadActi
 
     currentRequest.url.path = currentRequest.url.path.filter((_, index) => index !== action.payload.index)
     syncRawWithPath(currentRequest.url)
+    markDirty(state)
 }
 
 export const setUrlPathReducer = (state: CollectionState, action: PayloadAction<SetUrlPathPayload>) => {
@@ -227,6 +243,7 @@ export const setUrlPathReducer = (state: CollectionState, action: PayloadAction<
 
     currentRequest.url.path = action.payload.path
     syncRawWithPath(currentRequest.url)
+    markDirty(state)
 }
 
 export const setUrlRawReducer = (state: CollectionState, action: PayloadAction<SetUrlRawPayload>) => {
@@ -235,6 +252,7 @@ export const setUrlRawReducer = (state: CollectionState, action: PayloadAction<S
 
     currentRequest.url.raw = action.payload.raw
     currentRequest.url.path = parseRawToPath(action.payload.raw)
+    markDirty(state)
 }
 
 const requestSlices = createSlice({

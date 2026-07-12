@@ -147,7 +147,10 @@ const collectionSlices = createSlice({
         },
         setActiveTree(state, action: PayloadAction<{id: string, status: boolean}>){
             diveActiveTree(action.payload.id, action.payload.status, state.dirTree)
-        }
+        },
+        clearDirtyRequestIds(state) {
+            state.dirtyRequestIds = []
+        },
     },
     extraReducers: (builder) => {
         builder.addCase(fetchCollections.pending, (state) => {
@@ -179,6 +182,7 @@ const collectionSlices = createSlice({
                 }]
                 state.variable = reduced?.variable ?? []
             }
+            state.dirtyRequestIds = []
             state.status = 'succeeded'
         })
         builder.addCase(fetchCollections.rejected, (state) => {
@@ -215,6 +219,7 @@ export const {
     removeVariable,
     addBaseUrl,
     removeBaseUrl,
+    clearDirtyRequestIds,
 } = collectionSlices.actions
 
 export const setActiveRequest = addActiveRequest
@@ -268,6 +273,9 @@ export const selectResponse = (state: RootState): SendResponse | null =>
 
 export const selectResponseById = (state: RootState, id: string): SendResponse | null =>
     getActiveRequestById(state, id)?.response ?? null
+
+export const selectDirtyRequestIds = (state: RootState): string[] =>
+    state.collection?.dirtyRequestIds ?? []
 
 export const selectDirTree = (state: RootState): Map<string, DirTree> => {
     if (state.collection?.dirTree) {
