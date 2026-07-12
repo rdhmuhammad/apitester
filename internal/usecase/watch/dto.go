@@ -23,14 +23,14 @@ type CollectionInfo struct {
 }
 
 type CollectionItem struct {
-	FunIden     string              `json:"funIden"`
-	Name        string              `json:"name"`
-	Item        []CollectionItem    `json:"item,omitempty"`
-	Request     *Request            `json:"request,omitempty"`
+	FunIden     string               `json:"funIden"`
+	Name        string               `json:"name"`
+	Item        []CollectionItem     `json:"item,omitempty"`
+	Request     *Request             `json:"request,omitempty"`
 	Response    []CollectionResponse `json:"response,omitempty"`
-	Event       []CollectionEvent   `json:"event,omitempty"`
-	ID          string              `json:"id"`
-	Description string              `json:"description,omitempty"`
+	Event       []CollectionEvent    `json:"event,omitempty"`
+	ID          string               `json:"id"`
+	Description string               `json:"description,omitempty"`
 }
 
 type CollectionResponse struct {
@@ -100,8 +100,14 @@ type EventScript struct {
 	Type string   `json:"type"`
 }
 
-type UpdateRequest struct {
-	Content DocsContent `json:"content"`
+type CreateCollectionRequest struct {
+	Name string `json:"name" binding:"required"`
+	Path string `json:"path" binding:"required"`
+}
+
+type UpdateCollectionRequest struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
 }
 
 type CollectionVar struct {

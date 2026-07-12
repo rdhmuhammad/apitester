@@ -13,63 +13,78 @@ import (
 
 type FileWatcher struct {
 	watcher *fsnotify.Watcher
-	State *FileState
+	State   *FileState
+	pathCh  chan string
 }
 
-func New(path string) *FileWatcher {
-	watcher, err := fsnotify.NewWatcher()
+func New() *FileWatcher {
+	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		panic(err)
 	}
 
-	state := &FileState{}
-
-	log.Printf("watching file: %s", path)
-	go listen(path, watcher, state)
-
-	if err := watcher.Add(filepath.Dir(path)); err != nil {
-		panic(err)
+	fw := &FileWatcher{
+		watcher: w,
+		State:   &FileState{},
+		pathCh:  make(chan string, 1),
 	}
-	
-	return &FileWatcher{
-		watcher: watcher,
-		State: state,
-	}
+
+	go fw.listen()
+
+	return fw
 }
 
-func (f *FileWatcher) Close() error {
-	if f == nil || f.watcher == nil {
+func (fw *FileWatcher) Watch(path string) {
+	fw.pathCh <- path
+}
+
+func (fw *FileWatcher) Close() error {
+	if fw == nil || fw.watcher == nil {
 		return nil
 	}
-	return f.watcher.Close()
+	return fw.watcher.Close()
 }
 
-func listen(path string, watcher *fsnotify.Watcher, state *FileState) {
+func (fw *FileWatcher) listen() {
+	var currentPath string
+
 	for {
 		select {
-		case event, ok := <-watcher.Events:
+		case path := <-fw.pathCh:
+			if currentPath != "" {
+				fw.watcher.Remove(filepath.Dir(currentPath))
+			}
+			currentPath = path
+			if err := fw.watcher.Add(filepath.Dir(path)); err != nil {
+				log.Printf("error adding watch for %s: %v", path, err)
+				continue
+			}
+			log.Printf("watching file: %s", path)
+
+		case event, ok := <-fw.watcher.Events:
 			if !ok {
 				logger.Infof("file watcher events channel closed")
 				return
 			}
-			if filepath.Clean(event.Name) != filepath.Clean(path) {
+			if currentPath == "" || filepath.Clean(event.Name) != filepath.Clean(currentPath) {
 				continue
 			}
 			if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) {
-				data, err := os.ReadFile(path)
+				data, err := os.ReadFile(currentPath)
 				if err != nil {
 					log.Printf("error reading file: %v", err)
 					continue
 				}
-				info, err := os.Stat(path)
+				info, err := os.Stat(currentPath)
 				if err != nil {
 					log.Printf("error stating file: %v", err)
 					continue
 				}
-				state.Update(string(data), info.ModTime())
-				log.Printf("file changed: %s at %s", path, info.ModTime().Format(time.RFC3339))
+				fw.State.Update(string(data), info.ModTime())
+				log.Printf("file changed: %s at %s", currentPath, info.ModTime().Format(time.RFC3339))
 			}
-		case err, ok := <-watcher.Errors:
+
+		case err, ok := <-fw.watcher.Errors:
 			if !ok {
 				return
 			}
