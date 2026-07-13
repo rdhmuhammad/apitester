@@ -4,8 +4,12 @@ import { getData } from "@/hooks/useLocalStorage";
 import Swal from "sweetalert2";
 import type {AxiosError, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 
+const getBaseURL = () => {
+    return import.meta.env.VITE_API_URL || "/api/v1"
+}
+
 export const axios = Axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "/api/v1",
+    baseURL: getBaseURL(),
 });
 
 

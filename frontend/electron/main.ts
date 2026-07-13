@@ -1,4 +1,4 @@
-import {app, BrowserWindow, dialog, ipcMain} from "electron"
+import {app, BrowserWindow, dialog, ipcMain, Menu} from "electron"
 import path from "path"
 import {fileURLToPath} from "url"
 
@@ -9,9 +9,16 @@ const isDev = process.env.NODE_ENV === "development" || !app.isPackaged
 let mainWindow: BrowserWindow | null = null
 
 function createWindow() {
+    if (!isDev) {
+        Menu.setApplicationMenu(null)
+    }
+
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
+        icon: isDev
+            ? path.join(__dirname, "../public/app.ico")
+            : path.join(__dirname, "../dist/app.ico"),
         webPreferences: {
             preload: path.join(__dirname, "preload.cjs"),
             contextIsolation: true,
