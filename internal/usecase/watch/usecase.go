@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -52,8 +53,19 @@ func findSelectedCollection(repo bbolt.RepositoryInterface[domain.Collection]) *
 	return nil
 }
 
+func collectionDBPath() string {
+	if p := os.Getenv("BOLT_DB_PATH"); p != "" {
+		return p
+	}
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "resource/db/collection.db"
+	}
+	return filepath.Join(configDir, "apitester", "collection.db")
+}
+
 func initCollectionRepo() bbolt.RepositoryInterface[domain.Collection] {
-	boltDB, err := bbolt.NewBoltDB("resource/db/collection.db")
+	boltDB, err := bbolt.NewBoltDB(collectionDBPath())
 	if err != nil {
 		panic(err)
 	}

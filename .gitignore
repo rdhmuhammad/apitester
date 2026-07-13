@@ -1,4 +1,10 @@
 .idea
 vendor
 resource/db/data
+resource/db/collection.db
 .env.stag
+deployment/desktop/build
+deployment/desktop/installer
+deployment/docker/out
+apitester
+.env.prod
