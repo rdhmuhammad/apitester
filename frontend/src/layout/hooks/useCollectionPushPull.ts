@@ -3,6 +3,7 @@ import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts"
 import {fetchCollections} from "@/app/slices/index.ts"
 import {selectCollectionData} from "@/app/slices/collectionSlices.ts"
 import {CollectionServices} from "@/layout/services/collection.ts"
+import CustomToast from "@/components/common/toast"
 
 export function useCollectionPushPull() {
     const dispatch = useAppDispatch()
@@ -15,6 +16,9 @@ export function useCollectionPushPull() {
         try {
             const active = await CollectionServices.getActiveCollection()
             await dispatch(fetchCollections(active.id)).unwrap()
+            CustomToast.success("Collection pulled successfully")
+        } catch {
+            CustomToast.error("Failed to pull collection")
         } finally {
             setIsPulling(false)
         }
@@ -26,6 +30,9 @@ export function useCollectionPushPull() {
         try {
             const active = await CollectionServices.getActiveCollection()
             await CollectionServices.writeCollection(active.id, JSON.stringify(docsContent, null, 2))
+            CustomToast.success("Collection pushed successfully")
+        } catch {
+            CustomToast.error("Failed to push collection")
         } finally {
             setIsPushing(false)
         }

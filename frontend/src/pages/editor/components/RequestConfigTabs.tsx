@@ -204,7 +204,7 @@ const IndicatorConfigTabs: React.FC = () => {
                             </div>
                         ))}
                         {/* Add Param Row */}
-                        <div className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center gap-2">
+                        <div className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center">
                             <div className="col-span-3">
                                 <Input
                                     value={newParamKey}
@@ -213,7 +213,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                     placeholder="key"
                                 />
                             </div>
-                            <div className="col-span-3">
+                            <div className="col-span-3 pl-3">
                                 <Input
                                     value={newParamValue}
                                     onChange={(e) => setNewParamValue(e.target.value)}
@@ -221,7 +221,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                     placeholder="value"
                                 />
                             </div>
-                            <div className="col-span-4">
+                            <div className="col-span-4 pl-3">
                                 <Input
                                     value={newParamDesc}
                                     onChange={(e) => setNewParamDesc(e.target.value)}
@@ -314,11 +314,11 @@ const IndicatorConfigTabs: React.FC = () => {
                                      "grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center",
                                      item.disabled && "opacity-50"
                                  )}>
-                                <div className="col-span-4">
+                                <div className="col-span-5">
                                     <Input value={item.key} readOnly className="h-8 bg-white"
                                            disabled={item.disabled}/>
                                 </div>
-                                <div className="col-span-4 pl-3">
+                                <div className="col-span-5 pl-3">
                                     <Input
                                         value={item.value}
                                         onChange={(event) => dispatch(updateHeader({
@@ -328,7 +328,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                         disabled={item.disabled}
                                     />
                                 </div>
-                                <div className="col-span-4 pl-3 flex items-center justify-end gap-1">
+                                <div className="col-span-2 pl-3 flex items-center justify-end gap-1">
                                     <Button
                                         type="button"
                                         variant="outline"
@@ -357,7 +357,7 @@ const IndicatorConfigTabs: React.FC = () => {
                             </div>
                         ))}
                         {/* Add Header Row */}
-                        <div className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center gap-2">
+                        <div className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center">
                             <div className="col-span-5">
                                 <Input
                                     value={newHeaderKey}
@@ -366,7 +366,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                     placeholder="header key"
                                 />
                             </div>
-                            <div className="col-span-5">
+                            <div className="col-span-5 pl-3">
                                 <Input
                                     value={newHeaderValue}
                                     onChange={(e) => setNewHeaderValue(e.target.value)}

@@ -360,30 +360,7 @@ const isBaseUrlVariable = (item: CollectionVar) =>
     item.key.toLowerCase().includes('base_url') || item.category?.toUpperCase() === 'BASE_URL'
 
 const resolveBaseUrlValue = (value: string): string => {
-    if (typeof window === 'undefined') {
-        return value === DEFAULT_BASE_URL_VALUE ? '' : value
-    }
-
-    const browserOrigin = window.location.origin
-    if (value === DEFAULT_BASE_URL_VALUE || !value.trim()) {
-        return browserOrigin
-    }
-
-    try {
-        const currentUrl = new URL(browserOrigin)
-        const resolvedUrl = new URL(value)
-        const isBrowserLocal =
-            currentUrl.hostname === 'localhost' || currentUrl.hostname === '127.0.0.1'
-        const isResolvedLocal =
-            resolvedUrl.hostname === 'localhost' || resolvedUrl.hostname === '127.0.0.1'
-
-        if (!isBrowserLocal && isResolvedLocal) {
-            return browserOrigin
-        }
-    } catch (_) {
-        return value
-    }
-
+    if (value === DEFAULT_BASE_URL_VALUE || !value.trim()) return ''
     return value
 }
 
