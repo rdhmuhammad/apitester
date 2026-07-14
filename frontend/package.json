@@ -1,12 +1,21 @@
 {
-  "name": "api-tester-web",
+  "name": "apitester",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "author": "Ridho Muhammad",
+  "main": "dist-electron/main.js",
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron"]
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:electron": "concurrently -k \"vite\" \"wait-on tcp:5173 && tsc -p electron/tsconfig.json && pnpm copy-preload && electron .\"",
     "setup": "pnpm install",
     "build": "tsc -b && vite build",
+    "build:electron": "vite build && tsc -p electron/tsconfig.json && pnpm copy-preload",
+    "build:electron:dist": "set NODE_OPTIONS=--max-old-space-size=4096 && pnpm build:electron && electron-builder --win",
+    "copy-preload": "node -e \"require('fs').copyFileSync('electron/preload.cjs','dist-electron/preload.cjs')\"",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -74,10 +83,32 @@
     "vaul": "^1.1.2",
     "zod": "^4.0.11"
   },
+  "build": {
+    "appId": "com.apitester.app",
+    "productName": "Apitester",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "win": {
+      "icon": "public/app.ico",
+      "legalTrademarks": "Ridho muhammad 2026",
+      "target": "portable"
+    },
+    "afterPack": "electron/afterPack.cjs"
+  },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^24.1.0",
+    "concurrently": "^9.1.2",
+    "electron": "^35.0.0",
+    "electron-builder": "^25.1.8",
+    "resedit": "^3.0.2",
+    "wait-on": "^8.0.3",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",

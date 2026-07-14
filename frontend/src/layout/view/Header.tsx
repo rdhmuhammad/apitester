@@ -1,63 +1,27 @@
-import type {ChangeEvent} from "react";
-import {useEffect, useMemo, useRef, useState} from "react";
+import {useEffect, useState} from "react";
 import {Images} from "@/config/constant/Images.tsx";
 import {cn, getContentType, getJsonSizeInKB} from "@/lib/utils.ts";
 
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle
-} from "@/components/ui/alert-dialog.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
-import {ArrowDownToLine, ArrowUpFromLine, LoaderCircle, Plus, Send, Upload} from "lucide-react";
+import {LoaderCircle, Plus, Send, Settings} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
     addBaseUrl,
-    selectActiveRequest,
     selectBaseUrlValues,
     selectCollectionData,
     selectRequest, selectVariable,
-    setCurrentResponse,
-    selectDirtyRequestIds,
-    clearDirtyRequestIds
+    setCurrentResponse
 } from "@/app/slices/collectionSlices.ts";
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
 import {useSendRequest} from "@/layout/hooks/useSendRequest.ts";
 import CustomToast from "@/components/common/toast";
-import {type ColtReqMethod, fetchCollections} from "@/app/slices";
-import type {ActiveItem} from "@/app/slices/index.ts";
-import type {CollectionItem, CollectionVar, DocsContent, ItemUrl} from "@/pages/editor/types/api.ts";
-import {CollectionServices} from "@/layout/services/collection.ts";
+import type {ColtReqMethod} from "@/app/slices";
+import type {CollectionVar, ItemUrl} from "@/pages/editor/types/api.ts";
 import {addQueryParam, updateQueryParam, setUrlRaw} from "@/app/slices/requestSlices.ts";
-
-const findItemInTree = (items: CollectionItem[], id: string): CollectionItem | null => {
-    for (const item of items) {
-        if (item.id === id) return item
-        if (item.item) {
-            const found = findItemInTree(item.item, id)
-            if (found) return found
-        }
-    }
-    return null
-}
-
-const mergeActiveRequests = (data: DocsContent, requests: ActiveItem[]): DocsContent => {
-    for (const active of requests) {
-        if (!active.request) continue
-        const found = findItemInTree(data.item, active.id)
-        if (found) {
-            found.request = active.request
-        }
-    }
-    return data
-}
+import CollectionManagerDialog from "@/layout/components/CollectionManagerDialog.tsx";
+import {useCollectionPushPull} from "@/layout/hooks/useCollectionPushPull.ts";
 
 const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     {
@@ -68,15 +32,6 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const baseUrlOptions = useAppSelector(selectBaseUrlValues)
     const variables = useAppSelector(selectVariable)
     const collectionData = useAppSelector(selectCollectionData)
-    const activeRequests = useAppSelector(selectActiveRequest)
-    const dirtyRequestIds = useAppSelector(selectDirtyRequestIds)
-    const dirtyRequestNames = useMemo(() => {
-        return dirtyRequestIds.map(id => {
-            const item = findItemInTree(collectionData?.item ?? [], id)
-            return {id, name: item?.name ?? 'Untitled'}
-        })
-    }, [dirtyRequestIds, collectionData])
-    const uploadInputRef = useRef<HTMLInputElement | null>(null)
     const runtimeBaseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
     useEffect(() => {
@@ -104,7 +59,6 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
         })
     }, [baseUrlOptions, runtimeBaseUrl]);
 
-    const [gitAction, setGitAction] = useState<"pull" | "push" | null>(null);
     const requestMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
     const methodColorClass: Record<ColtReqMethod[number], string> = {
         GET: "bg-emerald-600",
@@ -118,7 +72,8 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const [endpoint, setEndpoint] = useState(currRequest?.request?.url.raw ?? "");
     const [newBaseUrl, setNewBaseUrl] = useState("");
     const [isSending, setIsSending] = useState(false);
-    const [pendingDestructiveAction, setPendingDestructiveAction] = useState<"pull" | "upload" | null>(null);
+    const [managerOpen, setManagerOpen] = useState(false);
+    const {pull, push, isPulling, isPushing} = useCollectionPushPull()
     const resolveVariableValue = (value: string): string => {
         return value.replace(/\{\{([^{}]+)\}\}/g, (_, key: string) => {
             const matchedVariable = variables.find((item) => item.key === key.trim())
@@ -207,47 +162,21 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
         }).finally(() => setIsSending(false))
     };
 
-    const handleConfirmGitAction = async (action: string | null) => {
-        if (!action) return
-
-        switch (action) {
-            case "pull":
-                dispatch(fetchCollections())
-                setGitAction(null)
-                break
-
-            case "push":
-                if (!collectionData) {
-                    CustomToast.error("No collection data to save")
-                    setGitAction(null)
-                    return
-                }
-
-                try {
-                    const merged = mergeActiveRequests(structuredClone(collectionData), activeRequests)
-                    const msg = await CollectionServices.updateCollection(merged)
-                    dispatch(fetchCollections())
-                    CustomToast.success(msg || "Collection updated successfully")
-                } catch (error: any) {
-                    const message = error?.response?.data?.message || error?.message || "Failed to update collection"
-                    CustomToast.error(message)
-                } finally {
-                    setGitAction(null)
-                }
-                break
-        }
-    };
-
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (!collectionData || isSending) return
-            if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-                event.preventDefault()
-                handleSendRequest()
-            }
-            if ((event.ctrlKey || event.metaKey) && event.key === "s") {
-                event.preventDefault()
-                setGitAction("push")
+            if (!collectionData || isSending || isPulling || isPushing) return
+            if (!event.ctrlKey && !event.metaKey) return
+            event.preventDefault()
+            switch (event.key) {
+                case "Enter":
+                    handleSendRequest()
+                    break
+                case "s":
+                    push()
+                    break
+                case "p":
+                    pull()
+                    break
             }
         }
         window.addEventListener("keydown", handleKeyDown)
@@ -268,22 +197,6 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
         setNewBaseUrl('')
     }
 
-    const handleUploadCollection = async (event: ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0]
-        if (!file) return
-
-        try {
-            const message = await CollectionServices.uploadCollection(file)
-            dispatch(fetchCollections())
-            CustomToast.success(message || "Collection uploaded successfully")
-        } catch (error: any) {
-            const message = error?.response?.data?.message || error?.message || "Failed to upload collection"
-            CustomToast.error(message)
-        } finally {
-            event.target.value = ""
-        }
-    }
-
     return (
         <header className="fixed top-0 z-50 w-full gap-4 h-[60px] bg-white border-b border-gray-200 px-6 shadow-sm
          flex flex-row items-center">
@@ -297,54 +210,15 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     Apitester
                 </h1>
                 <div className="flex items-center h-full gap-2 ml-4">
-                    <input
-                        ref={uploadInputRef}
-                        type="file"
-                        accept=".json,application/json"
-                        className="hidden"
-                        onChange={handleUploadCollection}
-                    />
                     <Button
                         variant="outline"
                         size="sm"
                         className="h-9"
-                        onClick={() => {
-                            if (dirtyRequestIds.length > 0) {
-                                setPendingDestructiveAction("pull")
-                            } else {
-                                setGitAction("pull")
-                            }
-                        }}
+                        onClick={() => setManagerOpen(true)}
                     >
-                        <ArrowDownToLine className="h-4 w-4 mr-1"/>
-
+                        <Settings className="h-4 w-4"/>
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9"
-                        disabled={!collectionData}
-                        onClick={() => {
-                            if (dirtyRequestIds.length > 0 && collectionData) {
-                                setPendingDestructiveAction("upload")
-                            } else {
-                                uploadInputRef.current?.click()
-                            }
-                        }}
-                    >
-                        <Upload className="h-4 w-4 mr-1"/>
-
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9"
-                        disabled={!collectionData}
-                        onClick={() => setGitAction("push")}
-                    >
-                        <ArrowUpFromLine className="h-4 w-4 mr-1"/>
-
-                    </Button>
+                    <CollectionManagerDialog open={managerOpen} onOpenChange={setManagerOpen}/>
                 </div>
             </div>
             {/*<div className="mx-4 h-full w-px bg-indigo-500" />*/}
@@ -445,86 +319,6 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     Send Request
                 </Button>
             </div>
-            <AlertDialog open={Boolean(gitAction)} onOpenChange={(open) => !open && setGitAction(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Confirm Git Action</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {gitAction === "push"
-                                ? "This will push your changes to remote repository. Do you want to continue?"
-                                : "This will pull latest changes from remote repository. Do you want to continue?"}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleConfirmGitAction(gitAction)}>
-                            {gitAction === "push" ? "Confirm Push" : "Confirm Pull"}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            <AlertDialog open={Boolean(pendingDestructiveAction)}
-                         onOpenChange={(open) => !open && setPendingDestructiveAction(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-                        <AlertDialogDescription asChild>
-                            <div>
-                                <p className="mb-2">The following requests have unsaved changes. What would you like to
-                                    do?</p>
-                                <ul className="list-disc pl-5 text-sm text-slate-600 space-y-1">
-                                    {dirtyRequestNames.map(({id, name}) => (
-                                        <li key={id}>{name}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                const action = pendingDestructiveAction
-                                dispatch(clearDirtyRequestIds())
-                                setPendingDestructiveAction(null)
-                                if (action === "pull") {
-                                    setGitAction("pull")
-                                } else {
-                                    setTimeout(() => uploadInputRef.current?.click(), 0)
-                                }
-                            }}
-                        >
-                            Discard & {pendingDestructiveAction === "pull" ? "Pull" : "Upload"}
-                        </Button>
-                        <Button
-                            onClick={async () => {
-                                const action = pendingDestructiveAction
-                                setPendingDestructiveAction(null)
-                                if (!collectionData) return
-                                try {
-                                    const merged = mergeActiveRequests(structuredClone(collectionData), activeRequests)
-                                    await CollectionServices.updateCollection(merged)
-                                    dispatch(fetchCollections())
-                                } catch (error: unknown) {
-                                    const err = error as { response?: { data?: { message?: string } }; message?: string }
-                                    const message = err?.response?.data?.message || err?.message || "Failed to save"
-                                    CustomToast.error(message)
-                                    return
-                                }
-                                if (action === "pull") {
-                                    dispatch(fetchCollections())
-                                } else {
-                                    setTimeout(() => uploadInputRef.current?.click(), 0)
-                                }
-                            }}
-                        >
-                            Push & {pendingDestructiveAction === "pull" ? "Pull" : "Upload"}
-                        </Button>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </header>
     )
 }

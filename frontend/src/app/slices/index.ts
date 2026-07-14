@@ -38,8 +38,8 @@ export interface ActiveItem{
 
 export const fetchCollections = createAppAsyncThunk(
     'collections/fetchCollections',
-    async () => {
-        return await CollectionServices.getCollection()
+    async (collectionId: string) => {
+        return await CollectionServices.getCollection(collectionId)
     }
 )
 
