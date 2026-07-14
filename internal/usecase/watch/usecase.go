@@ -65,7 +65,9 @@ func collectionDBPath() string {
 }
 
 func initCollectionRepo() bbolt.RepositoryInterface[domain.Collection] {
-	boltDB, err := bbolt.NewBoltDB(collectionDBPath())
+	dbPath := collectionDBPath()
+	os.MkdirAll(filepath.Dir(dbPath), 0755)
+	boltDB, err := bbolt.NewBoltDB(dbPath)
 	if err != nil {
 		panic(err)
 	}

@@ -1,10 +1,10 @@
 import { ROUTES } from "@/config/constant/ROUTES";
 import MainLayout from "@/layout/view/MainLayout.tsx";
-import {createBrowserRouter, Navigate, Outlet} from "react-router-dom";
+import {createHashRouter, Navigate, Outlet} from "react-router-dom";
 import Editor from "@/pages/editor";
 import NotFound from "@/pages/NotFound";
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
     {
         path: "/",
         element: (

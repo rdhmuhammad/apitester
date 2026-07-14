@@ -1,6 +1,7 @@
 .idea
 vendor
 resource/db/data
+resource/log
 resource/db/collection.db
 .env.stag
 deployment/desktop/build

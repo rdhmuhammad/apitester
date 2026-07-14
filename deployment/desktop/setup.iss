@@ -37,14 +37,31 @@ Source: "..\..\.env.prod"; DestDir: "{app}"
 Name: "{app}\resource\db"
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\Apitester.exe"; WorkingDir: "{app}"
-Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\Apitester.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{group}\{#MyAppName}"; Filename: "{app}\apitester.exe"; WorkingDir: "{app}"
+Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\apitester.exe"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{sys}\sc.exe"; Parameters: "create apitester-backend binPath= ""{app}\apitester-backend.exe -env {app}\.env.prod"" start= auto"; StatusMsg: "Registering backend service..."; Flags: runhidden
-Filename: "{sys}\sc.exe"; Parameters: "start apitester-backend"; StatusMsg: "Starting backend service..."; Flags: runhidden
-Filename: "{app}\Apitester.exe"; Description: "Launch {#MyAppName}"; Flags: postinstall nowait skipifsilent shellexec
+Filename: "{sys}\sc.exe"; Parameters: "create Apitester-backend binPath= ""{app}\apitester-backend.exe --env """"{app}\.env.prod"""""" start= auto"; StatusMsg: "Registering backend service..."; Flags: runhidden
+Filename: "{sys}\sc.exe"; Parameters: "start Apitester-backend"; StatusMsg: "Starting backend service..."; Flags: runhidden
+Filename: "{app}\apitester.exe"; Description: "Launch {#MyAppName}"; Flags: postinstall nowait skipifsilent shellexec
+
+[Code]
+var
+  RemoveData: Boolean;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+    RemoveData := (MsgBox('Remove all Apitester application data (logs and saved data)?',
+      mbConfirmation, MB_YESNO) = IDYES);
+
+  if CurUninstallStep = usPostUninstall then
+  begin
+    if RemoveData then
+      DelTree(ExpandConstant('{commonappdata}\Apitester'), True, True, True);
+  end;
+end;
 
 [UninstallRun]
-Filename: "{sys}\sc.exe"; Parameters: "stop apitester-backend"; Flags: runhidden
-Filename: "{sys}\sc.exe"; Parameters: "delete apitester-backend"; Flags: runhidden
+Filename: "{sys}\sc.exe"; Parameters: "stop Apitester-backend"; Flags: runhidden
+Filename: "{sys}\sc.exe"; Parameters: "delete Apitester-backend"; Flags: runhidden
