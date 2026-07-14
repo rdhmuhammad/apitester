@@ -12,19 +12,6 @@ import {
 } from "@/app/slices/collectionSlices.ts";
 import {cn} from "@/lib/utils.ts";
 
-// interface RequestNode {
-//     type: "request";
-//     id: string;
-//     name: string;
-//     method: RequestMethod;
-// }
-
-// interface FolderNode {
-//     type: "folder";
-//     id: string;
-//     name: string;
-//     children: Array<FolderNode | RequestNode>;
-// }
 
 const methodColorClass: Record<ColtReqMethod, string> = {
     GET: "text-emerald-600",
@@ -33,55 +20,6 @@ const methodColorClass: Record<ColtReqMethod, string> = {
     PATCH: "text-violet-600",
     DELETE: "text-red-600"
 };
-
-// const exampleCollections: FolderNode[] = [
-//     {
-//         type: "folder",
-//         id: "users",
-//         name: "Users Service",
-//         children: [
-//             {
-//                 type: "folder",
-//                 id: "users-auth",
-//                 name: "Authentication",
-//                 children: [
-//                     {type: "request", id: "login", name: "Login User", method: "POST"},
-//                     {type: "request", id: "refresh", name: "Refresh Token", method: "POST"},
-//                     {type: "request", id: "logout", name: "Logout", method: "DELETE"}
-//                 ]
-//             },
-//             {
-//                 type: "folder",
-//                 id: "users-profile",
-//                 name: "Profile",
-//                 children: [
-//                     {type: "request", id: "get-profile", name: "Get My Profile", method: "GET"},
-//                     {type: "request", id: "update-profile", name: "Update Profile", method: "PATCH"}
-//                 ]
-//             }
-//         ]
-//     },
-//     {
-//         type: "folder",
-//         id: "products",
-//         name: "Product Catalog",
-//         children: [
-//             {type: "request", id: "list-products", name: "List Products", method: "GET"},
-//             {type: "request", id: "create-product", name: "Create Product", method: "POST"},
-//             {type: "request", id: "replace-product", name: "Replace Product", method: "PUT"}
-//         ]
-//     },
-//     {
-//         type: "folder",
-//         id: "orders",
-//         name: "Orders",
-//         children: [
-//             {type: "request", id: "order-list", name: "Get Orders", method: "GET"},
-//             {type: "request", id: "order-create", name: "Create Order", method: "POST"},
-//             {type: "request", id: "order-cancel", name: "Cancel Order", method: "DELETE"}
-//         ]
-//     }
-// ];
 
 const isFolderDirty = (node: DirTree, dirtyIds: string[]): boolean => {
     if (node.category === "REQ") return dirtyIds.includes(node.id)

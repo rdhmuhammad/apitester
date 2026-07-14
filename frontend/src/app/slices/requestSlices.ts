@@ -135,6 +135,7 @@ export const addHeaderReducer = (state: CollectionState, action: PayloadAction<H
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
+    currentRequest.header = currentRequest.header ?? []
     currentRequest.header.push(action.payload.header)
     markDirty(state)
 }
@@ -158,7 +159,7 @@ export const removeHeaderReducer = (state: CollectionState, action: PayloadActio
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
-    currentRequest.header = currentRequest.header.filter((item) => item.key !== action.payload.key)
+    currentRequest.header = (currentRequest.header ?? []).filter((item) => item.key !== action.payload.key)
     markDirty(state)
 }
 
@@ -166,6 +167,7 @@ export const addQueryParamReducer = (state: CollectionState, action: PayloadActi
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
+    currentRequest.url.query = currentRequest.url.query ?? []
     currentRequest.url.query.push(action.payload.query)
     markDirty(state)
 }
@@ -182,7 +184,7 @@ export const removeQueryParamReducer = (state: CollectionState, action: PayloadA
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
-    currentRequest.url.query = currentRequest.url.query.filter((item) => item.key !== action.payload.key)
+    currentRequest.url.query = (currentRequest.url.query ?? []).filter((item) => item.key !== action.payload.key)
     markDirty(state)
 }
 

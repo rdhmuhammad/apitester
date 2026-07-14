@@ -32,7 +32,6 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const baseUrlOptions = useAppSelector(selectBaseUrlValues)
     const variables = useAppSelector(selectVariable)
     const collectionData = useAppSelector(selectCollectionData)
-    const runtimeBaseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
     useEffect(() => {
         const raw = currRequest?.request?.url?.raw ?? ''
@@ -46,7 +45,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
 
     useEffect(() => {
         if (baseUrlOptions.length === 0) {
-            setSelectedBaseUrl(runtimeBaseUrl)
+            setSelectedBaseUrl("")
             return
         }
 
@@ -55,9 +54,9 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                 return currentValue
             }
 
-            return baseUrlOptions[0] ?? runtimeBaseUrl
+            return baseUrlOptions[0] ?? ""
         })
-    }, [baseUrlOptions, runtimeBaseUrl]);
+    }, [baseUrlOptions]);
 
     const requestMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
     const methodColorClass: Record<ColtReqMethod[number], string> = {
@@ -242,7 +241,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     </SelectContent>
                 </Select>
                 <div className="flex w-full items-center rounded-md border border-input bg-transparent shadow-xs">
-                    {baseUrlOptions.length > 0 ? (
+                    {(baseUrlOptions.length > 0) ? (
                         <Select
                             value={selectedBaseUrl}
                             disabled={!collectionData}
