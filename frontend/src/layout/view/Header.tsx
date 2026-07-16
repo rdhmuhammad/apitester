@@ -93,7 +93,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
         const params: ItemUrl[] = []
         const searchParams = new URLSearchParams(queryString)
         searchParams.forEach((value, key) => {
-            params.push({key, value, disabled: false})
+            params.push({id: crypto.randomUUID(), key, value, disabled: false})
         })
 
         return {cleanUrl: beforeQuery + hash, params}

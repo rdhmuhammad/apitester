@@ -19,6 +19,7 @@ import {
     removeQueryParam,
     selectHeader,
     selectReqParam,
+    selectRequestBody,
     updateHeader,
     updateQueryParam
 } from "@/app/slices/requestSlices.ts";
@@ -45,26 +46,30 @@ const IndicatorConfigTabs: React.FC = () => {
 
     const rootAuth = useAppSelector(selectAuth)
 
+    // ===============> Headers
+    const headers = useAppSelector(selectHeader)
+
     // ===============> Authorization
     const [authValue, setAuthValue] = useState<AuthType>("inherit")
     useEffect(() => {
         if (authValue === 'inherit') {
+            const authId = headers.find(h => h.key === 'Authorization')?.id ?? crypto.randomUUID()
             dispatch(updateHeader({
                 header: {
+                    id: authId,
                     key: 'Authorization',
                     value: (rootAuth.bearer && rootAuth.bearer[0].value) ?? ''
                 }
             }))
         } else if (authValue === 'bearer') {
-            dispatch(removeHeader({key: 'Authorization'}))
-            dispatch(updateHeader({header: {key: 'Authorization', value: ''}}))
+            const authId = headers.find(h => h.key === 'Authorization')?.id
+            if (authId) dispatch(removeHeader({id: authId}))
+            dispatch(updateHeader({header: {key: 'Authorization', value: '', id: crypto.randomUUID()}}))
         } else if (authValue === 'none') {
-            dispatch(removeHeader({key: 'Authorization'}))
+            const authId = headers.find(h => h.key === 'Authorization')?.id
+            if (authId) dispatch(removeHeader({id: authId}))
         }
     }, [authValue]);
-
-    // ===============> Headers
-    const headers = useAppSelector(selectHeader)
 
     const [showSysHeader, setShowSysHeader] = useState(false)
     const sysHeader: ItemUrl[] = [
@@ -90,7 +95,10 @@ const IndicatorConfigTabs: React.FC = () => {
     const [newHeaderValue, setNewHeaderValue] = useState("")
 
     // ===============> Request Body
-    const [contentType, setContentType] = useState<ContentType>("application/json")
+    const requestBody = useAppSelector(selectRequestBody)
+    const [contentType, setContentType] = useState<ContentType>(
+        requestBody?.mode === "formdata" ? "multipart/form-data" : "application/json"
+    )
     useEffect(() => {
         dispatch(updateHeader({
             header: {
@@ -100,6 +108,12 @@ const IndicatorConfigTabs: React.FC = () => {
             }
         }))
     }, [contentType]);
+    useEffect(() => {
+        const nextType = requestBody?.mode === "formdata" ? "multipart/form-data" : "application/json"
+        if (nextType !== contentType) {
+            setContentType(nextType as ContentType)
+        }
+    }, [requestBody?.mode])
 
     return (
         <section className="rounded-b-xl border border-slate-200 bg-white shadow-sm">
@@ -138,7 +152,7 @@ const IndicatorConfigTabs: React.FC = () => {
                             <span className="col-span-2"/>
                         </div>
                         {currRequest?.request?.url?.query?.map((item) => (
-                            <div key={item.key}
+                            <div key={item.id ?? item.key}
                                  className={cn(
                                      "grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center",
                                      item.disabled && "opacity-50"
@@ -195,7 +209,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => dispatch(removeQueryParam({key: item.key}))}
+                                        onClick={() => dispatch(removeQueryParam({id: item.id!}))}
                                         className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                                     >
                                         <Trash2 className="h-4 w-4"/>
@@ -238,6 +252,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                         if (!newParamKey.trim()) return
                                         dispatch(addQueryParam({
                                             query: {
+                                                id: crypto.randomUUID(),
                                                 key: newParamKey.trim(),
                                                 value: newParamValue,
                                                 description: newParamDesc,
@@ -309,7 +324,7 @@ const IndicatorConfigTabs: React.FC = () => {
                             <span className="col-span-2"/>
                         </div>
                         {headerShow.map((item) => (
-                            <div key={item.key}
+                            <div key={item.id ?? item.key}
                                  className={cn(
                                      "grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center",
                                      item.disabled && "opacity-50"
@@ -348,7 +363,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => dispatch(removeHeader({key: item.key}))}
+                                        onClick={() => dispatch(removeHeader({id: item.id!}))}
                                         className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                                     >
                                         <Trash2 className="h-4 w-4"/>
@@ -383,6 +398,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                         if (!newHeaderKey.trim()) return
                                         dispatch(addHeader({
                                             header: {
+                                                id: crypto.randomUUID(),
                                                 key: newHeaderKey.trim(),
                                                 value: newHeaderValue,
                                             }

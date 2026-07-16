@@ -1,6 +1,6 @@
 import AceEditor from "react-ace";
 import {Card} from "@/components/ui/card.tsx";
-import {SearchIcon, ToggleLeft, ToggleRight} from "lucide-react";
+import {SearchIcon, ToggleLeft, ToggleRight, Trash2, Plus} from "lucide-react";
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import CustomToast from "@/components/common/toast";
@@ -70,14 +70,16 @@ export const BodyEditor: React.FC<IBodyEditor> = (
         editorRef.current = editor
 
         editor.container.addEventListener("contextmenu", (ev: MouseEvent) => {
-            ev.preventDefault()
             const selectedText = editor.getSelectedText()
-            setMenu({
-                open: true,
-                x: ev.clientX,
-                y: ev.clientY,
-                selectedText
-            })
+            if (selectedText) {
+                ev.preventDefault()
+                setMenu({
+                    open: true,
+                    x: ev.clientX,
+                    y: ev.clientY,
+                    selectedText
+                })
+            }
         })
     }
 
@@ -96,20 +98,48 @@ export const BodyEditor: React.FC<IBodyEditor> = (
         item.key.toLowerCase().includes(searchVariable.toLowerCase())
     );
 
-    const toggleMultipartField = (field: keyof ItemUrl, pKey: string) => {
+    const toggleMultipartField = (field: keyof ItemUrl, pId: string) => {
         const body = (selectBody?.formdata ?? []).map((item) => {
-            if (item.key !== pKey) return item;
+            if (item.id !== pId) return item;
             const nextValue =
                 field === "disabled"
                     ? !item[field]
                     : item[field] === "text" ? "file" : "text"
-            return {
+            const updated = {
                 ...item,
                 [field]: nextValue
             };
+            if (field === "type") {
+                updated.value = ""
+                updated.src = ""
+            }
+            return updated as ItemUrl;
         })
         dispatch(setBody({body: body}))
     }
+
+    const updateFormdataField = (pId: string, field: keyof ItemUrl, value: string | boolean) => {
+        const body = (selectBody?.formdata ?? []).map((item) =>
+            item.id === pId ? {...item, [field]: value} : item
+        )
+        dispatch(setBody({body: body}))
+    }
+
+    const removeFormdataField = (pId: string) => {
+        const body = (selectBody?.formdata ?? []).filter((item) => item.id !== pId)
+        dispatch(setBody({body: body}))
+    }
+
+    const addFormdataField = (key: string, value: string, description: string, type: string) => {
+        const newVar: ItemUrl = {id: crypto.randomUUID(), key, value, description, type, src: type === 'file' ? value : ""}
+        const body = [...(selectBody?.formdata ?? []), newVar]
+        dispatch(setBody({body: body}))
+    }
+
+    const [newFdKey, setNewFdKey] = useState("")
+    const [newFdValue, setNewFdValue] = useState("")
+    const [newFdValueType, setNewFdValueType] = useState<"file" | "text">("text")
+    const [newFdDesc, setNewFdDesc] = useState("")
 
     switch (contentType) {
         case "application/json":
@@ -195,53 +225,66 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                         <span className="col-span-3">Key</span>
                         <span className="col-span-3">Value</span>
                         <span className="col-span-4">Description</span>
+                        <span className="col-span-2"/>
                     </div>
-                    {selectBody?.formdata && selectBody?.formdata.map((item) => (
-                        <div key={item.key}
+                    {selectBody?.formdata?.map((item) => (
+                        <div key={item.id ?? item.key}
                              className={cn(
-                                 "grid grid-cols-12 border-t border-slate-200 px-3 py-2",
-                                 !item.disabled ? "bg-white-300" : "bg-gray-400"
+                                 "grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center",
+                                 item.disabled && "opacity-50"
                              )}>
                             <div className="col-span-3">
                                 <Input
                                     value={item.key}
-                                    readOnly
+                                    onChange={(e) => updateFormdataField(item.id!, "key", e.target.value)}
                                     className="h-8 bg-white"
                                     disabled={item.disabled}
                                 />
                             </div>
                             <div className="col-span-3 pl-2">
                                 <div className={cn(
-                                    "flex h-8 items-center rounded-md border border-slate-200 bg-white",
+                                    "flex h-8 items-center justify-between rounded-md border border-slate-200 bg-white",
                                     "transition-[color,box-shadow]",
                                     " focus-within:ring-[3px] focus-within:ring-gray-300",
                                 )}>
-                                    <Input
-                                        value={item.value}
-                                        type={item.type}
-                                        onChange={(event) => {
-                                            const body = (selectBody?.formdata ?? []).map((param) =>
-                                                param.key === item.key ? {
-                                                    ...param,
-                                                    value: event.target.value
-                                                } : param
-                                            )
-                                            dispatch(setBody({body: body}))
-                                        }}
-                                        className={cn(
-                                            "h-8 flex-1 border-0 bg-transparent rounded-none shadow-none focus-visible:ring-0 focus-visible:border-0",
-                                            "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-                                        )}
-                                        disabled={item.disabled}
-                                    />
+                                    {item.type === "file" ? (
+                                        <div className="ml-2">
+                                            <input
+                                                id={`file-${item.id}`}
+                                                type="file"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0]
+                                                    if (file) updateFormdataField(item.id!, "src", file.name)
+                                                }}
+                                                disabled={item.disabled}
+                                            />
+                                            <label
+                                                htmlFor={`file-${item.id}`}
+                                                className="cursor-pointer rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
+                                            >
+                                                {item.src ? item.src : "Choose File"}
+                                            </label>
+                                        </div>
+                                    ) : (
+                                        <Input
+                                            value={item.value}
+                                            onChange={(event) => updateFormdataField(item.id!, "value", event.target.value)}
+                                            className={cn(
+                                                "h-8 flex-1 border-0 bg-transparent rounded-none shadow-none focus-visible:ring-0 focus-visible:border-0",
+                                                "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                            )}
+                                            disabled={item.disabled}
+                                            placeholder="value"
+                                        />
+                                    )}
                                     <Button
                                         variant="ghost"
                                         size="xs"
                                         onClick={e => {
                                             e.preventDefault()
-                                            toggleMultipartField("type", item.key)
+                                            toggleMultipartField("type", item.id!)
                                         }}
-                                        disabled={item.disabled}
                                         className={cn(
                                             "mr-2 select-none rounded-sm border border-slate-200",
                                             "px-2 py-0.5 text-[11px] font-medium text-slate-500 ",
@@ -252,22 +295,23 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                         {item.type}
                                     </Button>
                                 </div>
-
                             </div>
-                            <div className="col-span-5 pl-3 flex items-center justify-start">
-                                <p className="text-gray-500 text-[12px]">
-                                    {item.description}
-                                </p>
+                            <div className="col-span-4 pl-3">
+                                <Input
+                                    value={item.description ?? ""}
+                                    onChange={(e) => updateFormdataField(item.id!, "description", e.target.value)}
+                                    className="h-8 bg-white text-xs text-gray-500"
+                                    disabled={item.disabled}
+                                    placeholder="description"
+                                />
                             </div>
-                            <div className="col-span-1 pl-3 flex justify-end">
+                            <div className="col-span-2 pl-3 flex items-center justify-end gap-1">
                                 <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => {
-                                        toggleMultipartField("disabled", item.key)
-                                    }}
-                                    className="h-8 justify-center self-end"
+                                        onClick={() => toggleMultipartField("disabled", item.id!)}
+                                    className="h-8 w-8 p-0"
                                 >
                                     {!item.disabled ? (
                                         <ToggleRight className="h-4 w-4 text-emerald-600"/>
@@ -275,9 +319,112 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                         <ToggleLeft className="h-4 w-4 text-slate-400"/>
                                     )}
                                 </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                        onClick={() => removeFormdataField(item.id!)}
+                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                    <Trash2 className="h-4 w-4"/>
+                                </Button>
                             </div>
                         </div>
                     ))}
+                    <div className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center">
+                        <div className="col-span-3">
+                            <Input
+                                value={newFdKey}
+                                onChange={(e) => setNewFdKey(e.target.value)}
+                                className="h-8"
+                                placeholder="key"
+                            />
+                        </div>
+                            <div className="col-span-3 pl-2">
+                                <div className={cn(
+                                    "flex h-8 items-center justify-between rounded-md border border-slate-200 bg-white",
+                                    "transition-[color,box-shadow]",
+                                    " focus-within:ring-[3px] focus-within:ring-gray-300",
+                                )}>
+                                    {newFdValueType === "file" ? (
+                                        <div className="ml-2">
+                                            <input
+                                                id="file-new-fd"
+                                                type="file"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0]
+                                                    if (file) {
+                                                        setNewFdValue(file.name)
+                                                        setNewFdValueType("file")
+                                                    }
+                                                }}
+                                            />
+                                            <label
+                                                htmlFor={`file-new-fd`}
+                                                className="cursor-pointer rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
+                                            >
+                                                {newFdValue ? newFdValue : "Choose File"}
+                                            </label>
+                                        </div>
+                                    ) : (
+                                        <Input
+                                            onChange={(event) => {
+                                                setNewFdValue(event.target.value)
+                                                setNewFdValueType("text")
+                                            }}
+                                            value={newFdValue}
+                                            className={cn(
+                                                "h-8 flex-1 border-0 bg-transparent rounded-none shadow-none focus-visible:ring-0 focus-visible:border-0",
+                                                "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                            )}
+                                            placeholder="value"
+                                        />
+                                    )}
+                                    <Button
+                                        variant="ghost"
+                                        size="xs"
+                                        onClick={e => {
+                                            e.preventDefault()
+                                            setNewFdValueType(newFdValueType === "file" ? "text" : "file")
+                                        }}
+                                        className={cn(
+                                            "mr-2 select-none rounded-sm border border-slate-200",
+                                            "px-2 py-0.5 text-[11px] font-medium text-slate-500 ",
+                                            "hover:bg-gray-100",
+                                            "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                        )}
+                                    >
+                                        {newFdValueType}
+                                    </Button>
+                                </div>
+                            </div>
+                        <div className="col-span-4 pl-3">
+                            <Input
+                                value={newFdDesc}
+                                onChange={(e) => setNewFdDesc(e.target.value)}
+                                className="h-8 text-xs"
+                                placeholder="description"
+                            />
+                        </div>
+                        <div className="col-span-2 flex justify-end">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    if (!newFdKey.trim()) return
+                                    addFormdataField(newFdKey.trim(), newFdValue, newFdDesc, newFdValueType)
+                                    setNewFdKey("")
+                                    setNewFdValue("")
+                                    setNewFdDesc("")
+                                }}
+                                className="h-8 w-8 p-0"
+                            >
+                                <Plus className="h-4 w-4"/>
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             )
         default:

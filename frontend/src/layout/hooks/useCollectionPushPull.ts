@@ -1,13 +1,13 @@
 import {useCallback, useState} from "react"
-import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts"
+import {useAppDispatch} from "@/app/store/hooks.ts"
 import {fetchCollections} from "@/app/slices/index.ts"
-import {selectCollectionData} from "@/app/slices/collectionSlices.ts"
+import {saveActiveToData, selectCollectionData} from "@/app/slices/collectionSlices.ts"
+import {store} from "@/app/store/store.ts"
 import {CollectionServices} from "@/layout/services/collection.ts"
 import CustomToast from "@/components/common/toast"
 
 export function useCollectionPushPull() {
     const dispatch = useAppDispatch()
-    const docsContent = useAppSelector(selectCollectionData)
     const [isPulling, setIsPulling] = useState(false)
     const [isPushing, setIsPushing] = useState(false)
 
@@ -25,18 +25,19 @@ export function useCollectionPushPull() {
     }, [dispatch])
 
     const push = useCallback(async () => {
-        if (!docsContent) return
         setIsPushing(true)
         try {
+            dispatch(saveActiveToData())
+            const data = selectCollectionData(store.getState())
             const active = await CollectionServices.getActiveCollection()
-            await CollectionServices.writeCollection(active.id, JSON.stringify(docsContent, null, 2))
+            await CollectionServices.writeCollection(active.id, JSON.stringify(data, null, 2))
             CustomToast.success("Collection pushed successfully")
         } catch {
             CustomToast.error("Failed to push collection")
         } finally {
             setIsPushing(false)
         }
-    }, [docsContent])
+    }, [dispatch])
 
     return {pull, push, isPulling, isPushing}
 }

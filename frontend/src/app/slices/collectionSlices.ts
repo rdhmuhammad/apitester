@@ -151,6 +151,23 @@ const collectionSlices = createSlice({
         clearDirtyRequestIds(state) {
             state.dirtyRequestIds = []
         },
+        saveActiveToData(state) {
+            if (!state.data?.item) return
+
+            for (const active of state.activeRequest) {
+                if (!active.request) continue
+
+                const target = diveActiveRequest(active.id, state.data.item)
+                if (!target) continue
+
+                target.request = active.request
+                if (active.exampleResponse) {
+                    target.response = active.exampleResponse
+                }
+            }
+
+            state.dirtyRequestIds = []
+        },
     },
     extraReducers: (builder) => {
         builder.addCase(fetchCollections.pending, (state) => {
@@ -220,6 +237,7 @@ export const {
     addBaseUrl,
     removeBaseUrl,
     clearDirtyRequestIds,
+    saveActiveToData,
 } = collectionSlices.actions
 
 export const setActiveRequest = addActiveRequest

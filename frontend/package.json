@@ -5,7 +5,9 @@
   "author": "Ridho Muhammad",
   "main": "dist-electron/main.js",
   "pnpm": {
-    "onlyBuiltDependencies": ["electron"]
+    "onlyBuiltDependencies": [
+      "electron"
+    ]
   },
   "type": "module",
   "scripts": {
@@ -104,21 +106,22 @@
     "@eslint/js": "^9.30.1",
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^24.1.0",
-    "concurrently": "^9.1.2",
-    "electron": "^35.0.0",
-    "electron-builder": "^25.1.8",
-    "resedit": "^3.0.2",
-    "wait-on": "^8.0.3",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "concurrently": "^9.1.2",
+    "electron": "^35.0.0",
+    "electron-builder": "^25.1.8",
+    "electron-devtools-installer": "^4.0.0",
     "eslint": "^9.30.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
+    "resedit": "^3.0.2",
     "tw-animate-css": "^1.3.6",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.35.1",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "wait-on": "^8.0.3"
   }
 }

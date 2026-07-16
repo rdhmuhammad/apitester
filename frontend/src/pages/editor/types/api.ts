@@ -67,6 +67,7 @@ export interface RequestBody {
 }
 
 export interface ItemUrl {
+  id?: string;
   key: string;
   value: string;
   description?: string;
