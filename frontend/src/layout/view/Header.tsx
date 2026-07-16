@@ -15,7 +15,7 @@ import {
     setCurrentResponse
 } from "@/app/slices/collectionSlices.ts";
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
-import {useSendRequest} from "@/layout/hooks/useSendRequest.ts";
+import {buildRawRequest, useSendRequest} from "@/layout/hooks/useSendRequest.ts";
 import CustomToast from "@/components/common/toast";
 import type {ColtReqMethod} from "@/app/slices";
 import type {CollectionVar, ItemUrl} from "@/pages/editor/types/api.ts";
@@ -149,6 +149,22 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             response && dispatch(setCurrentResponse({
                 id: currRequest.id,
                 response: {
+                    rawRequest: buildRawRequest({
+                        baseUrl: selectedBaseUrl,
+                        endpoint: formatEndpoint(endpoint),
+                        method: requestMethod,
+                        headers: (currRequest?.request?.header ?? [])
+                            .filter(h => !h.disabled)
+                            .map((header) => ({
+                                ...header,
+                                value: resolveVariableValue(header.value ?? "")
+                            })),
+                        requestParams: (currRequest?.request?.url.query ?? [])
+                            .filter(q => !q.disabled),
+                        contentType: getContentType(currRequest),
+                        raw: currRequest?.request?.body?.raw,
+                        formData: currRequest?.request?.body?.formdata
+                    }),
                     protocol: 'HTTP/1.1',
                     responseSize: getJsonSizeInKB(response?.response?.data),
                     responseTime: response?.duration,
@@ -165,15 +181,17 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
         const handleKeyDown = (event: KeyboardEvent) => {
             if (!collectionData || isSending || isPulling || isPushing) return
             if (!event.ctrlKey && !event.metaKey) return
-            event.preventDefault()
             switch (event.key) {
                 case "Enter":
+                    event.preventDefault()
                     handleSendRequest()
                     break
                 case "s":
+                    event.preventDefault()
                     push()
                     break
                 case "p":
+                    event.preventDefault()
                     pull()
                     break
             }

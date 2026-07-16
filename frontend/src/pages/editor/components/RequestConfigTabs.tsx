@@ -49,6 +49,19 @@ const IndicatorConfigTabs: React.FC = () => {
     // ===============> Headers
     const headers = useAppSelector(selectHeader)
 
+    // ===============> Body toggle
+    const hasContentType = headers.some(h => h.key === 'Content-Type')
+    const toggleBody = () => {
+        if (hasContentType) {
+            const ct = headers.find(h => h.key === 'Content-Type')
+            if (ct?.id) dispatch(removeHeader({id: ct.id}))
+        } else {
+            dispatch(addHeader({
+                header: {key: 'Content-Type', value: contentType, id: crypto.randomUUID()}
+            }))
+        }
+    }
+
     // ===============> Authorization
     const [authValue, setAuthValue] = useState<AuthType>("inherit")
     useEffect(() => {
@@ -100,14 +113,18 @@ const IndicatorConfigTabs: React.FC = () => {
         requestBody?.mode === "formdata" ? "multipart/form-data" : "application/json"
     )
     useEffect(() => {
+        const h = headers.filter(h => h.key === 'Content-Type')
+        if (!h) return
         dispatch(updateHeader({
             header: {
+                ...h,
                 key: 'Content-Type',
                 value: contentType,
                 disabled: false
             }
         }))
     }, [contentType]);
+
     useEffect(() => {
         const nextType = requestBody?.mode === "formdata" ? "multipart/form-data" : "application/json"
         if (nextType !== contentType) {
@@ -438,11 +455,32 @@ const IndicatorConfigTabs: React.FC = () => {
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Badge variant="outline" className="text-slate-600">{contentType}</Badge>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-slate-600">{contentType}</Badge>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={toggleBody}
+                                    className="h-8 w-8 p-0"
+                                >
+                                    {hasContentType ? (
+                                        <ToggleRight className="h-4 w-4 text-emerald-600"/>
+                                    ) : (
+                                        <ToggleLeft className="h-4 w-4 text-slate-400"/>
+                                    )}
+                                </Button>
+                            </div>
                         </div>
-                        <BodyEditor
-                            contentType={contentType}
-                        />
+                        {hasContentType ? (
+                            <BodyEditor
+                                contentType={contentType}
+                            />
+                        ) : (
+                            <div className="flex items-center justify-center py-12 text-sm text-slate-400">
+                                Body disabled — toggle to enable
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
 

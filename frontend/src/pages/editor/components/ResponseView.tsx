@@ -89,7 +89,7 @@ const ResponseView: React.FC = () => {
                 <div className="mb-3 flex items-center justify-between">
                     <TabsList className="h-9 rounded-lg bg-slate-100">
                         <TabsTrigger value="pretty">Pretty</TabsTrigger>
-                        <TabsTrigger value="raw">Raw</TabsTrigger>
+                        <TabsTrigger value="console">Console</TabsTrigger>
                     </TabsList>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm">
@@ -133,12 +133,18 @@ const ResponseView: React.FC = () => {
                     </div>
                 </TabsContent>
 
-                <TabsContent value="raw" className="h-[calc(100%-3.2rem)]">
-                    <Textarea
-                        className="h-full min-h-[220px] resize-none font-mono text-sm"
-                        value={responseBody}
-                        disabled
-                    />
+                <TabsContent value="console" className="h-[calc(100%-3.2rem)]">
+                    {activeExample ? (
+                        <div className="flex items-center justify-center h-full text-sm text-slate-400">
+                            No console data for example responses
+                        </div>
+                    ) : (
+                        <Textarea
+                            className="h-full min-h-[220px] resize-none font-mono text-sm"
+                            value={currResponse?.rawRequest ?? 'Send a request to see console output'}
+                            readOnly
+                        />
+                    )}
                 </TabsContent>
             </Tabs>
         </section>

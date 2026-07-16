@@ -32,6 +32,47 @@ const formData = (request: ItemUrl[]): FormData => {
     return dt
 }
 
+export const buildRawRequest = (request: ISendRequest): string => {
+    const allHeaders = [
+        {key: 'Content-Type', value: request.contentType},
+        ...request.headers,
+    ].filter(h => h.value)
+
+    const headerLines = allHeaders
+        .map(h => `${h.key}: ${h.value}`)
+        .join('\n')
+
+    const queryString = request.requestParams.length > 0
+        ? '?' + request.requestParams.map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value ?? '')}`).join('&')
+        : ''
+
+    let host = ''
+    try {
+        host = new URL(request.baseUrl).host
+    } catch {
+        host = request.baseUrl
+    }
+
+    let bodyStr = ''
+    if (request.contentType === 'application/json') {
+        bodyStr = request.raw ?? ''
+    } else if (request.contentType === 'multipart/form-data' && request.formData) {
+        bodyStr = request.formData
+            .map(f => `${f.key}: ${f.value}`)
+            .join('\n')
+    }
+
+    const lines = [
+        `${request.method} ${request.baseUrl}${request.endpoint}${queryString} HTTP/1.1`,
+        `Host: ${host}`,
+        headerLines,
+        '',
+        bodyStr,
+    ]
+
+    return lines.join('\n')
+}
+
 export const useSendRequest = async (request: ISendRequest):Promise<SendResponse> => {
     const response = await axios.request({
         method: request.method,
@@ -49,13 +90,14 @@ export const useSendRequest = async (request: ISendRequest):Promise<SendResponse
             return acc
         }, {} as Record<string, string>),
         data: request.contentType === "application/json"
-            ? request.raw ?? "" :
+            ? (request.raw ?? "{}") :
             formData(request.formData ?? []),
         responseType: "json",
     }) as AxiosResponseWithDuration
 
     console.log(response)
     return Promise.resolve({
+        rawRequest: buildRawRequest(request),
         protocol: "HTTP/1.1",
         responseTime: response.duration ?? 0,
         responseSize: JSON.stringify(response?.data ?? {}).length.toString(),

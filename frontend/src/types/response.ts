@@ -7,6 +7,7 @@ export interface Response<T>{
 }
 
 export interface SendResponse {
+    rawRequest: string;
     responseTime: number;
     responseSize: string;
     protocol: string;
