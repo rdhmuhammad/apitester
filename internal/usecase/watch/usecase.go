@@ -276,6 +276,12 @@ func setId(item []CollectionItem) []CollectionItem {
 	for i, _ := range item {
 		item[i].ID = uuid.NewString()
 
+		if item[i].Request != nil && item[i].Request.Body != nil {
+			for j := range item[i].Request.Body.FormData {
+				item[i].Request.Body.FormData[j].Id = uuid.NewString()
+			}
+		}
+
 		if item[i].Item != nil {
 			item[i].Item = setId(item[i].Item)
 		}

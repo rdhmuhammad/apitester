@@ -63,13 +63,15 @@ type Request struct {
 }
 
 type Header struct {
+	Id    string `json:"id"`
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 
 type RequestBody struct {
-	Mode string `json:"mode"`
-	Raw  string `json:"raw"`
+	Mode     string     `json:"mode"`
+	Raw      string     `json:"raw"`
+	FormData []Property `json:"formdata,omitempty"`
 }
 
 type RequestURL struct {
@@ -85,9 +87,11 @@ type CollectionAuth struct {
 }
 
 type Property struct {
+	Id    string `json:"id"`
 	Key   string `json:"key"`
 	Value string `json:"value"`
 	Type  string `json:"type,omitempty"`
+	Src   string `json:"src,omitempty"`
 }
 
 type CollectionEvent struct {
