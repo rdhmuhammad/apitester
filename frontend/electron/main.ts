@@ -1,7 +1,6 @@
 import {app, BrowserWindow, dialog, ipcMain, Menu} from "electron"
 import path from "path"
 import {fileURLToPath} from "url"
-import installExtension, {REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS} from "electron-devtools-installer"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -29,13 +28,8 @@ function createWindow() {
 
     if (isDev) {
         mainWindow.loadURL("http://localhost:5173")
-        mainWindow.webContents.once("dom-ready", async () => {
-            await installExtension([REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS])
-                .then((name) => console.log(`Added Extension:  ${name}`))
-                .catch((err) => console.log("An error occurred: ", err))
-                .finally(() => {
-                    mainWindow?.webContents.openDevTools();
-                });
+        mainWindow.webContents.once("dom-ready", () => {
+            mainWindow?.webContents.openDevTools();
         });
     } else {
         mainWindow.loadFile(path.join(__dirname, "../dist/index.html"))
