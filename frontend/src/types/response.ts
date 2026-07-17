@@ -15,3 +15,9 @@ export interface SendResponse {
     statusText: string;
     data: object;
 }
+
+export interface ScriptLog {
+    type: "log" | "error" | "warn" | "info"
+    message: string
+    timestamp: number
+}

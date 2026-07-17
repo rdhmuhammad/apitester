@@ -276,9 +276,17 @@ func setId(item []CollectionItem) []CollectionItem {
 	for i, _ := range item {
 		item[i].ID = uuid.NewString()
 
-		if item[i].Request != nil && item[i].Request.Body != nil {
-			for j := range item[i].Request.Body.FormData {
-				item[i].Request.Body.FormData[j].Id = uuid.NewString()
+		if item[i].Request != nil {
+			for j := range item[i].Request.Header {
+				item[i].Request.Header[j].Id = uuid.NewString()
+			}
+			for j := range item[i].Request.URL.Query {
+				item[i].Request.URL.Query[j].Id = uuid.NewString()
+			}
+			if item[i].Request.Body != nil {
+				for j := range item[i].Request.Body.FormData {
+					item[i].Request.Body.FormData[j].Id = uuid.NewString()
+				}
 			}
 		}
 

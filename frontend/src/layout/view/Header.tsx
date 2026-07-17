@@ -9,13 +9,22 @@ import {LoaderCircle, Plus, Send, Settings} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
     addBaseUrl,
+    addVariable,
+    removeVariable,
     selectBaseUrlValues,
     selectCollectionData,
-    selectRequest, selectVariable,
-    setCurrentResponse
+    selectRequest,
+    selectSelectedRequestScript,
+    selectVariable,
+    setCurrentResponse,
+    setScriptLogs,
+    setScriptMutations,
+    setScriptResult,
+    updateVariable,
 } from "@/app/slices/collectionSlices.ts";
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
 import {buildRawRequest, useSendRequest} from "@/layout/hooks/useSendRequest.ts";
+import {runScript} from "@/layout/hooks/useScriptRunner.ts";
 import CustomToast from "@/components/common/toast";
 import type {ColtReqMethod} from "@/app/slices";
 import type {CollectionVar, ItemUrl} from "@/pages/editor/types/api.ts";
@@ -31,6 +40,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const currRequest = useAppSelector(selectRequest)
     const baseUrlOptions = useAppSelector(selectBaseUrlValues)
     const variables = useAppSelector(selectVariable)
+    const scriptValue = useAppSelector(selectSelectedRequestScript)
     const collectionData = useAppSelector(selectCollectionData)
 
     useEffect(() => {
@@ -135,11 +145,43 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             contentType: getContentType(currRequest),
             raw: currRequest?.request?.body?.raw,
             formData: currRequest?.request?.body?.formdata
-        }).then((response) => {
-            response && dispatch(setCurrentResponse({
-                id: currRequest.id,
-                response
-            }))
+        }).then(async (response) => {
+            if (!response) return
+            dispatch(setCurrentResponse({ id: currRequest.id, response }))
+            if (!scriptValue?.trim()) return
+
+            try {
+                const varsObj: Record<string, string> = {}
+                variables.forEach(v => { varsObj[v.key] = v.value })
+
+                const { result, mutations, logs } = await runScript({
+                    script: scriptValue,
+                    response,
+                    variables: varsObj,
+                })
+
+                for (const [key, value] of Object.entries(mutations)) {
+                    const existing = variables.find(v => v.key === key)
+                    if (value === null) {
+                        if (existing) dispatch(removeVariable({ id: existing.id }))
+                    } else if (existing) {
+                        dispatch(updateVariable({ ...existing, value }))
+                    } else {
+                        dispatch(addVariable({
+                            id: crypto.randomUUID(),
+                            key,
+                            value,
+                            type: "string",
+                            category: "",
+                        }))
+                    }
+                }
+                dispatch(setScriptResult({ id: currRequest.id, result }))
+                dispatch(setScriptMutations({ id: currRequest.id, mutations }))
+                dispatch(setScriptLogs({ id: currRequest.id, logs }))
+            } catch (err: any) {
+                CustomToast.error(`Script error: ${err.message}`)
+            }
         }).catch(response => {
             console.log(response)
             response && dispatch(setCurrentResponse({

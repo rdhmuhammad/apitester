@@ -95,7 +95,6 @@ export const useSendRequest = async (request: ISendRequest):Promise<SendResponse
         responseType: "json",
     }) as AxiosResponseWithDuration
 
-    console.log(response)
     return Promise.resolve({
         rawRequest: buildRawRequest(request),
         protocol: "HTTP/1.1",

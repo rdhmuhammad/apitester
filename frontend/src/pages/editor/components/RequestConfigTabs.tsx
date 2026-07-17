@@ -11,7 +11,8 @@ import {AuthDropdownOps, AuthLabel, type AuthType} from "@/pages/editor/componen
 
 // Third Party Import
 import {Eye, EyeOff, FileJson2, FileText, Plus, ToggleLeft, ToggleRight, Trash2} from "lucide-react";
-import {selectAuth, selectRequest} from "@/app/slices/collectionSlices.ts";
+import {selectAuth, selectAuthType, selectRequest} from "@/app/slices/collectionSlices.ts";
+import {setAuthType} from "@/app/slices/collectionSlices.ts";
 import {
     addHeader,
     addQueryParam,
@@ -56,16 +57,17 @@ const IndicatorConfigTabs: React.FC = () => {
             const ct = headers.find(h => h.key === 'Content-Type')
             if (ct?.id) dispatch(removeHeader({id: ct.id}))
         } else {
-            dispatch(addHeader({
-                header: {key: 'Content-Type', value: contentType, id: crypto.randomUUID()}
+            const existing = headers.find(h => h.key === 'Content-Type')
+            dispatch(updateHeader({
+                header: {key: 'Content-Type', value: contentType, id: existing?.id ?? crypto.randomUUID()}
             }))
         }
     }
 
     // ===============> Authorization
-    const [authValue, setAuthValue] = useState<AuthType>("inherit")
+    const authType = useAppSelector(selectAuthType)
     useEffect(() => {
-        if (authValue === 'inherit') {
+        if (authType === 'inherit') {
             const authId = headers.find(h => h.key === 'Authorization')?.id ?? crypto.randomUUID()
             dispatch(updateHeader({
                 header: {
@@ -74,15 +76,28 @@ const IndicatorConfigTabs: React.FC = () => {
                     value: (rootAuth.bearer && rootAuth.bearer[0].value) ?? ''
                 }
             }))
-        } else if (authValue === 'bearer') {
+        } else if (authType === 'bearer') {
             const authId = headers.find(h => h.key === 'Authorization')?.id
             if (authId) dispatch(removeHeader({id: authId}))
             dispatch(updateHeader({header: {key: 'Authorization', value: '', id: crypto.randomUUID()}}))
-        } else if (authValue === 'none') {
+        } else if (authType === 'none') {
             const authId = headers.find(h => h.key === 'Authorization')?.id
             if (authId) dispatch(removeHeader({id: authId}))
         }
-    }, [authValue]);
+    }, [authType]);
+
+    const bearerToken = headers.find(h => h.key === 'Authorization')?.value ?? ''
+
+    const handleBearerChange = (value: string) => {
+        const existing = headers.find(h => h.key === 'Authorization')
+        dispatch(updateHeader({
+            header: {
+                id: existing?.id ?? crypto.randomUUID(),
+                key: 'Authorization',
+                value,
+            }
+        }))
+    }
 
     const [showSysHeader, setShowSysHeader] = useState(false)
     const sysHeader: ItemUrl[] = [
@@ -113,12 +128,11 @@ const IndicatorConfigTabs: React.FC = () => {
         requestBody?.mode === "formdata" ? "multipart/form-data" : "application/json"
     )
     useEffect(() => {
-        const h = headers.filter(h => h.key === 'Content-Type')
-        if (!h) return
+        const ct = headers.find(h => h.key === 'Content-Type')
+        if (!ct) return
         dispatch(updateHeader({
             header: {
-                ...h,
-                key: 'Content-Type',
+                ...ct,
                 value: contentType,
                 disabled: false
             }
@@ -139,13 +153,6 @@ const IndicatorConfigTabs: React.FC = () => {
                     <h2 className="text-sm font-semibold text-slate-800">Request Configuration</h2>
                     <p className="text-xs text-slate-500">Manage query params, auth, headers, and payload.</p>
                 </div>
-                {/*<div className="flex items-center gap-2">*/}
-                {/*    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Connected</Badge>*/}
-                {/*    <Badge variant="outline" className="text-slate-600">*/}
-                {/*        <Clock3 className="mr-1 h-3.5 w-3.5"/>*/}
-                {/*        Last run 4m ago*/}
-                {/*    </Badge>*/}
-                {/*</div>*/}
             </div>
             <Tabs defaultValue="params" className="gap-0">
                 <div className="border-b border-slate-200 px-4 pt-3">
@@ -294,8 +301,8 @@ const IndicatorConfigTabs: React.FC = () => {
                         <div className="space-y-2">
                             <p className="text-sm font-medium text-slate-700">Auth Type</p>
                             <Select
-                                value={authValue}
-                                onValueChange={(val) => setAuthValue(val as AuthType)}
+                                value={authType}
+                                onValueChange={(val) => dispatch(setAuthType({authType: val as AuthType}))}
                             >
                                 <SelectTrigger>
                                     <SelectValue/>
@@ -308,11 +315,11 @@ const IndicatorConfigTabs: React.FC = () => {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <AuthDropdownOps authType={authValue}/>
+                            <AuthDropdownOps authType={authType} bearerValue={bearerToken} onBearerChange={handleBearerChange}/>
                         </div>
                         <div
                             className="md:col-span-2 rounded-md border text-sm">
-                            <AuthLabel authType={authValue}/>
+                            <AuthLabel authType={authType}/>
                         </div>
                     </div>
                 </TabsContent>
