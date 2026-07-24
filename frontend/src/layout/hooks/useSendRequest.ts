@@ -21,11 +21,12 @@ type AxiosResponseWithDuration<T = unknown> = AxiosResponse<T> & {
 const formData = (request: ItemUrl[]): FormData => {
     const dt = new FormData()
     for (const item of request) {
-        if (item.key === "file") {
-            //TODO: handle multipart
-            // if (item.src instanceof File || item.src instanceof Blob){
-            //     formData.append(item.key, item.src)
-            // }
+        if (item.type === "file" && item.id) {
+            const file = getFile(item.id)
+            if (file) {
+                dt.append(item.key, file)
+                continue
+            }
         }
         dt.append(item.key, item.value ?? "")
     }

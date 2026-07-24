@@ -313,7 +313,7 @@ export const selectCollectionData = (state: RootState): DocsContent | null =>
 export const selectBaseUrl = (state: RootState): CollectionVar[] => state.collection?.baseUrl ?? []
 
 export const selectBaseUrlValues = (state: RootState): string[] =>
-    selectBaseUrl(state).map((item) => resolveBaseUrlValue(item.value))
+    selectBaseUrl(state).map((item) => resolveBaseUrlValue(item.value)).filter(Boolean)
 
 export const selectSelectedRequestId = (state: RootState): string =>
     state.collection?.selectedRequestId ?? ''

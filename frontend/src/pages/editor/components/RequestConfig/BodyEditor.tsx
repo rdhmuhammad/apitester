@@ -1,3 +1,5 @@
+import 'ace-builds/src-noconflict/ace.js'
+import 'ace-builds/src-noconflict/mode-json.js'
 import AceEditor from "react-ace";
 import {Card} from "@/components/ui/card.tsx";
 import {SearchIcon, ToggleLeft, ToggleRight, Trash2, Plus} from "lucide-react";
@@ -10,6 +12,7 @@ import type {IAceEditor} from "react-ace/lib/types";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {selectRequestBody, setBody} from "@/app/slices/requestSlices.ts";
+import {setFile, removeFile} from "@/lib/fileStore.ts";
 
 export type ContentType = "application/json" | "multipart/form-data";
 
@@ -112,6 +115,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
             if (field === "type") {
                 updated.value = ""
                 updated.src = ""
+                if (nextValue === "text") removeFile(pId)
             }
             return updated as ItemUrl;
         })
@@ -126,12 +130,18 @@ export const BodyEditor: React.FC<IBodyEditor> = (
     }
 
     const removeFormdataField = (pId: string) => {
+        removeFile(pId)
         const body = (selectBody?.formdata ?? []).filter((item) => item.id !== pId)
         dispatch(setBody({body: body}))
     }
 
     const addFormdataField = (key: string, value: string, description: string, type: string) => {
-        const newVar: ItemUrl = {id: crypto.randomUUID(), key, value, description, type, src: type === 'file' ? value : ""}
+        const id = crypto.randomUUID()
+        const newVar: ItemUrl = {id, key, value, description, type, src: type === 'file' ? value : ""}
+        if (type === 'file' && newFileRef.current) {
+            setFile(id, newFileRef.current)
+            newFileRef.current = null
+        }
         const body = [...(selectBody?.formdata ?? []), newVar]
         dispatch(setBody({body: body}))
     }
@@ -140,6 +150,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
     const [newFdValue, setNewFdValue] = useState("")
     const [newFdValueType, setNewFdValueType] = useState<"file" | "text">("text")
     const [newFdDesc, setNewFdDesc] = useState("")
+    const newFileRef = useRef<File | null>(null)
 
     switch (contentType) {
         case "application/json":
@@ -255,7 +266,10 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                                 className="hidden"
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0]
-                                                    if (file) updateFormdataField(item.id!, "src", file.name)
+                                                    if (file) {
+                                                        setFile(item.id!, file)
+                                                        updateFormdataField(item.id!, "src", file.name)
+                                                    }
                                                 }}
                                                 disabled={item.disabled}
                                             />
@@ -355,6 +369,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0]
                                                     if (file) {
+                                                        newFileRef.current = file
                                                         setNewFdValue(file.name)
                                                         setNewFdValueType("file")
                                                     }
