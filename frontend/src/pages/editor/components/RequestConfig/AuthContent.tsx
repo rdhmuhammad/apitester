@@ -6,9 +6,11 @@ export type AuthType = "none" | "inherit" | "bearer";
 
 interface AuthValueProps {
     authType: AuthType;
+    bearerValue?: string;
+    onBearerChange?: (value: string) => void;
 }
 
-export const AuthDropdownOps: React.FC<AuthValueProps> = ({authType})=>{
+export const AuthDropdownOps: React.FC<AuthValueProps> = ({authType, bearerValue, onBearerChange})=>{
     switch (authType) {
         case "none":
             return (
@@ -21,7 +23,12 @@ export const AuthDropdownOps: React.FC<AuthValueProps> = ({authType})=>{
             return (
                 <div>
                     <p className="text-sm font-medium text-slate-700">Bearer Token</p>
-                    <Input type="password" value="****************************" readOnly/>
+                    <Input
+                        type="password"
+                        value={bearerValue ?? ""}
+                        onChange={(e) => onBearerChange?.(e.target.value)}
+                        placeholder="Enter bearer token..."
+                    />
                 </div>
             );
         case "inherit":

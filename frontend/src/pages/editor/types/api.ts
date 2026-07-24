@@ -11,6 +11,7 @@ export interface DocsContent {
   item: CollectionItem[];
   auth?: CollectionAuth;
   variable: CollectionVar[];
+  event?: CollectionEvent[];
 }
 
 export interface CollectionInfo {
@@ -67,6 +68,7 @@ export interface RequestBody {
 }
 
 export interface ItemUrl {
+  id?: string;
   key: string;
   value: string;
   description?: string;

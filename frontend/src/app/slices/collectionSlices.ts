@@ -1,8 +1,8 @@
-import type {CollectionAuth, CollectionInfo, CollectionItem, CollectionVar, DocsContent} from "@/pages/editor/types/api.ts";
+import type {CollectionAuth, CollectionInfo, CollectionItem, CollectionResponse, CollectionVar, DocsContent} from "@/pages/editor/types/api.ts";
 import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import type {RootState} from "@/app/store/store.ts";
 import {isArrayEmpty} from "@/lib/utils.ts";
-import type {SendResponse} from "@/types/response.ts";
+import type {ScriptLog, SendResponse} from "@/types/response.ts";
 import {
     type ActiveItem,
     type ColtCat,
@@ -57,6 +57,7 @@ const collectionSlices = createSlice({
                 request: selected.request,
                 response: null,
                 exampleResponse: selected.response,
+                authType: "inherit",
             })
             state.selectedRequestId = action.payload.id
         },
@@ -80,6 +81,7 @@ const collectionSlices = createSlice({
                     request: action.payload.request ?? null,
                     response: null,
                     exampleResponse: action.payload.response,
+                    authType: "inherit",
                 })
                 if (!state.selectedRequestId) {
                     state.selectedRequestId = action.payload.id
@@ -124,6 +126,19 @@ const collectionSlices = createSlice({
                 }
             }
         },
+        setCollectionScript(state, action: PayloadAction<{ script: string }>) {
+            if (!state.data) return
+            const prereq = state.data.event?.find(e => e.listen === 'prerequest')
+            if (prereq) {
+                prereq.script = { exec: action.payload.script.split('\n'), type: 'text/javascript' }
+            } else {
+                if (!state.data.event) state.data.event = []
+                state.data.event.push({
+                    listen: 'prerequest',
+                    script: { exec: action.payload.script.split('\n'), type: 'text/javascript' }
+                })
+            }
+        },
         setCollectionInfo(state, action: PayloadAction<CollectionInfo>) {
             if (!state.data) return
 
@@ -135,6 +150,12 @@ const collectionSlices = createSlice({
         },
         removeVariable(state, action: PayloadAction<{ id: string }>) {
             state.variable = state.variable.filter((item) => item.id !== action.payload.id)
+            syncCollectionVariables(state)
+        },
+        updateVariable(state, action: PayloadAction<CollectionVar>) {
+            state.variable = state.variable.map((v) =>
+                v.id === action.payload.id ? action.payload : v
+            )
             syncCollectionVariables(state)
         },
         addBaseUrl(state, action: PayloadAction<CollectionVar>) {
@@ -150,6 +171,65 @@ const collectionSlices = createSlice({
         },
         clearDirtyRequestIds(state) {
             state.dirtyRequestIds = []
+        },
+        saveActiveToData(state) {
+            if (!state.data?.item) return
+
+            for (const active of state.activeRequest) {
+                if (!active.request) continue
+
+                const target = diveActiveRequest(active.id, state.data.item)
+                if (!target) continue
+
+                target.request = active.request
+                if (active.exampleResponse) {
+                    target.response = active.exampleResponse
+                }
+            }
+
+            state.dirtyRequestIds = []
+        },
+        setAuthType(state, action: PayloadAction<{ authType: "none" | "inherit" | "bearer" }>) {
+            const idx = findCurrentActiveRequestIndex(state.activeRequest, state.selectedRequestId)
+            if (idx < 0) return
+            state.activeRequest[idx].authType = action.payload.authType
+        },
+        setScriptResult(state, action: PayloadAction<{ id: string; result: unknown }>) {
+            const idx = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
+            if (idx < 0) return
+            state.activeRequest[idx].scriptResult = action.payload.result
+        },
+        setScriptLogs(state, action: PayloadAction<{ id: string; logs: ScriptLog[] }>) {
+            const idx = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
+            if (idx < 0) return
+            state.activeRequest[idx].scriptLogs = action.payload.logs
+        },
+        setScriptMutations(state, action: PayloadAction<{ id: string; mutations: Record<string, string | null> }>) {
+            const idx = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
+            if (idx < 0) return
+            state.activeRequest[idx].scriptMutations = action.payload.mutations
+        },
+        saveExampleResponse(state, action: PayloadAction<{ id: string; name: string }>) {
+            const idx = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
+            if (idx < 0) return
+
+            const active = state.activeRequest[idx]
+            if (!active.response || !active.request) return
+
+            const example: CollectionResponse = {
+                name: action.payload.name,
+                status: active.response.statusText,
+                code: active.response.statusCode,
+                header: active.request.header.map(h => ({ key: h.key, value: h.value, id: h.id })),
+                cookie: [],
+                body: JSON.stringify(active.response.data),
+                originalRequest: active.request,
+            }
+
+            active.exampleResponse = [...(active.exampleResponse ?? []), example]
+            if (!state.dirtyRequestIds.includes(action.payload.id)) {
+                state.dirtyRequestIds.push(action.payload.id)
+            }
         },
     },
     extraReducers: (builder) => {
@@ -214,12 +294,20 @@ export const {
     setCurrentRequest,
     setCurrentResponse,
     setSelectedRequestScript,
+    setCollectionScript,
     setCollectionInfo,
     addVariable,
     removeVariable,
+    updateVariable,
     addBaseUrl,
     removeBaseUrl,
     clearDirtyRequestIds,
+    saveActiveToData,
+    setAuthType,
+    setScriptResult,
+    setScriptLogs,
+    setScriptMutations,
+    saveExampleResponse,
 } = collectionSlices.actions
 
 export const setActiveRequest = addActiveRequest
@@ -239,7 +327,7 @@ export const selectCollectionData = (state: RootState): DocsContent | null =>
 export const selectBaseUrl = (state: RootState): CollectionVar[] => state.collection?.baseUrl ?? []
 
 export const selectBaseUrlValues = (state: RootState): string[] =>
-    selectBaseUrl(state).map((item) => resolveBaseUrlValue(item.value))
+    selectBaseUrl(state).map((item) => resolveBaseUrlValue(item.value)).filter(Boolean)
 
 export const selectSelectedRequestId = (state: RootState): string =>
     state.collection?.selectedRequestId ?? ''
@@ -252,6 +340,11 @@ export const selectSelectedRequestScript = (state: RootState): string => {
     const selectedRequest = selectRequest(state)
     const exec = selectedRequest?.event?.[0]?.script?.exec ?? []
     return exec.join('\n')
+}
+
+export const selectCollectionScript = (state: RootState): string => {
+    const prereq = state.collection?.data?.event?.find(e => e.listen === 'prerequest')
+    return prereq?.script?.exec?.join('\n') ?? ''
 }
 
 export const selectActiveRequest = (state: RootState): ActiveItem[] => state.collection?.activeRequest ?? []
@@ -276,6 +369,18 @@ export const selectResponseById = (state: RootState, id: string): SendResponse |
 
 export const selectDirtyRequestIds = (state: RootState): string[] =>
     state.collection?.dirtyRequestIds ?? []
+
+export const selectAuthType = (state: RootState): "none" | "inherit" | "bearer" =>
+    getCurrentActiveRequest(state)?.authType ?? "inherit"
+
+export const selectScriptResult = (state: RootState): unknown =>
+    getCurrentActiveRequest(state)?.scriptResult ?? null
+
+export const selectScriptLogs = (state: RootState): ScriptLog[] =>
+    getCurrentActiveRequest(state)?.scriptLogs ?? []
+
+export const selectScriptMutations = (state: RootState): Record<string, string | null> =>
+    getCurrentActiveRequest(state)?.scriptMutations ?? {}
 
 export const selectDirTree = (state: RootState): Map<string, DirTree> => {
     if (state.collection?.dirTree) {
@@ -360,30 +465,7 @@ const isBaseUrlVariable = (item: CollectionVar) =>
     item.key.toLowerCase().includes('base_url') || item.category?.toUpperCase() === 'BASE_URL'
 
 const resolveBaseUrlValue = (value: string): string => {
-    if (typeof window === 'undefined') {
-        return value === DEFAULT_BASE_URL_VALUE ? '' : value
-    }
-
-    const browserOrigin = window.location.origin
-    if (value === DEFAULT_BASE_URL_VALUE || !value.trim()) {
-        return browserOrigin
-    }
-
-    try {
-        const currentUrl = new URL(browserOrigin)
-        const resolvedUrl = new URL(value)
-        const isBrowserLocal =
-            currentUrl.hostname === 'localhost' || currentUrl.hostname === '127.0.0.1'
-        const isResolvedLocal =
-            resolvedUrl.hostname === 'localhost' || resolvedUrl.hostname === '127.0.0.1'
-
-        if (!isBrowserLocal && isResolvedLocal) {
-            return browserOrigin
-        }
-    } catch (_) {
-        return value
-    }
-
+    if (value === DEFAULT_BASE_URL_VALUE || !value.trim()) return ''
     return value
 }
 

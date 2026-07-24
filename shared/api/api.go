@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +11,7 @@ import (
 type Api struct {
 	server  *gin.Engine
 	routers []Router
+	srv     *http.Server
 }
 
 type Router interface {
@@ -23,10 +26,21 @@ func (a *Api) Start() error {
 	}
 
 	port := os.Getenv("APP_PORT")
-	err := a.server.Run("0.0.0.0:" + port)
-	if err != nil {
+	a.srv = &http.Server{
+		Addr:    "0.0.0.0:" + port,
+		Handler: a.server,
+	}
+
+	if err := a.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return err
 	}
 
-	return err
+	return nil
+}
+
+func (a *Api) Shutdown(ctx context.Context) error {
+	if a.srv != nil {
+		return a.srv.Shutdown(ctx)
+	}
+	return nil
 }

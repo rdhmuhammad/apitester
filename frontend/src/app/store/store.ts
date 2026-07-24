@@ -7,7 +7,13 @@ enableMapSet();
 export const store = configureStore({
     reducer: {
         collection: collectionReducer
-    }
+    },
+    middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({
+            serializableCheck: {
+                ignoredPaths: ['collection.dirTree'],
+            },
+        }),
 })
 
 export type AppStore = typeof store

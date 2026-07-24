@@ -23,14 +23,14 @@ type CollectionInfo struct {
 }
 
 type CollectionItem struct {
-	FunIden     string              `json:"funIden"`
-	Name        string              `json:"name"`
-	Item        []CollectionItem    `json:"item,omitempty"`
-	Request     *Request            `json:"request,omitempty"`
+	FunIden     string               `json:"funIden"`
+	Name        string               `json:"name"`
+	Item        []CollectionItem     `json:"item,omitempty"`
+	Request     *Request             `json:"request,omitempty"`
 	Response    []CollectionResponse `json:"response,omitempty"`
-	Event       []CollectionEvent   `json:"event,omitempty"`
-	ID          string              `json:"id"`
-	Description string              `json:"description,omitempty"`
+	Event       []CollectionEvent    `json:"event,omitempty"`
+	ID          string               `json:"id"`
+	Description string               `json:"description,omitempty"`
 }
 
 type CollectionResponse struct {
@@ -63,13 +63,15 @@ type Request struct {
 }
 
 type Header struct {
+	Id    string `json:"id"`
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 
 type RequestBody struct {
-	Mode string `json:"mode"`
-	Raw  string `json:"raw"`
+	Mode     string     `json:"mode"`
+	Raw      string     `json:"raw"`
+	FormData []Property `json:"formdata,omitempty"`
 }
 
 type RequestURL struct {
@@ -85,9 +87,11 @@ type CollectionAuth struct {
 }
 
 type Property struct {
+	Id    string `json:"id"`
 	Key   string `json:"key"`
 	Value string `json:"value"`
 	Type  string `json:"type,omitempty"`
+	Src   string `json:"src,omitempty"`
 }
 
 type CollectionEvent struct {
@@ -100,8 +104,14 @@ type EventScript struct {
 	Type string   `json:"type"`
 }
 
-type UpdateRequest struct {
-	Content DocsContent `json:"content"`
+type CreateCollectionRequest struct {
+	Name string `json:"name" binding:"required"`
+	Path string `json:"path" binding:"required"`
+}
+
+type UpdateCollectionRequest struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
 }
 
 type CollectionVar struct {

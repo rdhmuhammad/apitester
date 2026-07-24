@@ -11,7 +11,8 @@ import {AuthDropdownOps, AuthLabel, type AuthType} from "@/pages/editor/componen
 
 // Third Party Import
 import {Eye, EyeOff, FileJson2, FileText, Plus, ToggleLeft, ToggleRight, Trash2} from "lucide-react";
-import {selectAuth, selectRequest} from "@/app/slices/collectionSlices.ts";
+import {selectAuth, selectAuthType, selectRequest} from "@/app/slices/collectionSlices.ts";
+import {setAuthType} from "@/app/slices/collectionSlices.ts";
 import {
     addHeader,
     addQueryParam,
@@ -19,6 +20,7 @@ import {
     removeQueryParam,
     selectHeader,
     selectReqParam,
+    selectRequestBody,
     updateHeader,
     updateQueryParam
 } from "@/app/slices/requestSlices.ts";
@@ -45,26 +47,57 @@ const IndicatorConfigTabs: React.FC = () => {
 
     const rootAuth = useAppSelector(selectAuth)
 
+    // ===============> Headers
+    const headers = useAppSelector(selectHeader)
+
+    // ===============> Body toggle
+    const hasContentType = headers.some(h => h.key === 'Content-Type')
+    const toggleBody = () => {
+        if (hasContentType) {
+            const ct = headers.find(h => h.key === 'Content-Type')
+            if (ct?.id) dispatch(removeHeader({id: ct.id}))
+        } else {
+            const existing = headers.find(h => h.key === 'Content-Type')
+            dispatch(updateHeader({
+                header: {key: 'Content-Type', value: contentType, id: existing?.id ?? crypto.randomUUID()}
+            }))
+        }
+    }
+
     // ===============> Authorization
-    const [authValue, setAuthValue] = useState<AuthType>("inherit")
+    const authType = useAppSelector(selectAuthType)
     useEffect(() => {
-        if (authValue === 'inherit') {
+        if (authType === 'inherit') {
+            const authId = headers.find(h => h.key === 'Authorization')?.id ?? crypto.randomUUID()
             dispatch(updateHeader({
                 header: {
+                    id: authId,
                     key: 'Authorization',
                     value: (rootAuth.bearer && rootAuth.bearer[0].value) ?? ''
                 }
             }))
-        } else if (authValue === 'bearer') {
-            dispatch(removeHeader({key: 'Authorization'}))
-            dispatch(updateHeader({header: {key: 'Authorization', value: ''}}))
-        } else if (authValue === 'none') {
-            dispatch(removeHeader({key: 'Authorization'}))
+        } else if (authType === 'bearer') {
+            const authId = headers.find(h => h.key === 'Authorization')?.id
+            if (authId) dispatch(removeHeader({id: authId}))
+            dispatch(updateHeader({header: {key: 'Authorization', value: '', id: crypto.randomUUID()}}))
+        } else if (authType === 'none') {
+            const authId = headers.find(h => h.key === 'Authorization')?.id
+            if (authId) dispatch(removeHeader({id: authId}))
         }
-    }, [authValue]);
+    }, [authType]);
 
-    // ===============> Headers
-    const headers = useAppSelector(selectHeader)
+    const bearerToken = headers.find(h => h.key === 'Authorization')?.value ?? ''
+
+    const handleBearerChange = (value: string) => {
+        const existing = headers.find(h => h.key === 'Authorization')
+        dispatch(updateHeader({
+            header: {
+                id: existing?.id ?? crypto.randomUUID(),
+                key: 'Authorization',
+                value,
+            }
+        }))
+    }
 
     const [showSysHeader, setShowSysHeader] = useState(false)
     const sysHeader: ItemUrl[] = [
@@ -90,16 +123,28 @@ const IndicatorConfigTabs: React.FC = () => {
     const [newHeaderValue, setNewHeaderValue] = useState("")
 
     // ===============> Request Body
-    const [contentType, setContentType] = useState<ContentType>("application/json")
+    const requestBody = useAppSelector(selectRequestBody)
+    const [contentType, setContentType] = useState<ContentType>(
+        requestBody?.mode === "formdata" ? "multipart/form-data" : "application/json"
+    )
     useEffect(() => {
+        const ct = headers.find(h => h.key === 'Content-Type')
+        if (!ct) return
         dispatch(updateHeader({
             header: {
-                key: 'Content-Type',
+                ...ct,
                 value: contentType,
                 disabled: false
             }
         }))
     }, [contentType]);
+
+    useEffect(() => {
+        const nextType = requestBody?.mode === "formdata" ? "multipart/form-data" : "application/json"
+        if (nextType !== contentType) {
+            setContentType(nextType as ContentType)
+        }
+    }, [requestBody?.mode])
 
     return (
         <section className="rounded-b-xl border border-slate-200 bg-white shadow-sm">
@@ -108,13 +153,6 @@ const IndicatorConfigTabs: React.FC = () => {
                     <h2 className="text-sm font-semibold text-slate-800">Request Configuration</h2>
                     <p className="text-xs text-slate-500">Manage query params, auth, headers, and payload.</p>
                 </div>
-                {/*<div className="flex items-center gap-2">*/}
-                {/*    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Connected</Badge>*/}
-                {/*    <Badge variant="outline" className="text-slate-600">*/}
-                {/*        <Clock3 className="mr-1 h-3.5 w-3.5"/>*/}
-                {/*        Last run 4m ago*/}
-                {/*    </Badge>*/}
-                {/*</div>*/}
             </div>
             <Tabs defaultValue="params" className="gap-0">
                 <div className="border-b border-slate-200 px-4 pt-3">
@@ -138,7 +176,7 @@ const IndicatorConfigTabs: React.FC = () => {
                             <span className="col-span-2"/>
                         </div>
                         {currRequest?.request?.url?.query?.map((item) => (
-                            <div key={item.key}
+                            <div key={item.id ?? item.key}
                                  className={cn(
                                      "grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center",
                                      item.disabled && "opacity-50"
@@ -195,7 +233,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => dispatch(removeQueryParam({key: item.key}))}
+                                        onClick={() => dispatch(removeQueryParam({id: item.id!}))}
                                         className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                                     >
                                         <Trash2 className="h-4 w-4"/>
@@ -204,7 +242,7 @@ const IndicatorConfigTabs: React.FC = () => {
                             </div>
                         ))}
                         {/* Add Param Row */}
-                        <div className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center gap-2">
+                        <div className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center">
                             <div className="col-span-3">
                                 <Input
                                     value={newParamKey}
@@ -213,7 +251,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                     placeholder="key"
                                 />
                             </div>
-                            <div className="col-span-3">
+                            <div className="col-span-3 pl-3">
                                 <Input
                                     value={newParamValue}
                                     onChange={(e) => setNewParamValue(e.target.value)}
@@ -221,7 +259,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                     placeholder="value"
                                 />
                             </div>
-                            <div className="col-span-4">
+                            <div className="col-span-4 pl-3">
                                 <Input
                                     value={newParamDesc}
                                     onChange={(e) => setNewParamDesc(e.target.value)}
@@ -238,6 +276,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                         if (!newParamKey.trim()) return
                                         dispatch(addQueryParam({
                                             query: {
+                                                id: crypto.randomUUID(),
                                                 key: newParamKey.trim(),
                                                 value: newParamValue,
                                                 description: newParamDesc,
@@ -262,8 +301,8 @@ const IndicatorConfigTabs: React.FC = () => {
                         <div className="space-y-2">
                             <p className="text-sm font-medium text-slate-700">Auth Type</p>
                             <Select
-                                value={authValue}
-                                onValueChange={(val) => setAuthValue(val as AuthType)}
+                                value={authType}
+                                onValueChange={(val) => dispatch(setAuthType({authType: val as AuthType}))}
                             >
                                 <SelectTrigger>
                                     <SelectValue/>
@@ -276,11 +315,11 @@ const IndicatorConfigTabs: React.FC = () => {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <AuthDropdownOps authType={authValue}/>
+                            <AuthDropdownOps authType={authType} bearerValue={bearerToken} onBearerChange={handleBearerChange}/>
                         </div>
                         <div
                             className="md:col-span-2 rounded-md border text-sm">
-                            <AuthLabel authType={authValue}/>
+                            <AuthLabel authType={authType}/>
                         </div>
                     </div>
                 </TabsContent>
@@ -309,16 +348,16 @@ const IndicatorConfigTabs: React.FC = () => {
                             <span className="col-span-2"/>
                         </div>
                         {headerShow.map((item) => (
-                            <div key={item.key}
+                            <div key={item.id ?? item.key}
                                  className={cn(
                                      "grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center",
                                      item.disabled && "opacity-50"
                                  )}>
-                                <div className="col-span-4">
+                                <div className="col-span-5">
                                     <Input value={item.key} readOnly className="h-8 bg-white"
                                            disabled={item.disabled}/>
                                 </div>
-                                <div className="col-span-4 pl-3">
+                                <div className="col-span-5 pl-3">
                                     <Input
                                         value={item.value}
                                         onChange={(event) => dispatch(updateHeader({
@@ -328,7 +367,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                         disabled={item.disabled}
                                     />
                                 </div>
-                                <div className="col-span-4 pl-3 flex items-center justify-end gap-1">
+                                <div className="col-span-2 pl-3 flex items-center justify-end gap-1">
                                     <Button
                                         type="button"
                                         variant="outline"
@@ -348,7 +387,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => dispatch(removeHeader({key: item.key}))}
+                                        onClick={() => dispatch(removeHeader({id: item.id!}))}
                                         className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                                     >
                                         <Trash2 className="h-4 w-4"/>
@@ -357,7 +396,7 @@ const IndicatorConfigTabs: React.FC = () => {
                             </div>
                         ))}
                         {/* Add Header Row */}
-                        <div className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center gap-2">
+                        <div className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center">
                             <div className="col-span-5">
                                 <Input
                                     value={newHeaderKey}
@@ -366,7 +405,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                     placeholder="header key"
                                 />
                             </div>
-                            <div className="col-span-5">
+                            <div className="col-span-5 pl-3">
                                 <Input
                                     value={newHeaderValue}
                                     onChange={(e) => setNewHeaderValue(e.target.value)}
@@ -383,6 +422,7 @@ const IndicatorConfigTabs: React.FC = () => {
                                         if (!newHeaderKey.trim()) return
                                         dispatch(addHeader({
                                             header: {
+                                                id: crypto.randomUUID(),
                                                 key: newHeaderKey.trim(),
                                                 value: newHeaderValue,
                                             }
@@ -422,11 +462,32 @@ const IndicatorConfigTabs: React.FC = () => {
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Badge variant="outline" className="text-slate-600">{contentType}</Badge>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-slate-600">{contentType}</Badge>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={toggleBody}
+                                    className="h-8 w-8 p-0"
+                                >
+                                    {hasContentType ? (
+                                        <ToggleRight className="h-4 w-4 text-emerald-600"/>
+                                    ) : (
+                                        <ToggleLeft className="h-4 w-4 text-slate-400"/>
+                                    )}
+                                </Button>
+                            </div>
                         </div>
-                        <BodyEditor
-                            contentType={contentType}
-                        />
+                        {hasContentType ? (
+                            <BodyEditor
+                                contentType={contentType}
+                            />
+                        ) : (
+                            <div className="flex items-center justify-center py-12 text-sm text-slate-400">
+                                Body disabled — toggle to enable
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
 

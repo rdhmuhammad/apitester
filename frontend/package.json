@@ -1,16 +1,28 @@
 {
-  "name": "api-tester-web",
+  "name": "apitester",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "author": "Ridho Muhammad",
+  "main": "dist-electron/main.js",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron"
+    ]
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:electron": "concurrently -k \"vite\" \"wait-on tcp:5173 && tsc -p electron/tsconfig.json && pnpm copy-preload && electron .\"",
     "setup": "pnpm install",
     "build": "tsc -b && vite build",
+    "build:electron": "vite build && tsc -p electron/tsconfig.json && pnpm copy-preload",
+    "build:electron:dist": "set NODE_OPTIONS=--max-old-space-size=4096 && pnpm build:electron && electron-builder --win",
+    "copy-preload": "node -e \"require('fs').copyFileSync('electron/preload.cjs','dist-electron/preload.cjs')\"",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@codesandbox/sandpack-react": "^2.20.0",
     "@hookform/resolvers": "^5.2.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -72,7 +84,25 @@
     "tailwindcss": "^4.1.11",
     "use-debounce": "^10.0.5",
     "vaul": "^1.1.2",
+    "xlsx": "^0.18.5",
     "zod": "^4.0.11"
+  },
+  "build": {
+    "appId": "com.apitester.app",
+    "productName": "Apitester",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "win": {
+      "icon": "public/app.ico",
+      "legalTrademarks": "Ridho muhammad 2026",
+      "target": "portable"
+    },
+    "afterPack": "electron/afterPack.cjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
@@ -81,13 +111,18 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "concurrently": "^9.1.2",
+    "electron": "^35.0.0",
+    "electron-builder": "^25.1.8",
     "eslint": "^9.30.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
+    "resedit": "^3.0.2",
     "tw-animate-css": "^1.3.6",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.35.1",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "wait-on": "^8.0.3"
   }
 }

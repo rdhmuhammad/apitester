@@ -4,7 +4,8 @@ import {type CollectionState, initialState} from "@/app/slices/index.ts";
 import type {ItemUrl, Request, RequestBody, RequestURL} from "@/pages/editor/types/api.ts";
 
 const mapParam = (param: ItemUrl, payload: ItemUrl): ItemUrl => {
-    return param.key === payload.key ? {
+    return param.id === payload.id ? {
+        id: payload.id,
         key: payload.key,
         value: payload.value,
         description: payload.description,
@@ -23,7 +24,7 @@ type HeaderPayload = {
 }
 
 type RemoveHeaderPayload = {
-    key: string
+    id: string
 }
 
 type QueryParamPayload = {
@@ -31,7 +32,7 @@ type QueryParamPayload = {
 }
 
 type RemoveQueryParamPayload = {
-    key: string
+    id: string
 }
 
 type SetBodyPayload = {
@@ -135,6 +136,7 @@ export const addHeaderReducer = (state: CollectionState, action: PayloadAction<H
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
+    currentRequest.header = currentRequest.header ?? []
     currentRequest.header.push(action.payload.header)
     markDirty(state)
 }
@@ -143,10 +145,10 @@ export const updateHeaderReducer = (state: CollectionState, action: PayloadActio
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest?.header) return;
 
-    const hasKey = currentRequest.header.some(header => header.key === action.payload.header.key);
+    const hasKey = currentRequest.header.some(header => header.id === action.payload.header.id);
     if (hasKey) {
         currentRequest.header = currentRequest.header.map((item) =>
-            item.key === action.payload.header.key ? action.payload.header : item
+            item.id === action.payload.header.id ? action.payload.header : item
         )
     } else {
         currentRequest.header.push(action.payload.header)
@@ -158,7 +160,7 @@ export const removeHeaderReducer = (state: CollectionState, action: PayloadActio
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
-    currentRequest.header = currentRequest.header.filter((item) => item.key !== action.payload.key)
+    currentRequest.header = (currentRequest.header ?? []).filter((item) => item.id !== action.payload.id)
     markDirty(state)
 }
 
@@ -166,6 +168,7 @@ export const addQueryParamReducer = (state: CollectionState, action: PayloadActi
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
+    currentRequest.url.query = currentRequest.url.query ?? []
     currentRequest.url.query.push(action.payload.query)
     markDirty(state)
 }
@@ -182,7 +185,7 @@ export const removeQueryParamReducer = (state: CollectionState, action: PayloadA
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
-    currentRequest.url.query = currentRequest.url.query.filter((item) => item.key !== action.payload.key)
+    currentRequest.url.query = (currentRequest.url.query ?? []).filter((item) => item.id !== action.payload.id)
     markDirty(state)
 }
 
