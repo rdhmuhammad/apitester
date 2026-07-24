@@ -2,6 +2,7 @@ import type {ItemUrl} from "@/pages/editor/types/api.ts";
 import axios from "@/config/axios.ts";
 import type {SendResponse} from "@/types/response.ts";
 import type {AxiosResponse} from "axios";
+import {getFile} from "@/lib/fileStore.ts";
 
 export interface ISendRequest {
     baseUrl: string
@@ -74,11 +75,20 @@ export const buildRawRequest = (request: ISendRequest): string => {
     return lines.join('\n')
 }
 
+const blobToDataUrl = (blob: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+    })
+
 export const useSendRequest = async (request: ISendRequest):Promise<SendResponse> => {
+    const isFormData = request.contentType === "multipart/form-data"
     const response = await axios.request({
         method: request.method,
         headers: {
-            "Content-Type": request.contentType,
+            ...(isFormData ? {} : {"Content-Type": request.contentType}),
             ...request.headers.reduce((acc, it) => {
                 acc[it.key] = it.value ?? ""
                 return acc
@@ -93,16 +103,39 @@ export const useSendRequest = async (request: ISendRequest):Promise<SendResponse
         data: request.contentType === "application/json"
             ? (request.raw ?? "{}") :
             formData(request.formData ?? []),
-        responseType: "json",
-    }) as AxiosResponseWithDuration
+        responseType: "blob",
+    }) as AxiosResponseWithDuration<Blob>
 
-    return Promise.resolve({
+    const contentType = (response.headers["content-type"] as string)?.toLowerCase() ?? ""
+    const isJson = contentType.includes("application/json") || contentType.includes("text/")
+    const isBinary = !!contentType && !isJson
+
+    let data: any
+    let responseSize: string
+
+    if (isBinary) {
+        const blob = response.data as Blob
+        data = await blobToDataUrl(blob)
+        responseSize = (blob.size / 1024).toFixed(2)
+    } else {
+        const text = await (response.data as Blob).text()
+        try {
+            data = JSON.parse(text)
+        } catch {
+            data = text
+        }
+        responseSize = (new Blob([text]).size / 1024).toFixed(2)
+    }
+
+    return {
         rawRequest: buildRawRequest(request),
         protocol: "HTTP/1.1",
         responseTime: response.duration ?? 0,
-        responseSize: JSON.stringify(response?.data ?? {}).length.toString(),
+        responseSize,
         statusCode: response?.status ?? 0,
         statusText: response?.statusText ?? 'UNKNOWN',
-        data: response?.data ?? {}
-    })
+        data,
+        contentType,
+        isBinary,
+    }
 }

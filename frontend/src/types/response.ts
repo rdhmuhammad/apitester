@@ -13,7 +13,9 @@ export interface SendResponse {
     protocol: string;
     statusCode: number;
     statusText: string;
-    data: object;
+    data: any;
+    contentType?: string;
+    isBinary?: boolean;
 }
 
 export interface ScriptLog {

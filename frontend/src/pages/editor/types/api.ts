@@ -11,6 +11,7 @@ export interface DocsContent {
   item: CollectionItem[];
   auth?: CollectionAuth;
   variable: CollectionVar[];
+  event?: CollectionEvent[];
 }
 
 export interface CollectionInfo {

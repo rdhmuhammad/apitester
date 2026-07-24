@@ -126,6 +126,19 @@ const collectionSlices = createSlice({
                 }
             }
         },
+        setCollectionScript(state, action: PayloadAction<{ script: string }>) {
+            if (!state.data) return
+            const prereq = state.data.event?.find(e => e.listen === 'prerequest')
+            if (prereq) {
+                prereq.script = { exec: action.payload.script.split('\n'), type: 'text/javascript' }
+            } else {
+                if (!state.data.event) state.data.event = []
+                state.data.event.push({
+                    listen: 'prerequest',
+                    script: { exec: action.payload.script.split('\n'), type: 'text/javascript' }
+                })
+            }
+        },
         setCollectionInfo(state, action: PayloadAction<CollectionInfo>) {
             if (!state.data) return
 
@@ -281,6 +294,7 @@ export const {
     setCurrentRequest,
     setCurrentResponse,
     setSelectedRequestScript,
+    setCollectionScript,
     setCollectionInfo,
     addVariable,
     removeVariable,
@@ -326,6 +340,11 @@ export const selectSelectedRequestScript = (state: RootState): string => {
     const selectedRequest = selectRequest(state)
     const exec = selectedRequest?.event?.[0]?.script?.exec ?? []
     return exec.join('\n')
+}
+
+export const selectCollectionScript = (state: RootState): string => {
+    const prereq = state.collection?.data?.event?.find(e => e.listen === 'prerequest')
+    return prereq?.script?.exec?.join('\n') ?? ''
 }
 
 export const selectActiveRequest = (state: RootState): ActiveItem[] => state.collection?.activeRequest ?? []

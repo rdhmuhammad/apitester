@@ -11,7 +11,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
-import {Download, Link2, Lock, ChevronDown} from "lucide-react";
+import {Download, Link2, Eye, EyeOff, ChevronDown} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
     saveExampleResponse,
@@ -21,10 +21,13 @@ import {
     selectScriptResult,
     selectSelectedRequest,
 } from "@/app/slices/collectionSlices.ts";
-import {useMemo, useState, useCallback} from "react";
+import {useMemo, useState, useCallback, useEffect} from "react";
 import AceEditor from "react-ace";
 
+import 'ace-builds/src-noconflict/ace.js'
+import 'ace-builds/src-noconflict/mode-json.js'
 import 'ace-builds/src-noconflict/theme-monokai.js'
+import * as XLSX from 'xlsx';
 
 const SectionHeader: React.FC<{
     label: string
@@ -121,12 +124,61 @@ const ResponseView: React.FC = () => {
     const [dialogOpen, setDialogOpen] = useState(false)
     const [exampleName, setExampleName] = useState("")
 
+    const [visualizeExcel, setVisualizeExcel] = useState(false)
+    const [excelHeaders, setExcelHeaders] = useState<string[]>([])
+    const [excelData, setExcelData] = useState<any[][]>([])
+
+    const responseContentType = currResponse?.contentType ?? ""
+    const isImage = responseContentType.startsWith("image/")
+    const isAudio = responseContentType.startsWith("audio/")
+    const isVideo = responseContentType.startsWith("video/")
+    const isPdf = responseContentType === "application/pdf"
+    const isExcel = responseContentType === "application/vnd.ms-excel"
+        || responseContentType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    useEffect(() => {
+        setVisualizeExcel(false)
+        setExcelHeaders([])
+        setExcelData([])
+    }, [currResponse])
+
     const handleSaveExample = () => {
         if (!selectedRequest?.id || !exampleName.trim() || !currResponse) return
         dispatch(saveExampleResponse({ id: selectedRequest.id, name: exampleName.trim() }))
         setExampleName("")
         setDialogOpen(false)
     }
+
+    const dataUrlToArrayBuffer = (dataUrl: string): ArrayBuffer => {
+        const base64 = dataUrl.split(',')[1]
+        const binaryString = atob(base64)
+        const bytes = new Uint8Array(binaryString.length)
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i)
+        }
+        return bytes.buffer
+    }
+
+    const handleVisualize = useCallback(() => {
+        if (!isExcel || !currResponse?.data) return
+        if (visualizeExcel) {
+            setVisualizeExcel(false)
+            return
+        }
+        try {
+            const workbook = XLSX.read(dataUrlToArrayBuffer(currResponse.data as string), { type: 'array' })
+            const sheetName = workbook.SheetNames[0]
+            const sheet = workbook.Sheets[sheetName]
+            const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]
+            if (data.length > 0) {
+                setExcelHeaders(data[0].map(String))
+                setExcelData(data.slice(1))
+            }
+            setVisualizeExcel(true)
+        } catch {
+            setVisualizeExcel(false)
+        }
+    }, [isExcel, currResponse?.data, visualizeExcel])
 
     const onSourceChange = useCallback((value: string) => {
         setSourceTab(value)
@@ -186,36 +238,73 @@ const ResponseView: React.FC = () => {
                             <Link2 className="mr-1 h-4 w-4"/>
                             Share
                         </Button>
-                        <Button variant="outline" size="sm">
-                            <Lock className="mr-1 h-4 w-4"/>
-                            Visualize
+                        <Button variant="outline" size="sm" disabled={!isExcel} onClick={handleVisualize}>
+                            {visualizeExcel ? <EyeOff className="mr-1 h-4 w-4" /> : <Eye className="mr-1 h-4 w-4" />}
+                            {visualizeExcel ? 'Show Raw' : 'Visualize'}
                         </Button>
                     </div>
                 </div>
 
                 <TabsContent value="pretty" className="h-[calc(100%-3.2rem)]">
                     <div>
-                        <AceEditor
-                            readOnly
-                            placeholder=""
-                            mode="json"
-                            theme="monokai"
-                            width="full"
-                            name="response"
-                            fontSize={14}
-                            lineHeight={19}
-                            showPrintMargin={false}
-                            showGutter={false}
-                            highlightActiveLine={true}
-                            value={prettyResponse}
-                            setOptions={{
-                                enableBasicAutocompletion: false,
-                                enableLiveAutocompletion: false,
-                                enableSnippets: false,
-                                enableMobileMenu: false,
-                                showLineNumbers: false,
-                                tabSize: 2,
-                            }}/>
+                        {isImage && currResponse?.data ? (
+                            <div className="flex items-center justify-center h-[300px] bg-slate-100 rounded-md">
+                                <img src={currResponse.data as string} alt="response" className="max-w-full max-h-full object-contain" />
+                            </div>
+                        ) : isAudio && currResponse?.data ? (
+                            <div className="flex items-center justify-center py-8">
+                                <audio controls src={currResponse.data as string} className="w-full max-w-md" />
+                            </div>
+                        ) : isVideo && currResponse?.data ? (
+                            <div className="flex items-center justify-center">
+                                <video controls src={currResponse.data as string} className="max-w-full max-h-[400px]" />
+                            </div>
+                        ) : isPdf && currResponse?.data ? (
+                            <iframe src={currResponse.data as string} className="w-full h-[500px] border-0 rounded-md" />
+                        ) : isExcel && visualizeExcel ? (
+                            <div className="h-full overflow-auto rounded-md border border-slate-200">
+                                <table className="w-full text-sm border-collapse">
+                                    <thead className="sticky top-0 z-10">
+                                        <tr className="bg-slate-100">
+                                            {excelHeaders.map((h, i) => (
+                                                <th key={i} className="border border-slate-200 px-3 py-2 text-left font-medium text-slate-700 whitespace-nowrap">{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {excelData.map((row, ri) => (
+                                            <tr key={ri} className="hover:bg-slate-50 even:bg-slate-50/50">
+                                                {excelHeaders.map((_, ci) => (
+                                                    <td key={ci} className="border border-slate-200 px-3 py-1.5 text-slate-600 whitespace-nowrap">{row[ci] != null ? String(row[ci]) : ''}</td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <AceEditor
+                                readOnly
+                                placeholder=""
+                                mode="json"
+                                theme="monokai"
+                                width="full"
+                                name="response"
+                                fontSize={14}
+                                lineHeight={19}
+                                showPrintMargin={false}
+                                showGutter={false}
+                                highlightActiveLine={true}
+                                value={prettyResponse}
+                                setOptions={{
+                                    enableBasicAutocompletion: false,
+                                    enableLiveAutocompletion: false,
+                                    enableSnippets: false,
+                                    enableMobileMenu: false,
+                                    showLineNumbers: false,
+                                    tabSize: 2,
+                                }}/>
+                        )}
                     </div>
                 </TabsContent>
 

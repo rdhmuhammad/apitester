@@ -212,7 +212,9 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     responseTime: response?.duration,
                     statusCode: response?.response?.status,
                     data: response?.response?.data,
-                    statusText: response?.response?.statusText
+                    statusText: response?.response?.statusText,
+                    contentType: response?.response?.headers?.["content-type"],
+                    isBinary: false,
                 }
             }))
             CustomToast.error(response.message);
