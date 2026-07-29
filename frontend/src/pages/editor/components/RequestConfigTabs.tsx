@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
 
 // Component Import
 import {Badge} from "@/components/ui/badge.tsx";
@@ -66,7 +66,11 @@ const IndicatorConfigTabs: React.FC = () => {
 
     // ===============> Authorization
     const authType = useAppSelector(selectAuthType)
+    const prevAuthType = useRef(authType)
     useEffect(() => {
+        if (prevAuthType.current === authType) return
+        prevAuthType.current = authType
+
         if (authType === 'inherit') {
             const authId = headers.find(h => h.key === 'Authorization')?.id ?? crypto.randomUUID()
             dispatch(updateHeader({

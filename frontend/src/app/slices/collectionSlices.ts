@@ -57,7 +57,6 @@ const collectionSlices = createSlice({
                 request: selected.request,
                 response: null,
                 exampleResponse: selected.response,
-                authType: "inherit",
             })
             state.selectedRequestId = action.payload.id
         },
@@ -81,7 +80,6 @@ const collectionSlices = createSlice({
                     request: action.payload.request ?? null,
                     response: null,
                     exampleResponse: action.payload.response,
-                    authType: "inherit",
                 })
                 if (!state.selectedRequestId) {
                     state.selectedRequestId = action.payload.id
@@ -237,6 +235,8 @@ const collectionSlices = createSlice({
             state.status = 'pending'
         })
         builder.addCase(fetchCollections.fulfilled, (state, action) => {
+            state.activeRequest = []
+            state.selectedRequestId = ''
             let docsContent = action.payload.content;
             if (docsContent) {
                 state.data = docsContent
@@ -370,8 +370,18 @@ export const selectResponseById = (state: RootState, id: string): SendResponse |
 export const selectDirtyRequestIds = (state: RootState): string[] =>
     state.collection?.dirtyRequestIds ?? []
 
-export const selectAuthType = (state: RootState): "none" | "inherit" | "bearer" =>
-    getCurrentActiveRequest(state)?.authType ?? "inherit"
+export const selectAuthType = (state: RootState): "none" | "inherit" | "bearer" => {
+    const current = getCurrentActiveRequest(state)
+    if (current?.authType) return current.authType
+
+    const request = selectRequest(state)
+    const authHeader = request?.request?.header?.find(h => h.key === 'Authorization')
+    if (!authHeader) return "none"
+
+    if (state.collection?.data?.auth) return "inherit"
+
+    return "bearer"
+}
 
 export const selectScriptResult = (state: RootState): unknown =>
     getCurrentActiveRequest(state)?.scriptResult ?? null

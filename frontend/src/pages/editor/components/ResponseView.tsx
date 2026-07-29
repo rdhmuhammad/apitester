@@ -85,7 +85,14 @@ const ResponseView: React.FC = () => {
 
     const responseCode = activeExample?.code ?? currResponse?.statusCode
     const responseStatus = activeExample?.status ?? currResponse?.statusText ?? "OK"
-    const badgeColor = responseCode === 200 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+    const badgeColor = (() => {
+        if (!responseCode) return "bg-slate-100 text-slate-700"
+        const s = Math.floor(responseCode / 100)
+        if (s === 2) return "bg-emerald-100 text-emerald-700"
+        if (s === 3) return "bg-blue-100 text-blue-700"
+        if (s === 4) return "bg-amber-100 text-amber-700"
+        return "bg-red-100 text-red-700"
+    })()
 
     const responseBody = useMemo(() => {
         if (activeExample) return activeExample.body
