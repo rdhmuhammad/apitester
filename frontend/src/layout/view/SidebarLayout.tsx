@@ -48,7 +48,7 @@ const SidebarLayout: React.FC = () => {
     };
 
     useEffect(() => {
-        let record = {}
+        const record: Record<string, boolean> = {}
         loadExpandFolder(tree, record)
     }, [tree]);
 
@@ -95,7 +95,6 @@ const SidebarLayout: React.FC = () => {
             );
         }
 
-        console.log(node?.isActive)
         return (
             <button
                 key={node.id}

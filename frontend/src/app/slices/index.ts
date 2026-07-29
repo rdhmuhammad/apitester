@@ -34,7 +34,7 @@ export interface ActiveItem{
     request: Request | null
     response: SendResponse | null
     exampleResponse?: CollectionResponse[]
-    authType: "none" | "inherit" | "bearer"
+    authType?: "none" | "inherit" | "bearer"
     scriptResult?: unknown
     scriptLogs?: ScriptLog[]
     scriptMutations?: Record<string, string | null>

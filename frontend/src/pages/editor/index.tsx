@@ -124,7 +124,7 @@ const Editor: React.FC = () => {
             </div>
 
             <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col px-4 pb-4 pt-[140px]">
-                {!collectionData ? (
+                {!collectionData || requestTabs.length === 0 ? (
                     <div
                         className={cn('rounded-2xl border border-t-0 border-slate-200',
                             ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')

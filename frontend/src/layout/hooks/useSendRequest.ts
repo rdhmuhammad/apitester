@@ -83,6 +83,28 @@ const blobToDataUrl = (blob: Blob): Promise<string> =>
         reader.readAsDataURL(blob)
     })
 
+export const parseBlobResponse = async (blob: Blob, contentType: string): Promise<{
+    data: any
+    size: string
+    isBinary: boolean
+}> => {
+    const ct = (contentType ?? "").toLowerCase()
+    const isJson = ct.includes("application/json") || ct.includes("text/")
+    const isBinary = !!ct && !isJson
+
+    if (isBinary) {
+        const dataUrl = await blobToDataUrl(blob)
+        return { data: dataUrl, size: (blob.size / 1024).toFixed(2), isBinary }
+    }
+
+    const text = await blob.text()
+    try {
+        return { data: JSON.parse(text), size: (new Blob([text]).size / 1024).toFixed(2), isBinary }
+    } catch {
+        return { data: text, size: (new Blob([text]).size / 1024).toFixed(2), isBinary }
+    }
+}
+
 export const useSendRequest = async (request: ISendRequest):Promise<SendResponse> => {
     const isFormData = request.contentType === "multipart/form-data"
     const response = await axios.request({
@@ -107,25 +129,7 @@ export const useSendRequest = async (request: ISendRequest):Promise<SendResponse
     }) as AxiosResponseWithDuration<Blob>
 
     const contentType = (response.headers["content-type"] as string)?.toLowerCase() ?? ""
-    const isJson = contentType.includes("application/json") || contentType.includes("text/")
-    const isBinary = !!contentType && !isJson
-
-    let data: any
-    let responseSize: string
-
-    if (isBinary) {
-        const blob = response.data as Blob
-        data = await blobToDataUrl(blob)
-        responseSize = (blob.size / 1024).toFixed(2)
-    } else {
-        const text = await (response.data as Blob).text()
-        try {
-            data = JSON.parse(text)
-        } catch {
-            data = text
-        }
-        responseSize = (new Blob([text]).size / 1024).toFixed(2)
-    }
+    const { data, size: responseSize, isBinary } = await parseBlobResponse(response.data as Blob, contentType)
 
     return {
         rawRequest: buildRawRequest(request),
