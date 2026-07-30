@@ -71,6 +71,7 @@ export interface TestScenario {
   description: string
   content: string
   steps: TestStep[]
+  totalSteps: number
   lastRunResults?: StepResult[]
   lastRunStatus?: 'passed' | 'failed' | 'unrun'
   lastRunTime?: string

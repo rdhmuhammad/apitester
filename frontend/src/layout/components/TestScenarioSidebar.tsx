@@ -106,7 +106,7 @@ const TestScenarioSidebar: React.FC<{ searchQuery: string }> = ({ searchQuery })
                         {scenario.filename}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        {scenario.steps?.length || 0} step{(scenario.steps?.length || 0) === 1 ? '' : 's'}
+                        {scenario.totalSteps || 0} step{(scenario.totalSteps || 0) === 1 ? '' : 's'}
                       </span>
                     </div>
                   </div>

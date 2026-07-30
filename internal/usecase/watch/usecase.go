@@ -257,6 +257,7 @@ func (u *Usecase) ListTests(id string) ([]TestFileInfo, error) {
 	}
 
 	var result []TestFileInfo
+	parser := newHttpParser()
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -266,9 +267,18 @@ func (u *Usecase) ListTests(id string) ([]TestFileInfo, error) {
 			continue
 		}
 		base := strings.TrimSuffix(name, ".http")
+
+		totalSteps := 0
+		filePath := filepath.Join(testsDir, name)
+		if content, err := os.ReadFile(filePath); err == nil {
+			steps := parser.parse(string(content))
+			totalSteps = len(steps)
+		}
+
 		result = append(result, TestFileInfo{
-			Name:     base,
-			Filename: name,
+			Name:       base,
+			Filename:   name,
+			TotalSteps: totalSteps,
 		})
 	}
 	if result == nil {

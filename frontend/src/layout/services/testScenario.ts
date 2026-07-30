@@ -5,6 +5,7 @@ import type {TestStep} from "@/pages/editor/types/testScenario.ts"
 export interface TestFileInfo {
   name: string
   filename: string
+  totalSteps: number
 }
 
 export interface TestFileContent {

@@ -57,14 +57,14 @@ function serializeSteps(steps: TestStep[]): string {
         result += `\n${step.body.trim()}\n`
       }
 
-      if (step.assertions.length > 0 || step.captures.length > 0) {
+      if (step?.assertions?.length > 0 || step?.captures?.length > 0) {
         result += `\n>> {%\n`
-        step.assertions.forEach((a) => {
+        step.assertions?.forEach((a) => {
           if (a.expression.trim()) {
             result += `  assert ${a.expression.trim()}\n`
           }
         })
-        step.captures.forEach((c) => {
+        step.captures?.forEach((c) => {
           if (c.varName.trim() && c.expression.trim()) {
             result += `  capture ${c.varName.trim()} = ${c.expression.trim()}\n`
           }
@@ -182,7 +182,7 @@ const testScenarioSlice = createSlice({
       state.scenarios = action.payload.files.map(f => {
         const prev = existing.find(s => s.id === f.name)
         if (prev && prev.content) {
-          return {...prev, name: f.name, filename: f.filename}
+          return {...prev, name: f.name, filename: f.filename, totalSteps: f.totalSteps}
         }
         return {
           id: f.name,
@@ -191,6 +191,7 @@ const testScenarioSlice = createSlice({
           description: '',
           content: '',
           steps: [],
+          totalSteps: f.totalSteps,
           lastRunStatus: 'unrun',
         }
       })
@@ -209,6 +210,7 @@ const testScenarioSlice = createSlice({
 
       scenario.steps = payload.steps
       scenario.content = serializeSteps(payload.steps)
+      scenario.totalSteps = payload.steps.length
     })
 
     builder.addCase(createTestFile.fulfilled, (state, action) => {
@@ -220,6 +222,7 @@ const testScenarioSlice = createSlice({
         description: '',
         content: serializeSteps(steps),
         steps,
+        totalSteps: steps.length,
         lastRunStatus: 'unrun',
       })
       state.activeTestId = name

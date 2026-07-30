@@ -1,9 +1,11 @@
 package watch
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand/v2"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -29,7 +31,7 @@ func (p *httpParser) parse(content string) []TestStep {
 	var result []TestStep
 	for i, block := range blocks {
 		block = strings.TrimSpace(block)
-		if block == "" {
+		if block == "" || !p.IsRequest(block) {
 			continue
 		}
 
@@ -42,6 +44,16 @@ func (p *httpParser) parse(content string) []TestStep {
 	}
 
 	return result
+}
+
+func (p *httpParser) IsRequest(block string) bool {
+	for _, mp := range []string{"POST", "GET", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"} {
+		if strings.Contains(block, mp) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (p *httpParser) parseBlock(block string, index int) TestStep {
@@ -60,6 +72,7 @@ func (p *httpParser) parseBlock(block string, index int) TestStep {
 	var captures []CaptureRule
 
 	mode := "request_line"
+	isValidBody := false
 
 	for i := 1; i < len(lines); i++ {
 		line := lines[i]
@@ -115,7 +128,6 @@ func (p *httpParser) parseBlock(block string, index int) TestStep {
 			}
 			continue
 		}
-
 		if mode == "headers" {
 			trimmedLine := strings.TrimSpace(line)
 			if trimmedLine == "" {
@@ -132,15 +144,21 @@ func (p *httpParser) parseBlock(block string, index int) TestStep {
 					Key:   strings.TrimSpace(headerMatches[1]),
 					Value: strings.TrimSpace(headerMatches[2]),
 				})
-			} else {
+			} else if !isValidBody {
 				mode = "body"
 				bodyLines = append(bodyLines, line)
 			}
 			continue
 		}
 
-		if mode == "body" {
+		if mode == "body" && !isValidBody {
 			bodyLines = append(bodyLines, line)
+		}
+
+		if slices.ContainsFunc(headers, func(s TestHeader) bool {
+			return s.Key == "Content-Type" && s.Value == "application/json"
+		}) && json.Valid([]byte(strings.Join(bodyLines, " "))) {
+			isValidBody = true
 		}
 	}
 

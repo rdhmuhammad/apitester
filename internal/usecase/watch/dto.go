@@ -123,8 +123,9 @@ type CollectionVar struct {
 }
 
 type TestFileInfo struct {
-	Name     string `json:"name"`
-	Filename string `json:"filename"`
+	Name       string `json:"name"`
+	Filename   string `json:"filename"`
+	TotalSteps int    `json:"totalSteps"`
 }
 
 type TestFileContent struct {
