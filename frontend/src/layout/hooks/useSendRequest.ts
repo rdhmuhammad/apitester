@@ -131,6 +131,13 @@ export const useSendRequest = async (request: ISendRequest):Promise<SendResponse
     const contentType = (response.headers["content-type"] as string)?.toLowerCase() ?? ""
     const { data, size: responseSize, isBinary } = await parseBlobResponse(response.data as Blob, contentType)
 
+    const responseHeaders: Record<string, string> = {}
+    if (response.headers) {
+        Object.entries(response.headers as Record<string, unknown>).forEach(([k, v]) => {
+            if (typeof v === 'string') responseHeaders[k] = v
+        })
+    }
+
     return {
         rawRequest: buildRawRequest(request),
         protocol: "HTTP/1.1",
@@ -141,5 +148,6 @@ export const useSendRequest = async (request: ISendRequest):Promise<SendResponse
         data,
         contentType,
         isBinary,
+        headers: responseHeaders,
     }
 }

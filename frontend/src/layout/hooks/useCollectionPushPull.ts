@@ -2,6 +2,7 @@ import {useCallback, useState} from "react"
 import {useAppDispatch} from "@/app/store/hooks.ts"
 import {fetchCollections} from "@/app/slices/index.ts"
 import {saveActiveToData, selectCollectionData} from "@/app/slices/collectionSlices.ts"
+import {fetchTestFiles} from "@/app/slices/testScenarioSlice.ts"
 import {store} from "@/app/store/store.ts"
 import {CollectionServices} from "@/layout/services/collection.ts"
 import CustomToast from "@/components/common/toast"
@@ -16,6 +17,7 @@ export function useCollectionPushPull() {
         try {
             const active = await CollectionServices.getActiveCollection()
             await dispatch(fetchCollections(active.id)).unwrap()
+            await dispatch(fetchTestFiles()).unwrap()
             CustomToast.success("Collection pulled successfully")
         } catch {
             CustomToast.error("Failed to pull collection")

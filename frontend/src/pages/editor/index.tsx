@@ -1,6 +1,7 @@
 import RequestConfigTabs from "@/pages/editor/components/RequestConfigTabs.tsx";
 import ResponseView from "@/pages/editor/components/ResponseView.tsx";
 import WelcomeEditor from "@/pages/editor/components/WelcomeEditor.tsx";
+import TestScenarioEditor from "@/pages/editor/components/TestScenarioEditor.tsx";
 import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import {Plus, XIcon} from "lucide-react";
@@ -15,6 +16,7 @@ import {
     setSelectedRequestId, setActiveTree, selectCollectionInfo,
     selectDirtyRequestIds
 } from "@/app/slices/collectionSlices.ts";
+import {selectActiveTestId} from "@/app/slices/testScenarioSlice.ts";
 import {cn} from "@/lib/utils.ts";
 
 const methodStyle: Record<ColtReqMethod, string> = {
@@ -30,6 +32,7 @@ const Editor: React.FC = () => {
     const collectionInfo = useAppSelector(selectCollectionInfo)
     const collectionData = useAppSelector(selectCollectionData)
     const dirtyRequestIds = useAppSelector(selectDirtyRequestIds)
+    const activeTestId = useAppSelector(selectActiveTestId)
     const {requestTabs, activeTabId} = useAppSelector((state) => {
         const activeRequest = selectActiveRequest(state)
         const selectedRequestId = selectSelectedRequestId(state)
@@ -124,7 +127,14 @@ const Editor: React.FC = () => {
             </div>
 
             <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col px-4 pb-4 pt-[140px]">
-                {!collectionData || requestTabs.length === 0 ? (
+                {activeTestId ? (
+                    <div
+                        className={cn('rounded-2xl border border-t-0 border-slate-200',
+                            ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')
+                        }>
+                        <TestScenarioEditor/>
+                    </div>
+                ) : !collectionData || requestTabs.length === 0 ? (
                     <div
                         className={cn('rounded-2xl border border-t-0 border-slate-200',
                             ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')

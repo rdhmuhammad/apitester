@@ -370,6 +370,40 @@ export const selectResponseById = (state: RootState, id: string): SendResponse |
 export const selectDirtyRequestIds = (state: RootState): string[] =>
     state.collection?.dirtyRequestIds ?? []
 
+export interface FlatRequest {
+    name: string
+    method: string
+    url: string
+    headers: Record<string, string>
+    body: string
+}
+
+const flattenRequests = (items: CollectionItem[]): FlatRequest[] => {
+    const result: FlatRequest[] = []
+    for (const it of items) {
+        if (it.request) {
+            const headers: Record<string, string> = {}
+            for (const h of it.request.header ?? []) {
+                if (h.key) headers[h.key] = h.value ?? ''
+            }
+            result.push({
+                name: it.name,
+                method: (it.request.method ?? 'GET').toUpperCase(),
+                url: it.request.url?.raw ?? '',
+                headers,
+                body: typeof it.request.body?.raw === 'string' ? it.request.body.raw : '',
+            })
+        }
+        if (it.item) {
+            result.push(...flattenRequests(it.item))
+        }
+    }
+    return result
+}
+
+export const selectAllRequests = (state: RootState): FlatRequest[] =>
+    flattenRequests(state.collection?.data?.item ?? [])
+
 export const selectAuthType = (state: RootState): "none" | "inherit" | "bearer" => {
     const current = getCurrentActiveRequest(state)
     if (current?.authType) return current.authType
