@@ -121,3 +121,8 @@ type CollectionVar struct {
 	Value    string `json:"value"`
 	Type     string `json:"type"`
 }
+
+type TestFileInfo struct {
+	Name     string `json:"name"`
+	Filename string `json:"filename"`
+}

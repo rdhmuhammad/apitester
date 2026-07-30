@@ -227,6 +227,134 @@ func (u *Usecase) WriteCollection(id string, content string) error {
 	return nil
 }
 
+func testsDir(collectionPath string) string {
+	return filepath.Join(filepath.Dir(collectionPath), "tests")
+}
+
+func validateTestName(name string) error {
+	if name == "" || strings.ContainsAny(name, `/\\`) || strings.Contains(name, "..") {
+		return localerror.InvalidData("Invalid test name")
+	}
+	return nil
+}
+
+func (u *Usecase) ListTests(id string) ([]TestFileInfo, error) {
+	collection, err := u.collectionRepo.View(context.Background(), id)
+	if err != nil {
+		return nil, u.errHandler.ErrorReturn(err)
+	}
+	if collection == nil {
+		return nil, localerror.InvalidData("Collection not found")
+	}
+
+	testsDir := testsDir(collection.Path)
+	entries, err := os.ReadDir(testsDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []TestFileInfo{}, nil
+		}
+		return nil, u.errHandler.ErrorReturn(err)
+	}
+
+	var result []TestFileInfo
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".http") {
+			continue
+		}
+		base := strings.TrimSuffix(name, ".http")
+		result = append(result, TestFileInfo{
+			Name:     base,
+			Filename: name,
+		})
+	}
+	if result == nil {
+		result = []TestFileInfo{}
+	}
+	return result, nil
+}
+
+func (u *Usecase) ReadTest(id, name string) (string, error) {
+	if err := validateTestName(name); err != nil {
+		return "", err
+	}
+
+	collection, err := u.collectionRepo.View(context.Background(), id)
+	if err != nil {
+		return "", u.errHandler.ErrorReturn(err)
+	}
+	if collection == nil {
+		return "", localerror.InvalidData("Collection not found")
+	}
+
+	path := filepath.Join(testsDir(collection.Path), name+".http")
+	content, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", localerror.InvalidData("Test file not found")
+		}
+		return "", u.errHandler.ErrorReturn(err)
+	}
+
+	return string(content), nil
+}
+
+func (u *Usecase) WriteTest(id, name, content string) error {
+	if err := validateTestName(name); err != nil {
+		return err
+	}
+	if content == "" {
+		return localerror.InvalidData("Test content is required")
+	}
+
+	collection, err := u.collectionRepo.View(context.Background(), id)
+	if err != nil {
+		return u.errHandler.ErrorReturn(err)
+	}
+	if collection == nil {
+		return localerror.InvalidData("Collection not found")
+	}
+
+	testsDir := testsDir(collection.Path)
+	if err := os.MkdirAll(testsDir, 0755); err != nil {
+		return u.errHandler.ErrorReturn(err)
+	}
+
+	path := filepath.Join(testsDir, name+".http")
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		return u.errHandler.ErrorReturn(err)
+	}
+
+	return nil
+}
+
+func (u *Usecase) DeleteTest(id, name string) error {
+	if err := validateTestName(name); err != nil {
+		return err
+	}
+
+	collection, err := u.collectionRepo.View(context.Background(), id)
+	if err != nil {
+		return u.errHandler.ErrorReturn(err)
+	}
+	if collection == nil {
+		return localerror.InvalidData("Collection not found")
+	}
+
+	path := filepath.Join(testsDir(collection.Path), name+".http")
+	if err := os.Remove(path); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return u.errHandler.ErrorReturn(err)
+	}
+
+	return nil
+}
+
 func (u *Usecase) UploadCollection(fileBytes []byte) error {
 	content := strings.TrimPrefix(string(fileBytes), "\uFEFF")
 
