@@ -277,37 +277,43 @@ func (u *Usecase) ListTests(id string) ([]TestFileInfo, error) {
 	return result, nil
 }
 
-func (u *Usecase) ReadTest(id, name string) (string, error) {
+func (u *Usecase) ReadTest(id, name string) (TestFileContent, error) {
 	if err := validateTestName(name); err != nil {
-		return "", err
+		return TestFileContent{}, err
 	}
 
 	collection, err := u.collectionRepo.View(context.Background(), id)
 	if err != nil {
-		return "", u.errHandler.ErrorReturn(err)
+		return TestFileContent{}, u.errHandler.ErrorReturn(err)
 	}
 	if collection == nil {
-		return "", localerror.InvalidData("Collection not found")
+		return TestFileContent{}, localerror.InvalidData("Collection not found")
 	}
 
 	path := filepath.Join(testsDir(collection.Path), name+".http")
 	content, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", localerror.InvalidData("Test file not found")
+			return TestFileContent{}, localerror.InvalidData("Test file not found")
 		}
-		return "", u.errHandler.ErrorReturn(err)
+		return TestFileContent{}, u.errHandler.ErrorReturn(err)
 	}
 
-	return string(content), nil
+	parser := newHttpParser()
+	steps := parser.parse(string(content))
+
+	return TestFileContent{
+		Name:  name,
+		Steps: steps,
+	}, nil
 }
 
-func (u *Usecase) WriteTest(id, name, content string) error {
+func (u *Usecase) WriteTest(id, name string, payload TestFileContent) error {
 	if err := validateTestName(name); err != nil {
 		return err
 	}
-	if content == "" {
-		return localerror.InvalidData("Test content is required")
+	if len(payload.Steps) == 0 {
+		return localerror.InvalidData("Test steps are required")
 	}
 
 	collection, err := u.collectionRepo.View(context.Background(), id)
@@ -322,6 +328,8 @@ func (u *Usecase) WriteTest(id, name, content string) error {
 	if err := os.MkdirAll(testsDir, 0755); err != nil {
 		return u.errHandler.ErrorReturn(err)
 	}
+
+	content := newHttpParser().serialize(payload.Steps)
 
 	path := filepath.Join(testsDir, name+".http")
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {

@@ -27,8 +27,8 @@ type UsecaseInterface interface {
 	WriteCollection(id string, content string) error
 	GetActiveCollection() (domain.Collection, error)
 	ListTests(id string) ([]TestFileInfo, error)
-	ReadTest(id, name string) (string, error)
-	WriteTest(id, name, content string) error
+	ReadTest(id, name string) (TestFileContent, error)
+	WriteTest(id, name string, payload TestFileContent) error
 	DeleteTest(id, name string) error
 }
 
@@ -153,13 +153,14 @@ func (ctrl Controller) ReadTest(c *gin.Context) {
 func (ctrl Controller) WriteTest(c *gin.Context) {
 	id := c.Param("id")
 	name := c.Param("name")
-	body, err := io.ReadAll(c.Request.Body)
-	if err != nil {
+
+	var req TestFileContent
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, payload.DefaultErrorInvalidDataWithMessage(err.Error()))
 		return
 	}
 
-	err = ctrl.Uc.WriteTest(id, name, string(body))
+	err := ctrl.Uc.WriteTest(id, name, req)
 	if invalid, invalidErr := ctrl.mapper.IsInvalidDataError(err); invalid {
 		c.JSON(http.StatusBadRequest, payload.DefaultErrorInvalidDataWithMessage(invalidErr.Error()))
 		return
