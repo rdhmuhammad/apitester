@@ -1,7 +1,7 @@
 import {createSlice, type PayloadAction} from "@reduxjs/toolkit"
 import type {RootState} from "@/app/store/store.ts"
 import type {StepResult, TestScenario, TestStep} from "@/pages/editor/types/testScenario.ts"
-import {parseHttpContent, serializeHttpContent} from "@/lib/httpParser.ts"
+import type {TestFileContent} from "@/layout/services/testScenario.ts"
 import {createAppAsyncThunk} from "@/app/store/withTypes.ts"
 import {CollectionServices} from "@/layout/services/collection.ts"
 import {TestScenarioServices} from "@/layout/services/testScenario.ts"
@@ -28,6 +28,55 @@ const initialState: TestScenarioState = {
   status: 'idle',
 }
 
+const defaultSteps: TestStep[] = [
+  {
+    id: 'step-1',
+    name: 'Step 1 — New Request',
+    method: 'GET',
+    url: '{{baseUrl}}/resource',
+    headers: [{key: 'Accept', value: 'application/json'}],
+    body: '',
+    assertions: [{id: 'assert-1', expression: 'response.status === 200'}],
+    captures: [],
+  },
+]
+
+function serializeSteps(steps: TestStep[]): string {
+  return steps
+    .map((step) => {
+      let result = `### ${step.name}\n`
+      result += `${step.method} ${step.url}\n`
+
+      step.headers?.forEach((h) => {
+        if (h.key && h.value) {
+          result += `${h.key}: ${h.value}\n`
+        }
+      })
+
+      if (step.body && step.body.trim()) {
+        result += `\n${step.body.trim()}\n`
+      }
+
+      if (step.assertions.length > 0 || step.captures.length > 0) {
+        result += `\n>> {%\n`
+        step.assertions.forEach((a) => {
+          if (a.expression.trim()) {
+            result += `  assert ${a.expression.trim()}\n`
+          }
+        })
+        step.captures.forEach((c) => {
+          if (c.varName.trim() && c.expression.trim()) {
+            result += `  capture ${c.varName.trim()} = ${c.expression.trim()}\n`
+          }
+        })
+        result += `%}\n`
+      }
+
+      return result
+    })
+    .join('\n')
+}
+
 export const fetchTestFiles = createAppAsyncThunk(
   'testScenario/fetchTestFiles',
   async () => {
@@ -49,10 +98,11 @@ export const fetchTestContent = createAppAsyncThunk(
 
 export const saveTestFile = createAppAsyncThunk(
   'testScenario/saveTestFile',
-  async (payload: {name: string; content: string}, {getState}) => {
+  async (payload: {name: string; steps: TestStep[]}, {getState}) => {
     const collectionId = getState().testScenario.collectionId
     if (!collectionId) throw new Error('No active collection')
-    await TestScenarioServices.writeTest(collectionId, payload.name, payload.content)
+    const content: TestFileContent = {name: payload.name, steps: payload.steps}
+    await TestScenarioServices.writeTest(collectionId, payload.name, content)
   }
 )
 
@@ -79,16 +129,9 @@ export const createTestFile = createAppAsyncThunk(
     }
     const name = `scenario-${index}`
     const filename = `${name}.http`
-    const template = `### Step 1 — New Request
-GET {{baseUrl}}/resource
-Accept: application/json
 
->> {%
-  assert response.status === 200
-%}`
-
-    await TestScenarioServices.writeTest(collectionId, name, template)
-    return {name, filename, content: template}
+    await TestScenarioServices.writeTest(collectionId, name, {name, steps: defaultSteps})
+    return {name, filename, steps: defaultSteps}
   }
 )
 
@@ -105,9 +148,8 @@ const testScenarioSlice = createSlice({
       const scenario = state.scenarios.find(s => s.id === action.payload.id)
       if (!scenario) return
 
-      const serialized = serializeHttpContent(action.payload.steps)
       scenario.steps = action.payload.steps
-      scenario.content = serialized
+      scenario.content = serializeSteps(action.payload.steps)
       state.hasUnsavedChanges = true
     },
     updateScenarioRawContent(state, action: PayloadAction<{id: string; content: string}>) {
@@ -116,12 +158,6 @@ const testScenarioSlice = createSlice({
 
       scenario.content = action.payload.content
       state.hasUnsavedChanges = true
-
-      try {
-        scenario.steps = parseHttpContent(action.payload.content)
-      } catch {
-        // keep old steps on parse error
-      }
     },
     saveScenario(state, _action: PayloadAction<string>) {
       state.hasUnsavedChanges = false
@@ -168,23 +204,21 @@ const testScenarioSlice = createSlice({
       const scenario = state.scenarios.find(s => s.id === action.payload.name)
       if (!scenario) return
 
-      const steps = parseHttpContent(action.payload.content)
-      if (steps.length === 0 && action.payload.content.trim()) {
-        return
-      }
-      scenario.content = action.payload.content
-      scenario.steps = steps
+      const payload = action.payload.content
+      if (!payload || !payload.steps) return
+
+      scenario.steps = payload.steps
+      scenario.content = serializeSteps(payload.steps)
     })
 
     builder.addCase(createTestFile.fulfilled, (state, action) => {
-      const {name, filename, content} = action.payload
-      const steps = parseHttpContent(content)
+      const {name, filename, steps} = action.payload
       state.scenarios.push({
         id: name,
         name,
         filename,
         description: '',
-        content,
+        content: serializeSteps(steps),
         steps,
         lastRunStatus: 'unrun',
       })

@@ -7,7 +7,7 @@ export type AuthType = "none" | "inherit" | "bearer";
 interface AuthValueProps {
     authType: AuthType;
     bearerValue?: string;
-    onBearerChange?: (value: string) => void;/
+    onBearerChange?: (value: string) => void;
 }
 
 export const AuthDropdownOps: React.FC<AuthValueProps> = ({authType, bearerValue, onBearerChange})=>{

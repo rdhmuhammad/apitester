@@ -11,12 +11,17 @@ export interface CaptureRule {
   expression: string
 }
 
+export interface TestHeader {
+  key: string
+  value: string
+}
+
 export interface TestStep {
   id: string
   name: string
   method: HttpMethod
   url: string
-  headers: Record<string, string>
+  headers: TestHeader[]
   body?: string
   assertions: AssertionRule[]
   captures: CaptureRule[]

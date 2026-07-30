@@ -98,12 +98,12 @@ export function useTestRunner() {
         console.log(step.url, mergedVars)
         const {baseUrl, endpoint, queryParams} = parseStepUrl(resolvedUrl, defaultBaseUrl)
 
-        const stepHeaders: ItemUrl[] = Object.entries(step.headers ?? {})
-          .filter(([k]) => k.trim())
-          .map(([key, value]) => ({
+        const stepHeaders: ItemUrl[] = (step.headers ?? [])
+          .filter(h => h.key.trim())
+          .map(h => ({
             id: crypto.randomUUID(),
-            key,
-            value: resolveTemplate(value, mergedVars),
+            key: h.key,
+            value: resolveTemplate(h.value, mergedVars),
           }))
 
         const hasJsonBody = stepHeaders.some(

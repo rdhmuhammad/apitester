@@ -20,7 +20,7 @@ import {
 } from "@/app/slices/testScenarioSlice.ts"
 import {selectAllRequests, type FlatRequest} from "@/app/slices/collectionSlices.ts"
 import {useTestRunner} from "@/layout/hooks/useTestRunner.ts"
-import type {AssertionRule, CaptureRule, HttpMethod, StepResult, TestStep} from "@/pages/editor/types/testScenario.ts"
+import type {AssertionRule, CaptureRule, HttpMethod, StepResult, TestHeader, TestStep} from "@/pages/editor/types/testScenario.ts"
 import {cn} from "@/lib/utils.ts"
 
 const methodColors: Record<HttpMethod, string> = {
@@ -104,7 +104,7 @@ const TestScenarioEditor: React.FC = () => {
       name: `Step ${steps.length + 1} — New Request`,
       method: 'GET',
       url: '{{baseUrl}}/resource',
-      headers: {'Content-Type': 'application/json'},
+      headers: [{key: 'Content-Type', value: 'application/json'}],
       body: '',
       assertions: [{id: `ast-${Date.now()}`, expression: 'response.status === 200'}],
       captures: [],
@@ -119,7 +119,7 @@ const TestScenarioEditor: React.FC = () => {
       name: 'New Request',
       method: 'GET',
       url: '{{baseUrl}}/resource',
-      headers: {'Content-Type': 'application/json'},
+      headers: [{key: 'Content-Type', value: 'application/json'}],
       body: '',
       assertions: [{id: `ast-${Date.now()}`, expression: 'response.status === 200'}],
       captures: [],
@@ -179,38 +179,39 @@ const TestScenarioEditor: React.FC = () => {
     handleUpdateStep(stepIndex, {captures: (step.captures || []).filter((cap) => cap.id !== capId)})
   }
 
-  const handleHeaderChange = (stepIndex: number, oldKey: string, newKey: string, newValue: string) => {
+  const handleHeaderChange = (stepIndex: number, hIdx: number, newKey: string, newValue: string) => {
     const step = steps[stepIndex]
-    const newHeaders: Record<string, string> = {}
-    Object.entries(step.headers || {}).forEach(([k, v]) => {
-      if (k === oldKey) {
-        if (newKey) newHeaders[newKey] = newValue
+    const newHeaders = [...(step.headers || [])]
+    if (hIdx >= 0 && hIdx < newHeaders.length) {
+      if (newKey) {
+        newHeaders[hIdx] = {key: newKey, value: newValue}
       } else {
-        newHeaders[k] = String(v)
+        newHeaders.splice(hIdx, 1)
       }
-    })
-    if (!oldKey && newKey) newHeaders[newKey] = newValue
+    } else if (newKey) {
+      newHeaders.push({key: newKey, value: newValue})
+    }
     handleUpdateStep(stepIndex, {headers: newHeaders})
   }
 
   const handleAddHeader = (stepIndex: number) => {
     const step = steps[stepIndex]
-    handleUpdateStep(stepIndex, {headers: {...(step.headers || {}), '': ''}})
+    handleUpdateStep(stepIndex, {headers: [...(step.headers || []), {key: '', value: ''}]})
   }
 
-  const handleDeleteHeader = (stepIndex: number, key: string) => {
+  const handleDeleteHeader = (stepIndex: number, hIdx: number) => {
     const step = steps[stepIndex]
-    const newHeaders = {...(step.headers || {})}
-    delete newHeaders[key]
+    const newHeaders = (step.headers || []).filter((_, i) => i !== hIdx)
     handleUpdateStep(stepIndex, {headers: newHeaders})
   }
 
   const handleApplyRequest = (stepIndex: number, req: FlatRequest) => {
+    const reqHeaders: TestHeader[] = Object.entries(req.headers).map(([key, value]) => ({key, value}))
     handleUpdateStep(stepIndex, {
       name: req.name,
       method: req.method as HttpMethod,
       url: req.url,
-      headers: req.headers,
+      headers: reqHeaders,
       body: req.body,
     })
     setStepSearch((prev) => {
@@ -234,7 +235,7 @@ const TestScenarioEditor: React.FC = () => {
   }
 
   const handleSave = () => {
-    dispatch(saveTestFile({name: scenario.id, content: scenario.content}))
+    dispatch(saveTestFile({name: scenario.id, steps: scenario.steps}))
   }
 
   useEffect(() => {
@@ -448,16 +449,16 @@ const TestScenarioEditor: React.FC = () => {
 
                       {/* Headers Tab */}
                       <TabsContent value="headers" className="pt-3 space-y-2">
-                        {Object.entries(step.headers || {}).map(([key, value], hIdx) => (
+                        {(step.headers || []).map((h, hIdx) => (
                           <div key={hIdx} className="flex gap-2 items-center">
-                            <Input value={key}
-                                   onChange={(e) => handleHeaderChange(index, key, e.target.value, value)}
+                            <Input value={h.key}
+                                   onChange={(e) => handleHeaderChange(index, hIdx, e.target.value, h.value)}
                                    className="h-8 text-xs font-mono w-1/3" placeholder="Header name"/>
-                            <Input value={String(value)}
-                                   onChange={(e) => handleHeaderChange(index, key, key, e.target.value)}
+                            <Input value={String(h.value)}
+                                   onChange={(e) => handleHeaderChange(index, hIdx, h.key, e.target.value)}
                                    className="h-8 text-xs font-mono flex-1" placeholder="Value"/>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-rose-500"
-                                    onClick={() => handleDeleteHeader(index, key)}>
+                                    onClick={() => handleDeleteHeader(index, hIdx)}>
                               <Trash2 className="w-3.5 h-3.5"/>
                             </Button>
                           </div>
