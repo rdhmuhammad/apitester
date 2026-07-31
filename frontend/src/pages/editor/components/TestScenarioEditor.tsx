@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react"
 import {
   Play, Plus, Trash2, ChevronUp, ChevronDown, CheckCircle2, XCircle,
-  Clock, Code, MoveUp, MoveDown, Layers,
+  Clock, Code, MoveUp, MoveDown, Layers, Settings,
 } from "lucide-react"
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx"
 import {Input} from "@/components/ui/input.tsx"
@@ -22,6 +22,7 @@ import {selectAllRequests, type FlatRequest} from "@/app/slices/collectionSlices
 import {useTestRunner} from "@/layout/hooks/useTestRunner.ts"
 import type {AssertionRule, CaptureRule, HttpMethod, StepResult, TestHeader, TestStep} from "@/pages/editor/types/testScenario.ts"
 import {cn} from "@/lib/utils.ts"
+import EnvironmentVariablesDialog from "@/pages/editor/components/EnvironmentVariablesDialog.tsx"
 
 const methodColors: Record<HttpMethod, string> = {
   GET: 'bg-emerald-100 text-emerald-700',
@@ -69,10 +70,17 @@ const TestScenarioEditor: React.FC = () => {
   const [viewMode, setViewMode] = useState<'visual' | 'raw'>('visual')
   const [rawContent, setRawContent] = useState('')
   const [rawContentDirty, setRawContentDirty] = useState(false)
+  const [envDialogOpen, setEnvDialogOpen] = useState(false)
   const [expandedSteps, setExpandedSteps] = useState<Record<string, boolean>>({})
   const allRequests = useAppSelector(selectAllRequests)
   const [stepSearch, setStepSearch] = useState<Record<string, {open: boolean; query: string}>>({})
-  const {run: runTests} = useTestRunner()
+  const {run: runTests, runStep} = useTestRunner()
+
+  useEffect(() => {
+    if (scenario && !scenario.content && scenario.id) {
+      dispatch(fetchTestContent(scenario.id))
+    }
+  }, [scenario?.id, dispatch])
 
   if (!scenario) {
     return (
@@ -86,6 +94,10 @@ const TestScenarioEditor: React.FC = () => {
 
   const toggleExpand = (id: string) => {
     setExpandedSteps((prev) => ({...prev, [id]: !prev[id]}))
+  }
+
+  const handleRunStep = (index: number) => {
+    runStep(index)
   }
 
   const handleUpdateSteps = (newSteps: TestStep[]) => {
@@ -238,12 +250,6 @@ const TestScenarioEditor: React.FC = () => {
     dispatch(saveTestFile({name: scenario.id, steps: scenario.steps}))
   }
 
-  useEffect(() => {
-    if (scenario && !scenario.content && scenario.id) {
-      dispatch(fetchTestContent(scenario.id))
-    }
-  }, [scenario?.id, dispatch])
-
   const handleRunAll = () => {
     runTests()
   }
@@ -272,6 +278,10 @@ const TestScenarioEditor: React.FC = () => {
           <Button variant="outline" size="sm" onClick={handleViewRaw} className="text-xs">
             <Code className="w-3.5 h-3.5 mr-1"/>
             {viewMode === 'visual' ? 'View Raw' : 'Visual'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setEnvDialogOpen(true)} className="text-xs">
+            <Settings className="w-3.5 h-3.5 mr-1"/>
+            Variables
           </Button>
           <Button variant="outline" size="sm" onClick={handleSave} disabled={!hasUnsavedChanges} className="text-xs">
             Save
@@ -309,13 +319,12 @@ const TestScenarioEditor: React.FC = () => {
           <InsertStepZone onInsert={() => handleInsertStep(0)} />
           {steps.map((step, index) => {
             const isExpanded = !!expandedSteps[step.id]
-            const result = results.find((r) => r.stepIndex === index)
-
+            const result = results.find((r) => r?.stepIndex === index)
             return [
               <div
                 key={step.id}
                 className={cn(
-                  'rounded-xl border bg-white shadow-sm transition-all',
+                  'rounded-xl border bg-white shadow-sm transition-all group',
                   result?.status === 'passed' && 'border-emerald-300',
                   result?.status === 'failed' && 'border-rose-300',
                   result?.status === 'running' && 'border-indigo-400 animate-pulse',
@@ -383,6 +392,10 @@ const TestScenarioEditor: React.FC = () => {
                   </div>
 
                   <div className="flex items-center space-x-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => handleRunStep(index)} disabled={isRunning}>
+                      <Play className="w-3.5 h-3.5"/>
+                    </Button>
                     <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
                             onClick={() => handleMoveStep(index, 'up')} disabled={index === 0}>
                       <MoveUp className="w-3.5 h-3.5"/>
@@ -414,7 +427,7 @@ const TestScenarioEditor: React.FC = () => {
                         <TabsTrigger value="captures" className="text-xs">
                           Captures ({step.captures?.length ?? 0})
                         </TabsTrigger>
-                        {result?.response && <TabsTrigger value="response" className="text-xs">Response</TabsTrigger>}
+                        <TabsTrigger value="response" className="text-xs">Response</TabsTrigger>
                       </TabsList>
 
                       {/* Request Tab */}
@@ -526,8 +539,8 @@ const TestScenarioEditor: React.FC = () => {
                       </TabsContent>
 
                       {/* Response Tab */}
-                      {result?.response && (
-                        <TabsContent value="response" className="pt-3">
+                      <TabsContent value="response" className="pt-3">
+                        {result?.response ? (
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 text-xs">
                               <span className={cn('font-bold px-2 py-0.5 rounded',
@@ -542,8 +555,12 @@ const TestScenarioEditor: React.FC = () => {
                               {JSON.stringify(result.response.body, null, 2)}
                             </pre>
                           </div>
-                        </TabsContent>
-                      )}
+                        ) : (
+                          <div className="text-xs text-slate-400 py-8 text-center">
+                            {result?.error ?? 'No response data available.'}
+                          </div>
+                        )}
+                      </TabsContent>
                     </Tabs>
 
                     {result?.error && (
@@ -559,6 +576,7 @@ const TestScenarioEditor: React.FC = () => {
           })}
         </div>
       )}
+      <EnvironmentVariablesDialog open={envDialogOpen} onOpenChange={setEnvDialogOpen}/>
     </div>
   )
 }

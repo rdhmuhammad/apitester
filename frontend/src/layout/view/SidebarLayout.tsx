@@ -92,7 +92,7 @@ const SidebarLayout: React.FC = () => {
     useEffect(() => {
         const record: Record<string, boolean> = {}
         loadExpandFolder(tree, record)
-        setExpandedFolders(record)
+        // setExpandedFolders(record)
     }, [tree]);
 
     const loadExpandFolder = (tree: Map<string, DirTree>, record: Record<string, boolean>) =>{
@@ -180,7 +180,7 @@ const SidebarLayout: React.FC = () => {
                     <FolderGit2 className="w-4 h-4 text-indigo-600" />
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Collections ({countFolders(tree)})</p>
                 </div>
-                <div className="space-y-1">
+                <div className="">
                     {Array.from(tree.entries()).map(([_, collection])=>{
                        return renderNode(collection)
                     })}

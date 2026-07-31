@@ -51,57 +51,54 @@ const collectionSlices = createSlice({
             const selected = diveActiveRequest(action.payload.id, state.data.item)
             if (!selected?.request) return
 
-            state.activeRequest = state.activeRequest.filter((item) => item.id !== action.payload.id)
-            state.activeRequest.push({
+            state.openRequestTabs = state.openRequestTabs.filter((item) => item.id !== action.payload.id)
+            state.openRequestTabs.push({
                 id: action.payload.id,
                 request: selected.request,
                 response: null,
                 exampleResponse: selected.response,
             })
-            state.selectedRequestId = action.payload.id
+            state.activeTabId = action.payload.id
         },
         removeActiveRequest(state, action: PayloadAction<{ id: string }>) {
-            state.activeRequest = state.activeRequest.filter(item => item.id !== action.payload.id)
-            if (state.selectedRequestId === action.payload.id) {
-                state.selectedRequestId = state.activeRequest[state.activeRequest.length - 1]?.id ?? ''
+            state.openRequestTabs = state.openRequestTabs.filter(item => item.id !== action.payload.id)
+            if (state.activeTabId === action.payload.id) {
+                state.activeTabId = state.openRequestTabs[state.openRequestTabs.length - 1]?.id ?? ''
             }
         },
-        setSelectedRequestId(state, action: PayloadAction<{ id: string }>) {
-            const selected = state.activeRequest.find((item) => item.id === action.payload.id)
-            if (!selected) return
-
-            state.selectedRequestId = action.payload.id
+        setActiveTabId(state, action: PayloadAction<{ id: string }>) {
+            state.activeTabId = action.payload.id
         },
         setCurrentRequest(state, action: PayloadAction<CollectionItem>) {
-            const currentIndex = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
+            const currentIndex = findCurrentActiveRequestIndex(state.openRequestTabs, action.payload.id)
             if (currentIndex < 0) {
-                state.activeRequest.push({
+                state.openRequestTabs.push({
                     id: action.payload.id,
                     request: action.payload.request ?? null,
                     response: null,
                     exampleResponse: action.payload.response,
                 })
-                if (!state.selectedRequestId) {
-                    state.selectedRequestId = action.payload.id
+                if (!state.activeTabId) {
+                    state.activeTabId = action.payload.id
                 }
                 return
             }
 
-            state.activeRequest[currentIndex].request = action.payload.request ?? null
+            state.openRequestTabs[currentIndex].request = action.payload.request ?? null
             if (action.payload.response) {
-                state.activeRequest[currentIndex].exampleResponse = action.payload.response
+                state.openRequestTabs[currentIndex].exampleResponse = action.payload.response
             }
         },
         setCurrentResponse(state, action: PayloadAction<{ id: string; response: SendResponse | null }>) {
-            const currentIndex = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
+            const currentIndex = findCurrentActiveRequestIndex(state.openRequestTabs, action.payload.id)
             if (currentIndex < 0) return
 
-            state.activeRequest[currentIndex].response = action.payload.response
+            state.openRequestTabs[currentIndex].response = action.payload.response
         },
-        setSelectedRequestScript(state, action: PayloadAction<{ script: string }>) {
-            if (!state.data?.item || !state.selectedRequestId) return
+        setActiveRequestScript(state, action: PayloadAction<{ script: string }>) {
+            if (!state.data?.item || !state.activeTabId) return
 
-            const selected = diveActiveRequest(state.selectedRequestId, state.data.item)
+            const selected = diveActiveRequest(state.activeTabId, state.data.item)
             if (!selected) return
 
             if (!selected.event?.length) {
@@ -173,7 +170,7 @@ const collectionSlices = createSlice({
         saveActiveToData(state) {
             if (!state.data?.item) return
 
-            for (const active of state.activeRequest) {
+            for (const active of state.openRequestTabs) {
                 if (!active.request) continue
 
                 const target = diveActiveRequest(active.id, state.data.item)
@@ -188,30 +185,30 @@ const collectionSlices = createSlice({
             state.dirtyRequestIds = []
         },
         setAuthType(state, action: PayloadAction<{ authType: "none" | "inherit" | "bearer" }>) {
-            const idx = findCurrentActiveRequestIndex(state.activeRequest, state.selectedRequestId)
+            const idx = findCurrentActiveRequestIndex(state.openRequestTabs, state.activeTabId)
             if (idx < 0) return
-            state.activeRequest[idx].authType = action.payload.authType
+            state.openRequestTabs[idx].authType = action.payload.authType
         },
         setScriptResult(state, action: PayloadAction<{ id: string; result: unknown }>) {
-            const idx = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
+            const idx = findCurrentActiveRequestIndex(state.openRequestTabs, action.payload.id)
             if (idx < 0) return
-            state.activeRequest[idx].scriptResult = action.payload.result
+            state.openRequestTabs[idx].scriptResult = action.payload.result
         },
         setScriptLogs(state, action: PayloadAction<{ id: string; logs: ScriptLog[] }>) {
-            const idx = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
+            const idx = findCurrentActiveRequestIndex(state.openRequestTabs, action.payload.id)
             if (idx < 0) return
-            state.activeRequest[idx].scriptLogs = action.payload.logs
+            state.openRequestTabs[idx].scriptLogs = action.payload.logs
         },
         setScriptMutations(state, action: PayloadAction<{ id: string; mutations: Record<string, string | null> }>) {
-            const idx = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
+            const idx = findCurrentActiveRequestIndex(state.openRequestTabs, action.payload.id)
             if (idx < 0) return
-            state.activeRequest[idx].scriptMutations = action.payload.mutations
+            state.openRequestTabs[idx].scriptMutations = action.payload.mutations
         },
         saveExampleResponse(state, action: PayloadAction<{ id: string; name: string }>) {
-            const idx = findCurrentActiveRequestIndex(state.activeRequest, action.payload.id)
+            const idx = findCurrentActiveRequestIndex(state.openRequestTabs, action.payload.id)
             if (idx < 0) return
 
-            const active = state.activeRequest[idx]
+            const active = state.openRequestTabs[idx]
             if (!active.response || !active.request) return
 
             const example: CollectionResponse = {
@@ -229,14 +226,47 @@ const collectionSlices = createSlice({
                 state.dirtyRequestIds.push(action.payload.id)
             }
         },
+        createNewRequest(state) {
+            if (!state.data?.item) return
+
+            const id = crypto.randomUUID()
+            const newItem: CollectionItem = {
+                id,
+                name: 'New Request',
+                request: {
+                    method: 'GET',
+                    header: [],
+                    url: { raw: '', host: [''], path: [''], query: [] },
+                },
+            }
+
+            state.data.item.push(newItem)
+
+            state.dirTree.set(id, {
+                id,
+                name: 'New Request',
+                isActive: false,
+                category: 'REQ',
+                method: 'GET',
+            })
+
+            state.openRequestTabs.push({
+                id,
+                request: newItem.request!,
+                response: null,
+            })
+
+            state.activeTabId = id
+            state.dirtyRequestIds.push(id)
+        },
     },
     extraReducers: (builder) => {
         builder.addCase(fetchCollections.pending, (state) => {
             state.status = 'pending'
         })
         builder.addCase(fetchCollections.fulfilled, (state, action) => {
-            state.activeRequest = []
-            state.selectedRequestId = ''
+            state.openRequestTabs = []
+            state.activeTabId = ''
             let docsContent = action.payload.content;
             if (docsContent) {
                 state.data = docsContent
@@ -289,11 +319,11 @@ export default collectionSlices.reducer
 export const {
     addActiveRequest,
     removeActiveRequest,
-    setSelectedRequestId,
+    setActiveTabId,
     setActiveTree,
     setCurrentRequest,
     setCurrentResponse,
-    setSelectedRequestScript,
+    setActiveRequestScript,
     setCollectionScript,
     setCollectionInfo,
     addVariable,
@@ -308,6 +338,7 @@ export const {
     setScriptLogs,
     setScriptMutations,
     saveExampleResponse,
+    createNewRequest,
 } = collectionSlices.actions
 
 export const setActiveRequest = addActiveRequest
@@ -329,14 +360,14 @@ export const selectBaseUrl = (state: RootState): CollectionVar[] => state.collec
 export const selectBaseUrlValues = (state: RootState): string[] =>
     selectBaseUrl(state).map((item) => resolveBaseUrlValue(item.value)).filter(Boolean)
 
-export const selectSelectedRequestId = (state: RootState): string =>
-    state.collection?.selectedRequestId ?? ''
+export const selectActiveTabId = (state: RootState): string =>
+    state.collection?.activeTabId ?? ''
 
-export const selectSelectedRequest = (state: RootState): ActiveItem | null => {
-    return getActiveRequestById(state, state.collection?.selectedRequestId)
+export const selectActiveRequestTab = (state: RootState): ActiveItem | null => {
+    return getActiveRequestById(state, state.collection?.activeTabId)
 }
 
-export const selectSelectedRequestScript = (state: RootState): string => {
+export const selectActiveRequestScript = (state: RootState): string => {
     const selectedRequest = selectRequest(state)
     const exec = selectedRequest?.event?.[0]?.script?.exec ?? []
     return exec.join('\n')
@@ -347,7 +378,7 @@ export const selectCollectionScript = (state: RootState): string => {
     return prereq?.script?.exec?.join('\n') ?? ''
 }
 
-export const selectActiveRequest = (state: RootState): ActiveItem[] => state.collection?.activeRequest ?? []
+export const selectOpenRequestTabs = (state: RootState): ActiveItem[] => state.collection?.openRequestTabs ?? []
 
 export const selectRequest = (state: RootState): CollectionItem | null => {
     const current = getCurrentActiveRequest(state)
@@ -491,18 +522,17 @@ const findCurrentActiveRequestIndex = (items: ActiveItem[], id?: string) => {
 }
 
 const getCurrentActiveRequest = (state: RootState): ActiveItem | null => {
-    if (state.collection?.selectedRequestId) {
-        const selectedRequest = getActiveRequestById(state, state.collection.selectedRequestId)
-        if (selectedRequest) return selectedRequest
+    if (state.collection?.activeTabId) {
+        return getActiveRequestById(state, state.collection.activeTabId)
     }
 
-    const activeRequests = state.collection?.activeRequest ?? []
-    return activeRequests.length > 0 ? activeRequests[activeRequests.length - 1] : null
+    const openRequestTabs = state.collection?.openRequestTabs ?? []
+    return openRequestTabs.length > 0 ? openRequestTabs[openRequestTabs.length - 1] : null
 }
 
 const getActiveRequestById = (state: RootState, id: string): ActiveItem | null => {
-    const activeRequests = state.collection?.activeRequest ?? []
-    return activeRequests.find((item) => item.id === id) ?? null
+    const openRequestTabs = state.collection?.openRequestTabs ?? []
+    return openRequestTabs.find((item) => item.id === id) ?? null
 }
 
 const isBaseUrlVariable = (item: CollectionVar) =>

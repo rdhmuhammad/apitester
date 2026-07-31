@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rdhmuhammad/apitester/internal/domain"
+	"github.com/rdhmuhammad/apitester/pkg/bbolt"
 	"github.com/rdhmuhammad/apitester/pkg/logger"
 	"github.com/rdhmuhammad/apitester/pkg/mapper"
 	"github.com/rdhmuhammad/apitester/shared/payload"
@@ -32,9 +33,9 @@ type UsecaseInterface interface {
 	DeleteTest(id, name string) error
 }
 
-func NewController(lg *logger.ReZero) Controller {
+func NewController(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[domain.Collection]) Controller {
 	return Controller{
-		Uc: NewUsecase(lg),
+		Uc: NewUsecase(lg, collectionRepo),
 	}
 }
 

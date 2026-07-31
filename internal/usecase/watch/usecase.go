@@ -25,8 +25,7 @@ type Usecase struct {
 	collectionRepo bbolt.RepositoryInterface[domain.Collection]
 }
 
-func NewUsecase(lg *logger.ReZero) *Usecase {
-	collectionRepo := initCollectionRepo()
+func NewUsecase(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[domain.Collection]) *Usecase {
 	fw := watcher.New()
 
 	if selected := findSelectedCollection(collectionRepo); selected != nil {
@@ -51,33 +50,6 @@ func findSelectedCollection(repo bbolt.RepositoryInterface[domain.Collection]) *
 		}
 	}
 	return nil
-}
-
-func collectionDBPath() string {
-	if p := os.Getenv("BOLT_DB_PATH"); p != "" {
-		return p
-	}
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return "resource/db/collection.db"
-	}
-	return filepath.Join(configDir, "apitester", "collection.db")
-}
-
-func initCollectionRepo() bbolt.RepositoryInterface[domain.Collection] {
-	dbPath := collectionDBPath()
-	os.MkdirAll(filepath.Dir(dbPath), 0755)
-	boltDB, err := bbolt.NewBoltDB(dbPath)
-	if err != nil {
-		panic(err)
-	}
-
-	repo, err := bbolt.NewRepository[domain.Collection](boltDB.DB())
-	if err != nil {
-		panic(err)
-	}
-
-	return repo
 }
 
 func (u *Usecase) ListCollections() ([]domain.Collection, error) {

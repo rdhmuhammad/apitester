@@ -19,7 +19,7 @@ import {
     selectScriptLogs,
     selectScriptMutations,
     selectScriptResult,
-    selectSelectedRequest,
+    selectActiveRequestTab,
 } from "@/app/slices/collectionSlices.ts";
 import {useMemo, useState, useCallback, useEffect} from "react";
 import AceEditor from "react-ace";
@@ -71,7 +71,7 @@ const LogEntry: React.FC<{ log: { type: string; message: string; timestamp: numb
 const ResponseView: React.FC = () => {
     const dispatch = useAppDispatch()
     const currResponse = useAppSelector(selectResponse)
-    const selectedRequest = useAppSelector(selectSelectedRequest)
+    const selectedRequest = useAppSelector(selectActiveRequestTab)
     const scriptResult = useAppSelector(selectScriptResult)
     const scriptLogs = useAppSelector(selectScriptLogs)
     const scriptMutations = useAppSelector(selectScriptMutations)
