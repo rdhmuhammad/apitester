@@ -1,60 +1,111 @@
 import RequestConfigTabs from "@/pages/editor/components/RequestConfigTabs.tsx";
 import ResponseView from "@/pages/editor/components/ResponseView.tsx";
 import WelcomeEditor from "@/pages/editor/components/WelcomeEditor.tsx";
+import TestScenarioEditor from "@/pages/editor/components/TestScenarioEditor.tsx";
 import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx";
 import {Button} from "@/components/ui/button.tsx";
-import {Plus, XIcon} from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu.tsx";
+import {FileCode2, FileText, Plus, XIcon} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
     type ColtReqMethod,
+    createNewRequest,
     removeActiveRequest,
-    selectActiveRequest,
-    selectCollectionData,
-    selectSelectedRequestId,
+    selectActiveTabId,
+    selectCollectionInfo,
+    selectDirtyRequestIds,
+    selectOpenRequestTabs,
     selectRequestById,
-    setSelectedRequestId, setActiveTree, selectCollectionInfo,
-    selectDirtyRequestIds
+    setActiveTabId,
+    setActiveTree,
 } from "@/app/slices/collectionSlices.ts";
+import {
+    closeTestScenarioTab,
+    createTestFile,
+    selectActiveTestIds,
+    selectScenarios,
+} from "@/app/slices/testScenarioSlice.ts";
+import {fromTestTabId} from "@/lib/tabUtils.ts";
 import {cn} from "@/lib/utils.ts";
 
-const methodStyle: Record<ColtReqMethod, string> = {
+const methodStyle: Record<ColtReqMethod | 'TEST', string> = {
     GET: "bg-emerald-100 text-emerald-700",
     POST: "bg-amber-100 text-amber-700",
     PUT: "bg-blue-100 text-blue-700",
     PATCH: "bg-violet-100 text-violet-700",
     DELETE: "bg-rose-100 text-rose-700",
+    TEST: "bg-indigo-100 text-indigo-700",
 };
+
+interface EditorTab {
+    id: string
+    label: string
+    method: ColtReqMethod | 'TEST'
+    type: 'request' | 'test'
+}
 
 const Editor: React.FC = () => {
     const dispatch = useAppDispatch()
     const collectionInfo = useAppSelector(selectCollectionInfo)
-    const collectionData = useAppSelector(selectCollectionData)
     const dirtyRequestIds = useAppSelector(selectDirtyRequestIds)
-    const {requestTabs, activeTabId} = useAppSelector((state) => {
-        const activeRequest = selectActiveRequest(state)
-        const selectedRequestId = selectSelectedRequestId(state)
+    const activeTabId = useAppSelector(selectActiveTabId)
+    const scenarios = useAppSelector(selectScenarios)
+
+    const {allTabs, effectiveActiveTabId} = useAppSelector((state) => {
+        const openRequestTabs = selectOpenRequestTabs(state)
+        const activeTestIds = selectActiveTestIds(state)
+
+        const requestTabs: EditorTab[] = openRequestTabs.map((item) => {
+            const requestItem = selectRequestById(state, item.id)
+            return {
+                id: item.id,
+                type: 'request',
+                label: requestItem?.name ?? "Untitled Request",
+                method: ((item.request?.method ?? requestItem?.request?.method ?? "GET").toUpperCase() as ColtReqMethod),
+            }
+        })
+
+        const testTabs: EditorTab[] = activeTestIds.map((tabId) => {
+            const scenarioId = fromTestTabId(tabId)
+            const scenario = scenarios.find(s => s.id === scenarioId)
+            return {
+                id: tabId,
+                type: 'test',
+                label: scenario?.name ?? scenarioId,
+                method: 'TEST',
+            }
+        })
+
+        const tabs = [...requestTabs, ...testTabs]
+        const effectiveId = (activeTabId && tabs.some(t => t.id === activeTabId) ? activeTabId : tabs[tabs.length - 1]?.id) || ""
 
         return {
-            requestTabs: activeRequest.map((item) => {
-                const requestItem = selectRequestById(state, item.id)
-                return {
-                    id: item.id,
-                    label: requestItem?.name ?? "Untitled Request",
-                    method: ((item.request?.method ?? requestItem?.request?.method ?? "GET").toUpperCase() as ColtReqMethod),
-                }
-            }),
-            activeTabId: selectedRequestId || activeRequest[activeRequest.length - 1]?.id || "",
+            allTabs: tabs,
+            effectiveActiveTabId: effectiveId,
         }
     })
 
+    const activeTab = allTabs.find(t => t.id === effectiveActiveTabId)
+
     const handleTabChange = (id: string) => {
         if (!id) return
-        dispatch(setSelectedRequestId({id}))
+        dispatch(setActiveTabId({id}))
     }
 
-    const handleRemoveTab = (id: string) => {
-        dispatch(removeActiveRequest({id}))
-        dispatch(setActiveTree({id: id, status: false}))
+    const handleRemoveTab = (tab: EditorTab) => {
+        if (tab.type === 'test') {
+            dispatch(closeTestScenarioTab(tab.id))
+            const remaining = allTabs.filter(t => t.id !== tab.id)
+            dispatch(setActiveTabId({id: remaining[remaining.length - 1]?.id ?? ''}))
+        } else {
+            dispatch(removeActiveRequest({id: tab.id}))
+            dispatch(setActiveTree({id: tab.id, status: false}))
+        }
     }
 
     return (
@@ -72,11 +123,11 @@ const Editor: React.FC = () => {
                         <h3 className="mt-1 text-sm font-normal text-slate-500">{collectionInfo ? collectionInfo?.description : '' }</h3>
                     </div>
 
-                    <Tabs value={activeTabId} onValueChange={handleTabChange} className="gap-0">
+                    <Tabs value={effectiveActiveTabId} onValueChange={handleTabChange} className="gap-0">
                         <div className="flex items-end justify-between gap-3">
                             <TabsList
                                 className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none  border-slate-200 bg-transparent p-0">
-                                {requestTabs.map((tab) => (
+                                {allTabs.map((tab) => (
                                     <TabsTrigger
                                         key={tab.id}
                                         value={tab.id}
@@ -87,7 +138,7 @@ const Editor: React.FC = () => {
                                             {tab.method}
                                         </span>
                                         <span className="max-w-[140px] truncate text-sm font-medium">{tab.label}</span>
-                                        {dirtyRequestIds.includes(tab.id) && (
+                                        {tab.type === 'request' && dirtyRequestIds.includes(tab.id) && (
                                             <span className="ml-1 h-2 w-2 rounded-full bg-orange-400 inline-block shrink-0" />
                                         )}
                                         <span
@@ -96,7 +147,7 @@ const Editor: React.FC = () => {
                                                     onClick={(event) => {
                                                         event.preventDefault()
                                                         event.stopPropagation()
-                                                        handleRemoveTab(tab.id)
+                                                        handleRemoveTab(tab)
                                                     }}
                                             >
                                                 <XIcon
@@ -108,28 +159,48 @@ const Editor: React.FC = () => {
                                 ))}
                             </TabsList>
 
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                disabled
-                                className="mb-1 h-9 shrink-0 rounded-lg border border-dashed border-slate-300 bg-white/70 px-3 text-slate-600 hover:border-slate-400 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                <Plus className="mr-1 h-4 w-4"/>
-                                New Tab
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="mb-1 h-9 shrink-0 rounded-lg border border-dashed border-slate-300 bg-white/70 px-3 text-slate-600 hover:border-slate-400 hover:bg-white"
+                                    >
+                                        <Plus className="mr-1 h-4 w-4"/>
+                                        New Tab
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem onClick={() => dispatch(createNewRequest())}>
+                                        <FileCode2 className="mr-2 h-4 w-4 text-emerald-600" />
+                                        New Request
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => dispatch(createTestFile())}>
+                                        <FileText className="mr-2 h-4 w-4 text-indigo-600" />
+                                        Create Test Suite
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </Tabs>
                 </div>
             </div>
 
             <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col px-4 pb-4 pt-[140px]">
-                {!collectionData ? (
+                {!activeTab ? (
                     <div
                         className={cn('rounded-2xl border border-t-0 border-slate-200',
                             ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')
                         }>
                         <WelcomeEditor/>
+                    </div>
+                ) : activeTab.type === 'test' ? (
+                    <div
+                        className={cn('rounded-2xl border border-t-0 border-slate-200',
+                            ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')
+                        }>
+                        <TestScenarioEditor/>
                     </div>
                 ) : (
                     <div

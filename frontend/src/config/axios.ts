@@ -1,6 +1,7 @@
 import Axios from "axios";
 import { LOCALSTORAGE_KEY } from "./constant/localstorage";
 import { getData } from "@/hooks/useLocalStorage";
+import Swal from "sweetalert2";
 import type {AxiosError, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 
 const getBaseURL = () => {
@@ -41,11 +42,11 @@ type AxiosErrorWithDuration<T = unknown> = AxiosError<T> & {
 // Add a request interceptor to add auth token and signature
 axios.interceptors.request.use(
     async (config) => {
-        const token = getData(LOCALSTORAGE_KEY.TOKEN)
-
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
+        // const token = getData(LOCALSTORAGE_KEY.TOKEN)
+        //
+        // if (token) {
+        //     config.headers.Authorization = `Bearer ${token}`;
+        // }
         const newConfig = config as RequestConfigWithMetadata
         newConfig.metadata = {startTime: Date.now()}
         return newConfig;

@@ -61,28 +61,28 @@ type SetUrlRawPayload = {
 }
 
 const getSelectedRequest = (state: CollectionState): Request | null => {
-    const selectedRequestId = state.selectedRequestId
-    if (selectedRequestId) {
-        const currentActive = state.activeRequest.find((item) => item.id === selectedRequestId)
+    const activeTabId = state.activeTabId
+    if (activeTabId) {
+        const currentActive = state.openRequestTabs.find((item) => item.id === activeTabId)
         if (currentActive?.request) return currentActive.request
     }
 
-    const currentActive = state.activeRequest[state.activeRequest.length - 1]
+    const currentActive = state.openRequestTabs[state.openRequestTabs.length - 1]
     return currentActive?.request ?? null
 }
 
 const getCurrentRequestFromState = (state: RootState): Request | null => {
-    const selectedRequestId = state.collection?.selectedRequestId
-    if (selectedRequestId) {
-        return getRequestByIdFromState(state, selectedRequestId)
+    const activeTabId = state.collection?.activeTabId
+    if (activeTabId) {
+        return getRequestByIdFromState(state, activeTabId)
     }
 
-    const currentActive = state.collection?.activeRequest?.[state.collection.activeRequest.length - 1]
+    const currentActive = state.collection?.openRequestTabs?.[state.collection.openRequestTabs.length - 1]
     return currentActive?.request ?? null
 }
 
 const getRequestByIdFromState = (state: RootState, id: string): Request | null => {
-    const currentActive = state.collection?.activeRequest?.find((item) => item.id === id)
+    const currentActive = state.collection?.openRequestTabs?.find((item) => item.id === id)
     return currentActive?.request ?? null
 }
 
@@ -118,7 +118,7 @@ const syncRawWithPath = (url: RequestURL) => {
 }
 
 const markDirty = (state: CollectionState) => {
-    const id = state.selectedRequestId || state.activeRequest[state.activeRequest.length - 1]?.id
+    const id = state.activeTabId || state.openRequestTabs[state.openRequestTabs.length - 1]?.id
     if (id && !state.dirtyRequestIds.includes(id)) {
         state.dirtyRequestIds.push(id)
     }

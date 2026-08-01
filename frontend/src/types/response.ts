@@ -13,7 +13,16 @@ export interface SendResponse {
     protocol: string;
     statusCode: number;
     statusText: string;
-    data: object;
+    data: any;
+    contentType?: string;
+    isBinary?: boolean;
+    headers?: Record<string, string>;
+}
+
+export interface ScriptLog {
+    type: "log" | "error" | "warn" | "info"
+    message: string
+    timestamp: number
 }
 
 export interface ScriptLog {

@@ -21,8 +21,8 @@ export interface CollectionState {
     data: DocsContent | null
     variable: CollectionVar[]
     baseUrl: CollectionVar[]
-    selectedRequestId: string
-    activeRequest: ActiveItem[]
+    activeTabId: string
+    openRequestTabs: ActiveItem[]
     cachedRequest: CollectionItem[]
     dirTree: Map<string, DirTree>
     status: ColtStatusLoad
@@ -34,7 +34,7 @@ export interface ActiveItem{
     request: Request | null
     response: SendResponse | null
     exampleResponse?: CollectionResponse[]
-    authType: "none" | "inherit" | "bearer"
+    authType?: "none" | "inherit" | "bearer"
     scriptResult?: unknown
     scriptLogs?: ScriptLog[]
     scriptMutations?: Record<string, string | null>
@@ -49,8 +49,8 @@ export const fetchCollections = createAppAsyncThunk(
 
 export const initialState: CollectionState = {
     data: null,
-    selectedRequestId: '',
-    activeRequest: [],
+    activeTabId: '',
+    openRequestTabs: [],
     cachedRequest: [],
     variable: [],
     baseUrl: [],

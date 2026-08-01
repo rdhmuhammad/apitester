@@ -1,6 +1,7 @@
 import {useEffect, useState} from "react";
 import {Images} from "@/config/constant/Images.tsx";
-import {cn, getContentType, getJsonSizeInKB} from "@/lib/utils.ts";
+import {cn, getContentType} from "@/lib/utils.ts";
+import {isTestTab} from "@/lib/tabUtils.ts";
 
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
@@ -11,10 +12,11 @@ import {
     addBaseUrl,
     addVariable,
     removeVariable,
+    selectActiveTabId,
     selectBaseUrlValues,
     selectCollectionData,
     selectRequest,
-    selectSelectedRequestScript,
+    selectActiveRequestScript,
     selectVariable,
     setCurrentResponse,
     setScriptLogs,
@@ -23,7 +25,7 @@ import {
     updateVariable,
 } from "@/app/slices/collectionSlices.ts";
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
-import {buildRawRequest, useSendRequest} from "@/layout/hooks/useSendRequest.ts";
+import {buildRawRequest, parseBlobResponse, useSendRequest} from "@/layout/hooks/useSendRequest.ts";
 import {runScript} from "@/layout/hooks/useScriptRunner.ts";
 import CustomToast from "@/components/common/toast";
 import type {ColtReqMethod} from "@/app/slices";
@@ -31,6 +33,7 @@ import type {CollectionVar, ItemUrl} from "@/pages/editor/types/api.ts";
 import {addQueryParam, updateQueryParam, setUrlRaw} from "@/app/slices/requestSlices.ts";
 import CollectionManagerDialog from "@/layout/components/CollectionManagerDialog.tsx";
 import {useCollectionPushPull} from "@/layout/hooks/useCollectionPushPull.ts";
+import {selectActiveEnvironmentVariables} from "@/app/slices/environmentSlice.ts"
 
 const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     {
@@ -40,8 +43,10 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const currRequest = useAppSelector(selectRequest)
     const baseUrlOptions = useAppSelector(selectBaseUrlValues)
     const variables = useAppSelector(selectVariable)
-    const scriptValue = useAppSelector(selectSelectedRequestScript)
+    const scriptValue = useAppSelector(selectActiveRequestScript)
     const collectionData = useAppSelector(selectCollectionData)
+    const envVars = useAppSelector(selectActiveEnvironmentVariables)
+    const activeTabId = useAppSelector(selectActiveTabId)
 
     useEffect(() => {
         const raw = currRequest?.request?.url?.raw ?? ''
@@ -85,8 +90,9 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const {pull, push, isPulling, isPushing} = useCollectionPushPull()
     const resolveVariableValue = (value: string): string => {
         return value.replace(/\{\{([^{}]+)\}\}/g, (_, key: string) => {
-            const matchedVariable = variables.find((item) => item.key === key.trim())
-            return matchedVariable?.value ?? `{{${key}}}`
+            const k = key.trim()
+            const matchedVar = variables.find((item) => item.key === k)
+            return envVars[k] ?? matchedVar?.value ?? `{{${key}}}`
         })
     }
 
@@ -182,13 +188,14 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             } catch (err: any) {
                 CustomToast.error(`Script error: ${err.message}`)
             }
-        }).catch(response => {
-            console.log(response)
-            response && dispatch(setCurrentResponse({
-                id: currRequest.id,
-                response: response?.response?.data ?? null
-            }))
-            response && dispatch(setCurrentResponse({
+        }).catch(async response => {
+            if (!response) return
+            const blob = response?.response?.data as Blob
+            const contentType = response?.response?.headers?.["content-type"] ?? ""
+            const { data, size, isBinary } = blob
+                ? await parseBlobResponse(blob, contentType)
+                : { data: null, size: "0", isBinary: false }
+            dispatch(setCurrentResponse({
                 id: currRequest.id,
                 response: {
                     rawRequest: buildRawRequest({
@@ -208,14 +215,16 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         formData: currRequest?.request?.body?.formdata
                     }),
                     protocol: 'HTTP/1.1',
-                    responseSize: getJsonSizeInKB(response?.response?.data),
+                    responseSize: size,
                     responseTime: response?.duration,
                     statusCode: response?.response?.status,
-                    data: response?.response?.data,
-                    statusText: response?.response?.statusText
+                    data,
+                    statusText: response?.response?.statusText,
+                    contentType,
+                    isBinary,
                 }
             }))
-            CustomToast.error(response.message);
+            CustomToast.error(response.message as string);
         }).finally(() => setIsSending(false))
     };
 
@@ -366,7 +375,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     />
                 </div>
                 <Button
-                    disabled={!collectionData || isSending}
+                    disabled={!collectionData || isSending || isTestTab(activeTabId)}
                     onClick={handleSendRequest}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap"
                 >

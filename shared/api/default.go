@@ -1,8 +1,14 @@
 package api
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/gin-gonic/gin"
+	"github.com/rdhmuhammad/apitester/internal/domain"
+	"github.com/rdhmuhammad/apitester/internal/usecase/environment"
 	"github.com/rdhmuhammad/apitester/internal/usecase/watch"
+	"github.com/rdhmuhammad/apitester/pkg/bbolt"
 	"github.com/rdhmuhammad/apitester/pkg/logger"
 	"github.com/rdhmuhammad/apitester/pkg/middleware"
 )
@@ -16,12 +22,40 @@ func Default() *Api {
 	}
 
 	reZero := logger.DefaultLogger()
+	collectionRepo := initCollectionRepo()
 
 	routers := []Router{
-		watch.NewController(&reZero),
+		watch.NewController(&reZero, collectionRepo),
+		environment.NewController(&reZero, collectionRepo),
 	}
 
 	api.routers = routers
 
 	return &api
+}
+
+func initCollectionRepo() bbolt.RepositoryInterface[domain.Collection] {
+	dbPath := collectionDBPath()
+	boltDB, err := bbolt.NewBoltDB(dbPath)
+	if err != nil {
+		panic(err)
+	}
+
+	repo, err := bbolt.NewRepository[domain.Collection](boltDB.DB())
+	if err != nil {
+		panic(err)
+	}
+
+	return repo
+}
+
+func collectionDBPath() string {
+	if p := os.Getenv("BOLT_DB_PATH"); p != "" {
+		return p
+	}
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "resource/db/collection.db"
+	}
+	return filepath.Join(configDir, "apitester", "collection.db")
 }
