@@ -16,6 +16,7 @@ export interface SendResponse {
     data: any;
     contentType?: string;
     isBinary?: boolean;
+    headers?: Record<string, string>;
 }
 
 export interface ScriptLog {

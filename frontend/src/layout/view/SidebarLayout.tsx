@@ -1,6 +1,6 @@
 import {Sidebar, SidebarContent} from "@/components/ui/sidebar.tsx";
-import {type ReactNode, useEffect, useState} from "react";
-import {ChevronDown, ChevronRight, FileCode2, Folder, FolderOpen} from "lucide-react";
+import {type ReactNode, useEffect, useRef, useState} from "react";
+import {ChevronDown, ChevronRight, FileCode2, Folder, FolderGit2, FolderOpen, Search} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
     type ColtReqMethod,
@@ -11,6 +11,7 @@ import {
     selectDirtyRequestIds
 } from "@/app/slices/collectionSlices.ts";
 import {cn} from "@/lib/utils.ts";
+import TestScenarioSidebar from "@/layout/components/TestScenarioSidebar.tsx";
 
 
 const methodColorClass: Record<ColtReqMethod, string> = {
@@ -34,6 +35,47 @@ const SidebarLayout: React.FC = () => {
     const dispatch = useAppDispatch()
     const dirtyRequestIds = useAppSelector(selectDirtyRequestIds)
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
+    const [searchQuery, setSearchQuery] = useState('')
+    const expandedBeforeSearch = useRef<Record<string, boolean>>({})
+
+    const countFolders = (t: Map<string, DirTree>): number => {
+        let count = 0
+        for (const [, node] of t) {
+            if (node.category === "FOLD") count++
+            if (node.item) count += countFolders(node.item)
+        }
+        return count
+    }
+
+    const matchesSearch = (node: DirTree, query: string): boolean => {
+        if (!query) return true
+        const q = query.toLowerCase()
+        if (node.name.toLowerCase().includes(q)) return true
+        if (node.category === "FOLD" && node.item) {
+            return Array.from(node.item.values()).some(child => matchesSearch(child, q))
+        }
+        return false
+    }
+
+    useEffect(() => {
+        if (searchQuery) {
+            expandedBeforeSearch.current = {...expandedFolders}
+            const autoExpand: Record<string, boolean> = {}
+            const walkAndExpand = (t: Map<string, DirTree>) => {
+                for (const [, node] of t) {
+                    if (node.category === "FOLD" && matchesSearch(node, searchQuery)) {
+                        autoExpand[node.id] = true
+                        if (node.item) walkAndExpand(node.item)
+                    }
+                }
+            }
+            walkAndExpand(tree)
+            setExpandedFolders(autoExpand)
+        } else if (Object.keys(expandedBeforeSearch.current).length > 0) {
+            setExpandedFolders(expandedBeforeSearch.current)
+            expandedBeforeSearch.current = {}
+        }
+    }, [searchQuery])
 
     const toggleRequest = (reqId: string)=>{
         dispatch(setActiveRequest({id: reqId}))
@@ -50,6 +92,7 @@ const SidebarLayout: React.FC = () => {
     useEffect(() => {
         const record: Record<string, boolean> = {}
         loadExpandFolder(tree, record)
+        // setExpandedFolders(record)
     }, [tree]);
 
     const loadExpandFolder = (tree: Map<string, DirTree>, record: Record<string, boolean>) =>{
@@ -62,6 +105,8 @@ const SidebarLayout: React.FC = () => {
     }
 
     const renderNode = (node: DirTree, depth = 0): ReactNode => {
+        if (searchQuery && !matchesSearch(node, searchQuery)) return null
+
         const indentStyle = {paddingLeft: `${depth * 14}px`};
 
         if (node.category === "FOLD") {
@@ -119,14 +164,28 @@ const SidebarLayout: React.FC = () => {
             collapsible={"none"}
         >
             <SidebarContent className="flex flex-col overflow-y-auto px-3 py-2 bg-white">
-                <div className="mb-2 px-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Collections</p>
+                <div className="px-3 pb-2">
+                    <div className="relative">
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search collections & test suites..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 text-xs pl-8 pr-3 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 transition"
+                        />
+                    </div>
                 </div>
-                <div className="space-y-1">
+                <div className="mb-2 px-2 flex items-center space-x-1.5">
+                    <FolderGit2 className="w-4 h-4 text-indigo-600" />
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Collections ({countFolders(tree)})</p>
+                </div>
+                <div className="">
                     {Array.from(tree.entries()).map(([_, collection])=>{
                        return renderNode(collection)
                     })}
                 </div>
+                <TestScenarioSidebar searchQuery={searchQuery}/>
             </SidebarContent>
         </Sidebar>
     );

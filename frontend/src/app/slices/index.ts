@@ -21,8 +21,8 @@ export interface CollectionState {
     data: DocsContent | null
     variable: CollectionVar[]
     baseUrl: CollectionVar[]
-    selectedRequestId: string
-    activeRequest: ActiveItem[]
+    activeTabId: string
+    openRequestTabs: ActiveItem[]
     cachedRequest: CollectionItem[]
     dirTree: Map<string, DirTree>
     status: ColtStatusLoad
@@ -49,8 +49,8 @@ export const fetchCollections = createAppAsyncThunk(
 
 export const initialState: CollectionState = {
     data: null,
-    selectedRequestId: '',
-    activeRequest: [],
+    activeTabId: '',
+    openRequestTabs: [],
     cachedRequest: [],
     variable: [],
     baseUrl: [],
