@@ -1,20 +1,12 @@
 import RequestConfigTabs from "@/pages/editor/components/RequestConfigTabs.tsx";
 import ResponseView from "@/pages/editor/components/ResponseView.tsx";
 import WelcomeEditor from "@/pages/editor/components/WelcomeEditor.tsx";
-import TestScenarioEditor from "@/pages/editor/components/TestScenarioEditor.tsx";
 import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx";
 import {Button} from "@/components/ui/button.tsx";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu.tsx";
-import {FileCode2, FileText, Plus, XIcon} from "lucide-react";
+import {XIcon} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
     type ColtReqMethod,
-    createNewRequest,
     removeActiveRequest,
     selectActiveTabId,
     selectCollectionInfo,
@@ -24,13 +16,6 @@ import {
     setActiveTabId,
     setActiveTree,
 } from "@/app/slices/collectionSlices.ts";
-import {
-    closeTestScenarioTab,
-    createTestFile,
-    selectActiveTestIds,
-    selectScenarios,
-} from "@/app/slices/testScenarioSlice.ts";
-import {fromTestTabId} from "@/lib/tabUtils.ts";
 import {cn} from "@/lib/utils.ts";
 
 const methodStyle: Record<ColtReqMethod | 'TEST', string> = {
@@ -54,11 +39,9 @@ const Editor: React.FC = () => {
     const collectionInfo = useAppSelector(selectCollectionInfo)
     const dirtyRequestIds = useAppSelector(selectDirtyRequestIds)
     const activeTabId = useAppSelector(selectActiveTabId)
-    const scenarios = useAppSelector(selectScenarios)
 
     const {allTabs, effectiveActiveTabId} = useAppSelector((state) => {
         const openRequestTabs = selectOpenRequestTabs(state)
-        const activeTestIds = selectActiveTestIds(state)
 
         const requestTabs: EditorTab[] = openRequestTabs.map((item) => {
             const requestItem = selectRequestById(state, item.id)
@@ -70,18 +53,7 @@ const Editor: React.FC = () => {
             }
         })
 
-        const testTabs: EditorTab[] = activeTestIds.map((tabId) => {
-            const scenarioId = fromTestTabId(tabId)
-            const scenario = scenarios.find(s => s.id === scenarioId)
-            return {
-                id: tabId,
-                type: 'test',
-                label: scenario?.name ?? scenarioId,
-                method: 'TEST',
-            }
-        })
-
-        const tabs = [...requestTabs, ...testTabs]
+        const tabs = [...requestTabs]
         const effectiveId = (activeTabId && tabs.some(t => t.id === activeTabId) ? activeTabId : tabs[tabs.length - 1]?.id) || ""
 
         return {
@@ -98,14 +70,8 @@ const Editor: React.FC = () => {
     }
 
     const handleRemoveTab = (tab: EditorTab) => {
-        if (tab.type === 'test') {
-            dispatch(closeTestScenarioTab(tab.id))
-            const remaining = allTabs.filter(t => t.id !== tab.id)
-            dispatch(setActiveTabId({id: remaining[remaining.length - 1]?.id ?? ''}))
-        } else {
-            dispatch(removeActiveRequest({id: tab.id}))
-            dispatch(setActiveTree({id: tab.id, status: false}))
-        }
+        dispatch(removeActiveRequest({id: tab.id}))
+        dispatch(setActiveTree({id: tab.id, status: false}))
     }
 
     return (
@@ -119,8 +85,8 @@ const Editor: React.FC = () => {
                         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
                             Workspace
                         </p>
-                        <h3 className="mt-1 text-3xl font-semibold text-slate-900">{collectionInfo ? collectionInfo?.name : 'Collection' }</h3>
-                        <h3 className="mt-1 text-sm font-normal text-slate-500">{collectionInfo ? collectionInfo?.description : '' }</h3>
+                        <h3 className="mt-1 text-3xl font-semibold text-slate-900">{collectionInfo ? collectionInfo?.name : 'Collection'}</h3>
+                        <h3 className="mt-1 text-sm font-normal text-slate-500">{collectionInfo ? collectionInfo?.description : ''}</h3>
                     </div>
 
                     <Tabs value={effectiveActiveTabId} onValueChange={handleTabChange} className="gap-0">
@@ -139,7 +105,8 @@ const Editor: React.FC = () => {
                                         </span>
                                         <span className="max-w-[140px] truncate text-sm font-medium">{tab.label}</span>
                                         {tab.type === 'request' && dirtyRequestIds.includes(tab.id) && (
-                                            <span className="ml-1 h-2 w-2 rounded-full bg-orange-400 inline-block shrink-0" />
+                                            <span
+                                                className="ml-1 h-2 w-2 rounded-full bg-orange-400 inline-block shrink-0"/>
                                         )}
                                         <span
                                             className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 group-data-[state=active]:text-slate-500">
@@ -158,30 +125,6 @@ const Editor: React.FC = () => {
                                     </TabsTrigger>
                                 ))}
                             </TabsList>
-
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="mb-1 h-9 shrink-0 rounded-lg border border-dashed border-slate-300 bg-white/70 px-3 text-slate-600 hover:border-slate-400 hover:bg-white"
-                                    >
-                                        <Plus className="mr-1 h-4 w-4"/>
-                                        New Tab
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-48">
-                                    <DropdownMenuItem onClick={() => dispatch(createNewRequest())}>
-                                        <FileCode2 className="mr-2 h-4 w-4 text-emerald-600" />
-                                        New Request
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => dispatch(createTestFile())}>
-                                        <FileText className="mr-2 h-4 w-4 text-indigo-600" />
-                                        Create Test Suite
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
                         </div>
                     </Tabs>
                 </div>
@@ -195,14 +138,7 @@ const Editor: React.FC = () => {
                         }>
                         <WelcomeEditor/>
                     </div>
-                ) : activeTab.type === 'test' ? (
-                    <div
-                        className={cn('rounded-2xl border border-t-0 border-slate-200',
-                            ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')
-                        }>
-                        <TestScenarioEditor/>
-                    </div>
-                ) : (
+                ):(
                     <div
                         className={cn('rounded-b-2xl rounded-tr-2xl border border-t-0 border-slate-200',
                             ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')

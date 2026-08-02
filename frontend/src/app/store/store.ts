@@ -1,7 +1,6 @@
 import {type Action, configureStore, type ThunkAction} from "@reduxjs/toolkit";
 import {enableMapSet} from "immer";
 import collectionReducer from "@/app/slices/collectionSlices.ts";
-import testScenarioReducer from "@/app/slices/testScenarioSlice.ts";
 import environmentReducer from "@/app/slices/environmentSlice.ts";
 
 enableMapSet();
@@ -9,7 +8,6 @@ enableMapSet();
 export const store = configureStore({
     reducer: {
         collection: collectionReducer,
-        testScenario: testScenarioReducer,
         environment: environmentReducer,
     },
     middleware: (getDefaultMiddleware) =>

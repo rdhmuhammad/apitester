@@ -11,8 +11,6 @@ import {
     selectDirtyRequestIds
 } from "@/app/slices/collectionSlices.ts";
 import {cn} from "@/lib/utils.ts";
-import TestScenarioSidebar from "@/layout/components/TestScenarioSidebar.tsx";
-
 
 const methodColorClass: Record<ColtReqMethod, string> = {
     GET: "text-emerald-600",
@@ -169,7 +167,7 @@ const SidebarLayout: React.FC = () => {
                         <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search collections & test suites..."
+                            placeholder="Search collections"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 text-xs pl-8 pr-3 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 transition"
@@ -185,7 +183,6 @@ const SidebarLayout: React.FC = () => {
                        return renderNode(collection)
                     })}
                 </div>
-                <TestScenarioSidebar searchQuery={searchQuery}/>
             </SidebarContent>
         </Sidebar>
     );
