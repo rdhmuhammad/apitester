@@ -12,3 +12,9 @@ type Collection struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 	CreatedAt  time.Time `json:"created_at"`
 }
+
+type SelectedCollection struct {
+	ID         string    `json:"id"`
+	Collection string    `json:"collection"`
+	CreatedAt  time.Time `json:"created_at"`
+}

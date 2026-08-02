@@ -23,11 +23,12 @@ type UsecaseInterface interface {
 	SelectCollection(id string) (domain.Collection, error)
 	WriteCollection(id string, content string) error
 	GetActiveCollection() (domain.Collection, error)
+	ReadSelectedCollection() (ReadResponse, error)
 }
 
-func NewController(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[domain.Collection]) Controller {
+func NewController(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[domain.Collection], selectedCollectionRepo bbolt.RepositoryInterface[domain.SelectedCollection]) Controller {
 	return Controller{
-		Uc: NewUsecase(lg, collectionRepo),
+		Uc: NewUsecase(lg, collectionRepo, selectedCollectionRepo),
 	}
 }
 
@@ -72,6 +73,11 @@ func (ctrl Controller) ListCollections(c *gin.Context) {
 	ctrl.mapper.NewResponse(c, payload.NewSuccessResponse(res, "Success"), err)
 }
 
+func (ctrl Controller) ReadSelectedCollection(c *gin.Context) {
+	res, err := ctrl.Uc.ReadSelectedCollection()
+	ctrl.mapper.NewResponse(c, payload.NewSuccessResponse(res, "Success"), err)
+}
+
 func (ctrl Controller) Route(rg *gin.RouterGroup) {
 	collection := rg.Group("/collection")
 	collection.GET("/read/:id", ctrl.Read)
@@ -79,4 +85,5 @@ func (ctrl Controller) Route(rg *gin.RouterGroup) {
 	collection.PUT("/select/:id", ctrl.SelectCollection)
 	collection.PUT("/write/:id", ctrl.WriteCollection)
 	collection.GET("/get-active", ctrl.GetActiveCollection)
+	collection.GET("/read-selected", ctrl.ReadSelectedCollection)
 }

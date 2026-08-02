@@ -6,17 +6,17 @@ import {isTestTab} from "@/lib/tabUtils.ts";
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
-import {LoaderCircle, Plus, Send, Settings} from "lucide-react";
+import {LoaderCircle, Plus, RefreshCw, Send, Settings} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
     addBaseUrl,
     addVariable,
     removeVariable,
+    selectActiveRequestScript,
     selectActiveTabId,
     selectBaseUrlValues,
     selectCollectionData,
     selectRequest,
-    selectActiveRequestScript,
     selectVariable,
     setCurrentResponse,
     setScriptLogs,
@@ -30,7 +30,7 @@ import {runScript} from "@/layout/hooks/useScriptRunner.ts";
 import CustomToast from "@/components/common/toast";
 import type {ColtReqMethod} from "@/app/slices";
 import type {CollectionVar, ItemUrl} from "@/pages/editor/types/api.ts";
-import {addQueryParam, updateQueryParam, setUrlRaw} from "@/app/slices/requestSlices.ts";
+import {addQueryParam, setUrlRaw, updateQueryParam} from "@/app/slices/requestSlices.ts";
 import CollectionManagerDialog from "@/layout/components/CollectionManagerDialog.tsx";
 import {useCollectionPushPull} from "@/layout/hooks/useCollectionPushPull.ts";
 import {selectActiveEnvironmentVariables} from "@/app/slices/environmentSlice.ts"
@@ -72,6 +72,10 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             return baseUrlOptions[0] ?? ""
         })
     }, [baseUrlOptions]);
+
+    useEffect(() => {
+        pull()
+    }, [])
 
     const requestMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
     const methodColorClass: Record<ColtReqMethod[number], string> = {
@@ -131,7 +135,6 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     }
 
 
-
     const handleSendRequest = () => {
         if (!currRequest?.id || isSending) return
         if (onSend) onSend()
@@ -153,14 +156,16 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             formData: currRequest?.request?.body?.formdata
         }).then(async (response) => {
             if (!response) return
-            dispatch(setCurrentResponse({ id: currRequest.id, response }))
+            dispatch(setCurrentResponse({id: currRequest.id, response}))
             if (!scriptValue?.trim()) return
 
             try {
                 const varsObj: Record<string, string> = {}
-                variables.forEach(v => { varsObj[v.key] = v.value })
+                variables.forEach(v => {
+                    varsObj[v.key] = v.value
+                })
 
-                const { result, mutations, logs } = await runScript({
+                const {result, mutations, logs} = await runScript({
                     script: scriptValue,
                     response,
                     variables: varsObj,
@@ -169,9 +174,9 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                 for (const [key, value] of Object.entries(mutations)) {
                     const existing = variables.find(v => v.key === key)
                     if (value === null) {
-                        if (existing) dispatch(removeVariable({ id: existing.id }))
+                        if (existing) dispatch(removeVariable({id: existing.id}))
                     } else if (existing) {
-                        dispatch(updateVariable({ ...existing, value }))
+                        dispatch(updateVariable({...existing, value}))
                     } else {
                         dispatch(addVariable({
                             id: crypto.randomUUID(),
@@ -182,9 +187,9 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         }))
                     }
                 }
-                dispatch(setScriptResult({ id: currRequest.id, result }))
-                dispatch(setScriptMutations({ id: currRequest.id, mutations }))
-                dispatch(setScriptLogs({ id: currRequest.id, logs }))
+                dispatch(setScriptResult({id: currRequest.id, result}))
+                dispatch(setScriptMutations({id: currRequest.id, mutations}))
+                dispatch(setScriptLogs({id: currRequest.id, logs}))
             } catch (err: any) {
                 CustomToast.error(`Script error: ${err.message}`)
             }
@@ -192,9 +197,9 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             if (!response) return
             const blob = response?.response?.data as Blob
             const contentType = response?.response?.headers?.["content-type"] ?? ""
-            const { data, size, isBinary } = blob
+            const {data, size, isBinary} = blob
                 ? await parseBlobResponse(blob, contentType)
-                : { data: null, size: "0", isBinary: false }
+                : {data: null, size: "0", isBinary: false}
             dispatch(setCurrentResponse({
                 id: currRequest.id,
                 response: {
@@ -265,6 +270,12 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
         setNewBaseUrl('')
     }
 
+    const handleSync = async () => {
+        if (isPulling || isPushing) return
+        await pull()
+        await push()
+    }
+
     return (
         <header className="fixed top-0 z-50 w-full gap-4 h-[60px] bg-white border-b border-gray-200 px-6 shadow-sm
          flex flex-row items-center">
@@ -285,6 +296,15 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         onClick={() => setManagerOpen(true)}
                     >
                         <Settings className="h-4 w-4"/>
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9"
+                        disabled={isPulling || isPushing}
+                        onClick={handleSync}
+                    >
+                        <RefreshCw className={cn("h-4 w-4", (isPulling || isPushing) && "animate-spin")}/>
                     </Button>
                     <CollectionManagerDialog open={managerOpen} onOpenChange={setManagerOpen}/>
                 </div>
@@ -316,7 +336,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                             disabled={!collectionData}
                             onValueChange={setSelectedBaseUrl}
                         >
-                            <SelectTrigger 
+                            <SelectTrigger
                                 className="w-[240px] rounded-none border-0 border-r border-input shadow-none focus-visible:ring-0">
                                 <SelectValue placeholder="Select Base URL"/>
                             </SelectTrigger>

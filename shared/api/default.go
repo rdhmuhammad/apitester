@@ -22,10 +22,15 @@ func Default() *Api {
 	}
 
 	reZero := logger.DefaultLogger()
-	collectionRepo := initCollectionRepo()
+	collectionRepo, boltDB := initCollectionRepo()
+
+	selectedCollectionRepo, err := bbolt.NewRepository[domain.SelectedCollection](boltDB.DB(), bbolt.WithBucketName("SelectedCollection"))
+	if err != nil {
+		panic(err)
+	}
 
 	routers := []Router{
-		watch.NewController(&reZero, collectionRepo),
+		watch.NewController(&reZero, collectionRepo, selectedCollectionRepo),
 		environment.NewController(&reZero, collectionRepo),
 	}
 
@@ -34,7 +39,7 @@ func Default() *Api {
 	return &api
 }
 
-func initCollectionRepo() bbolt.RepositoryInterface[domain.Collection] {
+func initCollectionRepo() (bbolt.RepositoryInterface[domain.Collection], *bbolt.BoltDB) {
 	dbPath := collectionDBPath()
 	boltDB, err := bbolt.NewBoltDB(dbPath)
 	if err != nil {
@@ -46,7 +51,7 @@ func initCollectionRepo() bbolt.RepositoryInterface[domain.Collection] {
 		panic(err)
 	}
 
-	return repo
+	return repo, boltDB
 }
 
 func collectionDBPath() string {

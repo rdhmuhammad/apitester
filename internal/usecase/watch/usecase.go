@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -19,12 +20,13 @@ import (
 var baseURLRegex = regexp.MustCompile(`(?i)(base.*url|url.*base)`)
 
 type Usecase struct {
-	watcher        *watcher.FileWatcher
-	errHandler     localerror.HandleError
-	collectionRepo bbolt.RepositoryInterface[domain.Collection]
+	watcher                *watcher.FileWatcher
+	errHandler             localerror.HandleError
+	collectionRepo         bbolt.RepositoryInterface[domain.Collection]
+	selectedCollectionRepo bbolt.RepositoryInterface[domain.SelectedCollection]
 }
 
-func NewUsecase(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[domain.Collection]) *Usecase {
+func NewUsecase(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[domain.Collection], selectedCollectionRepo bbolt.RepositoryInterface[domain.SelectedCollection]) *Usecase {
 	fw := watcher.New()
 
 	if selected := findSelectedCollection(collectionRepo); selected != nil {
@@ -32,9 +34,10 @@ func NewUsecase(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[doma
 	}
 
 	return &Usecase{
-		errHandler:     localerror.NewHandlerError(lg),
-		watcher:        fw,
-		collectionRepo: collectionRepo,
+		errHandler:             localerror.NewHandlerError(lg),
+		watcher:                fw,
+		collectionRepo:         collectionRepo,
+		selectedCollectionRepo: selectedCollectionRepo,
 	}
 }
 
@@ -111,6 +114,25 @@ func (u *Usecase) SelectCollection(id string) (domain.Collection, error) {
 		return domain.Collection{}, localerror.InvalidData("Collection not found")
 	}
 
+	allSelected, err := u.selectedCollectionRepo.List(context.Background())
+	if err != nil {
+		return domain.Collection{}, u.errHandler.ErrorReturn(err)
+	}
+	for _, s := range allSelected {
+		if err := u.selectedCollectionRepo.Delete(context.Background(), s.ID); err != nil {
+			return domain.Collection{}, u.errHandler.ErrorReturn(err)
+		}
+	}
+
+	recordID := uuid.NewString()
+	if err := u.selectedCollectionRepo.Create(context.Background(), recordID, &domain.SelectedCollection{
+		ID:         recordID,
+		Collection: selected.ID,
+		CreatedAt:  time.Now(),
+	}); err != nil {
+		return domain.Collection{}, u.errHandler.ErrorReturn(err)
+	}
+
 	u.watcher.Watch(selected.Path)
 
 	return *selected, nil
@@ -122,6 +144,22 @@ func (u *Usecase) GetActiveCollection() (domain.Collection, error) {
 		return domain.Collection{}, localerror.InvalidData("No active collection")
 	}
 	return *selected, nil
+}
+
+func (u *Usecase) ReadSelectedCollection() (ReadResponse, error) {
+	all, err := u.selectedCollectionRepo.List(context.Background())
+	if err != nil {
+		return ReadResponse{}, u.errHandler.ErrorReturn(err)
+	}
+	if len(all) == 0 {
+		return ReadResponse{}, localerror.InvalidData("No selected collection found")
+	}
+
+	sort.Slice(all, func(i, j int) bool {
+		return all[i].CreatedAt.After(all[j].CreatedAt)
+	})
+
+	return u.Read(all[0].Collection)
 }
 
 func (u *Usecase) WriteCollection(id string, content string) error {
