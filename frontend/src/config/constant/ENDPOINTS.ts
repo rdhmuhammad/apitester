@@ -1,4 +1,8 @@
 export const ENDPOINTS = {
+    AUTH: {
+        LOGIN: "/auth/login",
+        ME: "/auth/me",
+    },
     INDICATOR: {
         PAGE: "/indicator/paged",
         CREATE: "/indicator/create",

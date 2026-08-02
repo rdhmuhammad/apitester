@@ -7,6 +7,7 @@ const getBaseURL = () => {
 
 export const axios = Axios.create({
     baseURL: getBaseURL(),
+    withCredentials: true,
 });
 
 
@@ -36,14 +37,8 @@ type AxiosErrorWithDuration<T = unknown> = AxiosError<T> & {
     config?: RequestConfigWithMetadata
 }
 
-// Add a request interceptor to add auth token and signature
 axios.interceptors.request.use(
     async (config) => {
-        // const token = getData(LOCALSTORAGE_KEY.TOKEN)
-        //
-        // if (token) {
-        //     config.headers.Authorization = `Bearer ${token}`;
-        // }
         const newConfig = config as RequestConfigWithMetadata
         newConfig.metadata = {startTime: Date.now()}
         return newConfig;
@@ -53,7 +48,6 @@ axios.interceptors.request.use(
     }
 );
 
-// Add a response interceptor to handle errors
 axios.interceptors.response.use(
     (response) => {
         const newRes = response as AxiosResponseWithDuration

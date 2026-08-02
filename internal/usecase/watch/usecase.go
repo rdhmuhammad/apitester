@@ -3,6 +3,7 @@ package watch
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"regexp"
 	"sort"
@@ -33,12 +34,16 @@ func NewUsecase(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[doma
 		fw.Watch(selected.Path)
 	}
 
-	return &Usecase{
+	u := &Usecase{
 		errHandler:             localerror.NewHandlerError(lg),
 		watcher:                fw,
 		collectionRepo:         collectionRepo,
 		selectedCollectionRepo: selectedCollectionRepo,
 	}
+
+	u.seedCollections()
+
+	return u
 }
 
 func findSelectedCollection(repo bbolt.RepositoryInterface[domain.Collection]) *domain.Collection {
@@ -52,6 +57,39 @@ func findSelectedCollection(repo bbolt.RepositoryInterface[domain.Collection]) *
 		}
 	}
 	return nil
+}
+
+func (u *Usecase) seedCollections() {
+	for i := 0; ; i++ {
+		name := os.Getenv(fmt.Sprintf("COLLECTION_%d_NAME", i))
+		path := os.Getenv(fmt.Sprintf("COLLECTION_%d_PATH", i))
+		if name == "" || path == "" {
+			break
+		}
+
+		existing, err := u.collectionRepo.List(context.Background())
+		if err != nil {
+			continue
+		}
+
+		alreadyExists := false
+		for _, c := range existing {
+			if c.Name == name {
+				alreadyExists = true
+				break
+			}
+		}
+		if alreadyExists {
+			continue
+		}
+
+		u.collectionRepo.Create(context.Background(), uuid.NewString(), &domain.Collection{
+			Name:      name,
+			Path:      path,
+			ID:        uuid.NewString(),
+			CreatedAt: time.Now(),
+		})
+	}
 }
 
 func (u *Usecase) ListCollections() ([]domain.Collection, error) {

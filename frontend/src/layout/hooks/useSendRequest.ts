@@ -114,7 +114,8 @@ export const useSendRequest = async (request: ISendRequest):Promise<SendResponse
             ...request.headers.reduce((acc, it) => {
                 acc[it.key] = it.value ?? ""
                 return acc
-            }, {} as Record<string, string>)
+            }, {} as Record<string, string>),
+            Origin: window.location.origin,
         },
         baseURL: request.baseUrl,
         url: request.endpoint,

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rdhmuhammad/apitester/internal/domain"
+	"github.com/rdhmuhammad/apitester/internal/usecase/auth"
 	"github.com/rdhmuhammad/apitester/internal/usecase/environment"
 	"github.com/rdhmuhammad/apitester/internal/usecase/watch"
 	"github.com/rdhmuhammad/apitester/pkg/bbolt"
@@ -29,9 +30,15 @@ func Default() *Api {
 		panic(err)
 	}
 
+	userRepo, err := bbolt.NewRepository[domain.User](boltDB.DB())
+	if err != nil {
+		panic(err)
+	}
+
 	routers := []Router{
 		watch.NewController(&reZero, collectionRepo, selectedCollectionRepo),
 		environment.NewController(&reZero, collectionRepo),
+		auth.NewController(&reZero, userRepo),
 	}
 
 	api.routers = routers
