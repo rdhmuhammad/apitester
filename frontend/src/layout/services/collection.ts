@@ -17,35 +17,9 @@ export const CollectionServices = {
         return response.data.data
     },
 
-    uploadCollection: async (file: File): Promise<string> => {
-        const formData = new FormData()
-        formData.append("file", file)
-
-        const response = await axios.post<Response<null>>('/collection/upload', formData, {
-            headers: {"Content-Type": "multipart/form-data"}
-        })
-
-        return response.data.message
-    },
-
     listCollections: async (): Promise<Collection[]> => {
         const response = await axios.get<Response<Collection[]>>('/collection/list')
         return response.data.data
-    },
-
-    createCollection: async (name: string, path: string): Promise<Collection> => {
-        const response = await axios.post<Response<Collection>>('/collection/create', {name, path})
-        return response.data.data
-    },
-
-    updateCollection: async (id: string, data: {name?: string; path?: string}): Promise<Collection> => {
-        const response = await axios.put<Response<Collection>>(`/collection/${id}`, data)
-        return response.data.data
-    },
-
-    deleteCollection: async (id: string): Promise<string> => {
-        const response = await axios.delete<Response<null>>(`/collection/${id}`)
-        return response.data.message
     },
 
     selectCollection: async (id: string): Promise<Collection> => {

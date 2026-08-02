@@ -89,47 +89,6 @@ func (u *Usecase) Read(id string) (ReadResponse, error) {
 	}, nil
 }
 
-func (u *Usecase) CreateCollection(req CreateCollectionRequest) (domain.Collection, error) {
-	now := time.Now()
-	collection := domain.Collection{
-		ID:         uuid.NewString(),
-		Name:       req.Name,
-		Path:       req.Path,
-		IsSelected: false,
-		CreatedAt:  now,
-		UpdatedAt:  now,
-	}
-	if err := u.collectionRepo.Create(context.Background(), collection.ID, &collection); err != nil {
-		return domain.Collection{}, u.errHandler.ErrorReturn(err)
-	}
-	return collection, nil
-}
-
-func (u *Usecase) UpdateCollectionByID(id string, req UpdateCollectionRequest) (domain.Collection, error) {
-	collection, err := u.collectionRepo.View(context.Background(), id)
-	if err != nil {
-		return domain.Collection{}, u.errHandler.ErrorReturn(err)
-	}
-	if collection == nil {
-		return domain.Collection{}, localerror.InvalidData("Collection not found")
-	}
-	if req.Name != "" {
-		collection.Name = req.Name
-	}
-	if req.Path != "" {
-		collection.Path = req.Path
-	}
-	collection.UpdatedAt = time.Now()
-	if err := u.collectionRepo.Update(context.Background(), id, collection); err != nil {
-		return domain.Collection{}, u.errHandler.ErrorReturn(err)
-	}
-	return *collection, nil
-}
-
-func (u *Usecase) DeleteCollection(id string) error {
-	return u.collectionRepo.Delete(context.Background(), id)
-}
-
 func (u *Usecase) SelectCollection(id string) (domain.Collection, error) {
 	all, err := u.collectionRepo.List(context.Background())
 	if err != nil {
@@ -196,25 +155,6 @@ func (u *Usecase) WriteCollection(id string, content string) error {
 	}
 
 	return nil
-}
-
-func (u *Usecase) UploadCollection(fileBytes []byte) error {
-	content := strings.TrimPrefix(string(fileBytes), "\uFEFF")
-
-	var docsContent DocsContent
-	if err := json.Unmarshal([]byte(content), &docsContent); err != nil {
-		return localerror.InvalidData("Invalid collection.json file")
-	}
-
-	if docsContent.Info.Name == "" {
-		return localerror.InvalidData("Collection info name is required")
-	}
-
-	if len(docsContent.Item) == 0 {
-		return localerror.InvalidData("Collection item is required")
-	}
-
-	return u.saveToFile([]byte(content))
 }
 
 func (u *Usecase) saveToFile(content []byte) error {
