@@ -259,6 +259,35 @@ const collectionSlices = createSlice({
             state.activeTabId = id
             state.dirtyRequestIds.push(id)
         },
+        deleteRequest(state, action: PayloadAction<{ id: string }>) {
+            if (!state.data?.item) return
+
+            removeCollectionItem(state.data.item, action.payload.id)
+            removeDirTreeNode(state.dirTree, action.payload.id)
+
+            state.openRequestTabs = state.openRequestTabs.filter(item => item.id !== action.payload.id)
+            state.dirtyRequestIds = state.dirtyRequestIds.filter(id => id !== action.payload.id)
+
+            if (state.activeTabId === action.payload.id) {
+                state.activeTabId = state.openRequestTabs[state.openRequestTabs.length - 1]?.id ?? ''
+            }
+        },
+        deleteFolder(state, action: PayloadAction<{ id: string }>) {
+            if (!state.data?.item) return
+
+            const targetNode = findDirTreeNode(state.dirTree, action.payload.id)
+            const descendantIds = targetNode ? collectDescendantIds(targetNode) : []
+
+            removeCollectionItem(state.data.item, action.payload.id)
+            removeDirTreeNode(state.dirTree, action.payload.id)
+
+            state.openRequestTabs = state.openRequestTabs.filter(item => !descendantIds.includes(item.id))
+            state.dirtyRequestIds = state.dirtyRequestIds.filter(id => !descendantIds.includes(id))
+
+            if (descendantIds.includes(state.activeTabId)) {
+                state.activeTabId = state.openRequestTabs[state.openRequestTabs.length - 1]?.id ?? ''
+            }
+        },
     },
     extraReducers: (builder) => {
         builder.addCase(fetchCollections.pending, (state) => {
@@ -339,6 +368,8 @@ export const {
     setScriptMutations,
     saveExampleResponse,
     createNewRequest,
+    deleteRequest,
+    deleteFolder,
 } = collectionSlices.actions
 
 export const setActiveRequest = addActiveRequest
@@ -585,4 +616,48 @@ const diveCollection = (item: CollectionItem[]): Map<string, DirTree> => {
     }
 
     return trees
+}
+
+const removeCollectionItem = (items: CollectionItem[], id: string): boolean => {
+    const idx = items.findIndex(item => item.id === id)
+    if (idx >= 0) {
+        items.splice(idx, 1)
+        return true
+    }
+    for (const item of items) {
+        if (item.item && removeCollectionItem(item.item, id)) return true
+    }
+    return false
+}
+
+const removeDirTreeNode = (tree: Map<string, DirTree>, id: string): boolean => {
+    if (tree.has(id)) {
+        tree.delete(id)
+        return true
+    }
+    for (const [, node] of tree) {
+        if (node.item && removeDirTreeNode(node.item, id)) return true
+    }
+    return false
+}
+
+const findDirTreeNode = (tree: Map<string, DirTree>, id: string): DirTree | undefined => {
+    if (tree.has(id)) return tree.get(id)
+    for (const [, node] of tree) {
+        if (node.item) {
+            const found = findDirTreeNode(node.item, id)
+            if (found) return found
+        }
+    }
+    return undefined
+}
+
+const collectDescendantIds = (node: DirTree): string[] => {
+    if (node.category === 'REQ') return [node.id]
+    if (!node.item) return []
+    const ids: string[] = []
+    for (const [, child] of node.item) {
+        ids.push(...collectDescendantIds(child))
+    }
+    return ids
 }
