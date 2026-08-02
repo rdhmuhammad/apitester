@@ -3,7 +3,7 @@ import type { ScriptLog, SendResponse } from "@/types/response"
 interface ScriptInput {
     script: string
     response: SendResponse
-    variables: Record<string, string>
+    collectionVariables: Record<string, string>
 }
 
 interface ScriptOutput {
@@ -18,7 +18,7 @@ const WORKER_BOOTSTRAP = `
 self.onmessage = function(e) {
     var __script = e.data.script;
     var __response = e.data.response;
-    var __vars = e.data.variables || {};
+    var __vars = e.data.collectionVariables || {};
     var __mutations = {};
     var __logs = [];
 

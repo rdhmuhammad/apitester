@@ -156,6 +156,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             formData: currRequest?.request?.body?.formdata
         }).then(async (response) => {
             if (!response) return
+            console.log(response)
             dispatch(setCurrentResponse({id: currRequest.id, response}))
             if (!scriptValue?.trim()) return
 
@@ -191,7 +192,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                 dispatch(setScriptMutations({id: currRequest.id, mutations}))
                 dispatch(setScriptLogs({id: currRequest.id, logs}))
             } catch (err: any) {
-                CustomToast.error(`Script error: ${err.message}`)
+                CustomToast.error(`Script error: ${err}`)
             }
         }).catch(async response => {
             if (!response) return
