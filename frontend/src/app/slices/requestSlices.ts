@@ -144,6 +144,9 @@ export const addHeaderReducer = (state: CollectionState, action: PayloadAction<H
 export const updateHeaderReducer = (state: CollectionState, action: PayloadAction<HeaderPayload>) => {
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest?.header) return;
+    if (!currentRequest) return;
+
+    if (!currentRequest.header) currentRequest.header = []
 
     const hasKey = currentRequest.header.some(header => header.id === action.payload.header.id);
     if (hasKey) {
