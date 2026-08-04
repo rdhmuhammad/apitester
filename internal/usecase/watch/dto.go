@@ -9,11 +9,10 @@ type ReadResponse struct {
 }
 
 type DocsContent struct {
-	Info     CollectionInfo    `json:"info"`
-	Item     []CollectionItem  `json:"item"`
-	Auth     *CollectionAuth   `json:"auth,omitempty"`
-	Variable []CollectionVar   `json:"variable"`
-	Event    []CollectionEvent `json:"event"`
+	Info     CollectionInfo   `json:"info"`
+	Item     []CollectionItem `json:"item"`
+	Auth     *CollectionAuth  `json:"auth,omitempty"`
+	Variable []CollectionVar  `json:"variable"`
 }
 
 type CollectionInfo struct {

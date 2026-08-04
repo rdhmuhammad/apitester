@@ -12,13 +12,15 @@ import {Button} from "@/components/ui/button.tsx";
 import {Input} from "@/components/ui/input.tsx";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx";
 import {cn} from "@/lib/utils.ts";
-import {ArrowDownToLine, ArrowUpFromLine, Braces, FileUp, Folder, Globe, Maximize2, Minimize2, Plus, Save, Trash2} from "lucide-react";
+import {ArrowDownToLine, ArrowUpFromLine, Braces, FileUp, Folder, Globe, Maximize2, Minimize2, Play, Plus, Save, Trash2} from "lucide-react";
 import {SandpackScriptEditor} from "@/components/ui/sandpack-script-editor.tsx";
 import {CollectionServices, type Collection} from "@/layout/services/collection.ts";
 import {useCollectionPushPull} from "@/layout/hooks/useCollectionPushPull.ts";
+import {runScript} from "@/layout/hooks/useScriptRunner.ts";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {addVariable, removeVariable, updateVariable, selectVariable, setCollectionScript, selectCollectionScript} from "@/app/slices/collectionSlices.ts";
 import type {CollectionVar} from "@/pages/editor/types/api.ts";
+import type {ScriptLog, SendResponse} from "@/types/response.ts";
 
 interface CollectionManagerDialogProps {
     open: boolean
@@ -60,6 +62,12 @@ const CollectionManagerDialog: React.FC<CollectionManagerDialogProps> = ({open, 
     const collectionScript = useAppSelector(selectCollectionScript)
 
     const [isScriptExpanded, setIsScriptExpanded] = useState(false)
+    const [isRunning, setIsRunning] = useState(false)
+    const [runResult, setRunResult] = useState("")
+    const [runLogs, setRunLogs] = useState<ScriptLog[]>([])
+    const [runMutations, setRunMutations] = useState<Record<string, string | null>>({})
+    const [runError, setRunError] = useState<string | null>(null)
+    const [showOutput, setShowOutput] = useState(false)
 
     useEffect(() => {
         if (!open) return
@@ -131,16 +139,51 @@ const CollectionManagerDialog: React.FC<CollectionManagerDialogProps> = ({open, 
         dispatch(removeVariable({id}))
     }
 
+    const handleRunScript = async () => {
+        if (!collectionScript.trim() || isRunning) return
+        setIsRunning(true)
+        setRunError(null)
+        setShowOutput(true)
+        try {
+            const varMap: Record<string, string> = {}
+            for (const v of variables) {
+                varMap[v.key] = v.value
+            }
+            const dummyRes: SendResponse = {
+                rawRequest: "",
+                responseTime: 0,
+                responseSize: "0",
+                protocol: "",
+                statusCode: 0,
+                statusText: "",
+                data: {},
+            }
+            const output = await runScript({ script: collectionScript, response: dummyRes, variables: varMap })
+            setRunResult(typeof output.result === "string" ? output.result : JSON.stringify(output.result, null, 2))
+            setRunLogs(output.logs)
+            setRunMutations(output.mutations)
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "Unknown error"
+            setRunError(msg)
+            setRunResult("")
+            setRunLogs([])
+            setRunMutations({})
+        } finally {
+            setIsRunning(false)
+        }
+    }
+
     return (
-        <AlertDialog open={open} onOpenChange={(v) => { if (!v) setIsScriptExpanded(false); onOpenChange(v) }}>
-            <AlertDialogContent
-                className={cn("flex flex-col h-[90vh] pt-6 pb-4 px-4 transition-[max-width] duration-300 ease-in-out", isScriptExpanded ? "!max-w-[900px]" : "!max-w-[600px]")}>
-                <AlertDialogHeader className={cn("shrink-0 mb-3", isScriptExpanded && "sr-only")}>
-                    <AlertDialogTitle>Collection Manager</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Manage your local collection files and environment variables.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
+            <AlertDialogContent className={cn("flex flex-col h-[80vh] pt-6 pb-4 px-4 transition-[max-width] duration-300 ease-in-out", isScriptExpanded ? "max-w-5xl" : "max-w-3xl")}>
+                {!isScriptExpanded && (
+                    <AlertDialogHeader className="shrink-0 mb-3">
+                        <AlertDialogTitle>Collection Manager</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Manage your local collection files and environment variables.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                )}
 
                 <Tabs orientation="vertical" defaultValue="collection" className="flex-row gap-0 flex-1 min-h-0">
                     {!isScriptExpanded && (
@@ -330,18 +373,71 @@ const CollectionManagerDialog: React.FC<CollectionManagerDialogProps> = ({open, 
                                 <Button variant="outline" size="sm" disabled={isPushing} onClick={() => push()}>
                                     <Save className="h-4 w-4 mr-1" /> Save
                                 </Button>
+                                <Button variant="outline" size="sm" disabled={isRunning || !collectionScript.trim()} onClick={handleRunScript}>
+                                    <Play className="h-4 w-4 mr-1" /> Run
+                                </Button>
                                 {!isScriptExpanded && (
                                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-auto" onClick={() => setIsScriptExpanded(true)}>
                                         <Maximize2 className="h-4 w-4" />
                                     </Button>
                                 )}
                             </div>
-                            <div className={cn("min-h-0 rounded-lg border border-slate-200 overflow-hidden h-full")}>
+                            <div className={cn("min-h-0 rounded-lg border border-slate-200 overflow-hidden", isScriptExpanded ? "flex-1" : "flex-[1_0_280px]")}>
                                 <SandpackScriptEditor
                                     value={collectionScript}
                                     onChange={(code) => dispatch(setCollectionScript({ script: code }))}
                                 />
                             </div>
+                            {showOutput && (
+                                <div className={cn("shrink-0 overflow-auto rounded-lg border border-slate-200 mt-2", isScriptExpanded ? "flex-[0_0_200px]" : "flex-[0_0_180px]")}>
+                                    <div className="px-3 py-1.5 bg-slate-100 text-xs font-medium text-slate-600 flex items-center justify-between">
+                                        <span>Output</span>
+                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400" onClick={() => setShowOutput(false)}>
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                    <div className="p-3 space-y-2 text-xs font-mono">
+                                        {isRunning && (
+                                            <div className="text-slate-400">Running...</div>
+                                        )}
+                                        {runError && (
+                                            <div className="text-red-500 whitespace-pre-wrap">{runError}</div>
+                                        )}
+                                        {runResult && !runError && (
+                                            <div>
+                                                <div className="text-slate-500 mb-1">Result:</div>
+                                                <pre className="text-slate-700 whitespace-pre-wrap">{runResult}</pre>
+                                            </div>
+                                        )}
+                                        {Object.keys(runMutations).length > 0 && (
+                                            <div>
+                                                <div className="text-slate-500 mb-1">Mutations:</div>
+                                                {Object.entries(runMutations).map(([k, v]) => (
+                                                    <div key={k} className="flex gap-2">
+                                                        <span className="text-slate-700">{k}</span>
+                                                        <span className="text-slate-400">→</span>
+                                                        <span className="text-slate-700">{v ?? "(deleted)"}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {runLogs.map((log, i) => {
+                                            const colors: Record<string, string> = {
+                                                error: "text-red-500",
+                                                warn: "text-amber-500",
+                                                info: "text-blue-500",
+                                                log: "text-slate-600",
+                                            }
+                                            return (
+                                                <div key={i} className="flex gap-2">
+                                                    <span className={cn("shrink-0", colors[log.type] ?? "text-slate-600")}>[{log.type}]</span>
+                                                    <span className="text-slate-700 break-all">{log.message}</span>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </TabsContent>
                     </div>
                 </Tabs>

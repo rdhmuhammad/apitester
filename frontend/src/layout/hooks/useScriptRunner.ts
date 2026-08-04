@@ -1,13 +1,6 @@
 import type { ScriptLog, SendResponse } from "@/types/response"
-import cryptoJsRaw from "crypto-js/crypto-js.js?raw"
 
-interface PreScriptInput {
-    script: string
-    request: Record<string, unknown>
-    variables: Record<string, string>
-}
-
-interface PostScriptInput {
+interface ScriptInput {
     script: string
     response: SendResponse
     variables: Record<string, string>
@@ -17,12 +10,15 @@ interface ScriptOutput {
     ok: boolean
     result?: unknown
     mutations?: Record<string, string | null>
-    request?: Record<string, unknown>
     logs?: ScriptLog[]
     error?: string
 }
 
-const WORKER_COMMON = `
+const WORKER_BOOTSTRAP = `
+self.onmessage = function(e) {
+    var __script = e.data.script;
+    var __response = e.data.response;
+    var __vars = e.data.variables || {};
     var __mutations = {};
     var __logs = [];
 
@@ -56,97 +52,54 @@ const WORKER_COMMON = `
         }
     };
 
-    function __sandbox() {
+    try {
         delete self.fetch;
         delete self.XMLHttpRequest;
         delete self.WebSocket;
         delete self.importScripts;
-    }
 
-    function __respond(ok, data) {
-        self.postMessage({ ok: ok, result: data.result, request: data.request, mutations: __mutations, logs: __logs, error: data.error });
-    }
-`
-
-const PRE_WORKER_BOOTSTRAP = `
-${cryptoJsRaw}
-${WORKER_COMMON}
-self.onmessage = function(e) {
-    var __script = e.data.script;
-    var __request = e.data.request;
-    var __vars = e.data.variables || {};
-
-    try {
-        __sandbox();
-        var fn = new Function('request', 'pm', __script);
-        var result = fn(__request, pm);
-        __respond(true, { result: result, request: __request });
-    } catch (err) {
-        __respond(false, { error: err.message || 'Script execution failed' });
-    }
-};
-`
-
-const POST_WORKER_BOOTSTRAP = `
-${cryptoJsRaw}
-${WORKER_COMMON}
-self.onmessage = function(e) {
-    var __script = e.data.script;
-    var __response = e.data.response;
-    var __vars = e.data.variables || {};
-
-    try {
-        __sandbox();
         var fn = new Function('response', 'pm', __script);
         var result = fn(__response, pm);
-        __respond(true, { result: result });
+        self.postMessage({ ok: true, result: result, mutations: __mutations, logs: __logs });
     } catch (err) {
-        __respond(false, { error: err.message || 'Script execution failed' });
+        self.postMessage({ ok: false, error: err.message || 'Script execution failed', logs: __logs });
     }
 };
 `
 
-function createWorker(bootstrap: string, input: Record<string, unknown>) {
-    return new Promise<{ result: unknown; request?: Record<string, unknown>; mutations: Record<string, string | null>; logs: ScriptLog[] }>(
-        (resolve, reject) => {
-            const blob = new Blob([bootstrap], { type: "application/javascript" })
-            const url = URL.createObjectURL(blob)
-            const worker = new Worker(url)
+export function runScript(
+    input: ScriptInput
+): Promise<{ result: unknown; mutations: Record<string, string | null>; logs: ScriptLog[] }> {
+    return new Promise((resolve, reject) => {
+        const blob = new Blob([WORKER_BOOTSTRAP], { type: "application/javascript" })
+        const url = URL.createObjectURL(blob)
+        const worker = new Worker(url)
 
-            const timer = setTimeout(() => {
-                worker.terminate()
-                URL.revokeObjectURL(url)
-                reject(new Error("Script timed out (5s)"))
-            }, 5000)
+        const timer = setTimeout(() => {
+            worker.terminate()
+            URL.revokeObjectURL(url)
+            reject(new Error("Script timed out (5s)"))
+        }, 5000)
 
-            worker.onmessage = (e: MessageEvent<ScriptOutput>) => {
-                clearTimeout(timer)
-                worker.terminate()
-                URL.revokeObjectURL(url)
-                const { ok, result, request, mutations, error, logs } = e.data
-                if (ok) {
-                    resolve({ result, request, mutations: mutations || {}, logs: logs || [] })
-                } else {
-                    reject(new Error(error || "Unknown script error"))
-                }
+        worker.onmessage = (e: MessageEvent<ScriptOutput>) => {
+            clearTimeout(timer)
+            worker.terminate()
+            URL.revokeObjectURL(url)
+            const { ok, result, mutations, error, logs } = e.data
+            if (ok) {
+                resolve({ result, mutations: mutations || {}, logs: logs || [] })
+            } else {
+                reject(new Error(error || "Unknown script error"))
             }
-
-            worker.onerror = (err) => {
-                clearTimeout(timer)
-                worker.terminate()
-                URL.revokeObjectURL(url)
-                reject(new Error(err.message || "Worker error"))
-            }
-
-            worker.postMessage(input)
         }
-    )
-}
 
-export function runPreScript(input: PreScriptInput) {
-    return createWorker(PRE_WORKER_BOOTSTRAP, input as unknown as Record<string, unknown>)
-}
+        worker.onerror = (err) => {
+            clearTimeout(timer)
+            worker.terminate()
+            URL.revokeObjectURL(url)
+            reject(new Error(err.message || "Worker error"))
+        }
 
-export function runPostScript(input: PostScriptInput) {
-    return createWorker(POST_WORKER_BOOTSTRAP, input as unknown as Record<string, unknown>)
+        worker.postMessage(input)
+    })
 }

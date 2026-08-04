@@ -35,9 +35,9 @@ export interface ActiveItem{
     response: SendResponse | null
     exampleResponse?: CollectionResponse[]
     authType?: "none" | "inherit" | "bearer"
-    scriptResult?: { pre?: unknown; post?: unknown }
-    scriptLogs?: { pre?: ScriptLog[]; post?: ScriptLog[] }
-    scriptMutations?: { pre?: Record<string, string | null>; post?: Record<string, string | null> }
+    scriptResult?: unknown
+    scriptLogs?: ScriptLog[]
+    scriptMutations?: Record<string, string | null>
 }
 
 export const fetchCollections = createAppAsyncThunk(

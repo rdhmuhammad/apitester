@@ -108,18 +108,10 @@ function resolveExpectChain(segments: string[], trailingDot: boolean): ApiEntry[
 }
 
 export function pmCompletionSource(context: CompletionContext): CompletionResult | null {
-    return completionSource(context, "pm", pmApi)
-}
-
-export function resCompletionSource(context: CompletionContext): CompletionResult | null {
-   return completionSource(context, "response", resApi)
-}
-
-export function completionSource(context: CompletionContext, prefix: string, keywords: ApiEntry[]): CompletionResult | null {
-    const expectMatch = context.matchBefore(new RegExp(`/${prefix}\.expect\([^)]*\)(?:\.[\w]+)*\.?/`))
+    const expectMatch = context.matchBefore(/pm\.expect\([^)]*\)(?:\.[\w]+)*\.?/)
     if (expectMatch) {
         const text = expectMatch.text
-        const chainStart = new RegExp(`/${prefix}\\.expect\\([^)]*\\)/`).exec(text)![0].length
+        const chainStart = /pm\.expect\([^)]*\)/.exec(text)![0].length
         const afterExpect = text.slice(chainStart)
         if (afterExpect === "") return null
 
@@ -136,12 +128,12 @@ export function completionSource(context: CompletionContext, prefix: string, key
         }
     }
 
-    const word = context.matchBefore(new RegExp(`/(?<!\\w)${prefix}(?:\\.[\\w]*)*\\.?/`))
+    const word = context.matchBefore(/(?<!\w)pm(?:\.[\w]*)*\.?/)
     if (!word) return null
 
     const text = word.text
-    if (text === prefix) {
-        return { from: word.to, options: toCompletions(keywords) }
+    if (text === "pm") {
+        return { from: word.to, options: toCompletions(pmApi) }
     }
 
     const segments = text.split(".")
@@ -149,14 +141,36 @@ export function completionSource(context: CompletionContext, prefix: string, key
     const methodKey = afterPm[0]
 
     if (afterPm.length === 1 && !text.endsWith(".")) {
-        return { from: word.from + `${prefix}.`.length, options: toCompletions(keywords) }
+        return { from: word.from + "pm.".length, options: toCompletions(pmApi) }
     }
 
-    const methodDef = keywords.find((m) => m.label.startsWith(methodKey))
+    const methodDef = pmApi.find((m) => m.label.startsWith(methodKey))
     if (!methodDef?.children) return null
 
     return {
         from: word.to,
         options: toCompletions(methodDef.children),
     }
+}
+
+export function resCompletionSource(context: CompletionContext): CompletionResult | null {
+    const word = context.matchBefore(/(?<!\w)response(?:\.[\w]*)*\.?/)
+    if (!word) return null
+
+    const text = word.text
+
+    if (text === "response" || text === "response.") {
+        return { from: word.to, options: toCompletions(resApi) }
+    }
+
+    const segments = text.split(".")
+    if (segments.length === 2 && !text.endsWith(".")) {
+        const partial = segments[1]
+        const filtered = resApi.filter((e) => e.label.startsWith(partial))
+        if (filtered.length > 0) {
+            return { from: word.from + "response.".length, options: toCompletions(filtered) }
+        }
+    }
+
+    return null
 }
