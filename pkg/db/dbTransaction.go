@@ -84,17 +84,18 @@ func TransactionEnd(
 	ctx context.Context,
 	dbTrx *DBTransaction,
 	err error,
+	lg logger.Logger,
 ) {
 	if r := recover(); r != nil {
 		err := dbTrx.End(fmt.Errorf("recovery"))
 		if err != nil {
-			logger.Error(err)
+			lg.Error(err)
 			return
 		}
 	}
 
 	err = dbTrx.End(err)
 	if err != nil {
-		logger.Error(err)
+		lg.Error(err)
 	}
 }

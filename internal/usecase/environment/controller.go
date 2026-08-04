@@ -21,7 +21,7 @@ type UsecaseInterface interface {
 	WriteEnvironments(id string, req WriteEnvironmentsRequest) error
 }
 
-func NewController(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[domain.Collection]) Controller {
+func NewController(lg logger.Logger, collectionRepo bbolt.RepositoryInterface[domain.Collection]) Controller {
 	return Controller{
 		Uc: NewUsecase(lg, collectionRepo),
 	}

@@ -25,8 +25,8 @@ type Usecase struct {
 	collectionRepo bbolt.RepositoryInterface[domain.Collection]
 }
 
-func NewUsecase(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[domain.Collection]) *Usecase {
-	fw := watcher.New()
+func NewUsecase(lg logger.Logger, collectionRepo bbolt.RepositoryInterface[domain.Collection]) *Usecase {
+	fw := watcher.New(lg)
 
 	if selected := findSelectedCollection(collectionRepo); selected != nil {
 		fw.Watch(selected.Path)

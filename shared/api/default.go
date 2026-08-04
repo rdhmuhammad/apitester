@@ -21,12 +21,16 @@ func Default() *Api {
 		server: server,
 	}
 
-	reZero := logger.DefaultLogger()
+	builder := logger.DefaultLogger()
+	if p := os.Getenv("LOG_PATH"); p != "" {
+		builder = builder.LogFile(p)
+	}
+	lg := builder.Build()
 	collectionRepo := initCollectionRepo()
 
 	routers := []Router{
-		watch.NewController(&reZero, collectionRepo),
-		environment.NewController(&reZero, collectionRepo),
+		watch.NewController(&lg, collectionRepo),
+		environment.NewController(&lg, collectionRepo),
 	}
 
 	api.routers = routers

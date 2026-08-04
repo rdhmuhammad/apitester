@@ -17,7 +17,7 @@ type Usecase struct {
 	collectionRepo bbolt.RepositoryInterface[domain.Collection]
 }
 
-func NewUsecase(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[domain.Collection]) *Usecase {
+func NewUsecase(lg logger.Logger, collectionRepo bbolt.RepositoryInterface[domain.Collection]) *Usecase {
 	return &Usecase{
 		errHandler:     localerror.NewHandlerError(lg),
 		collectionRepo: collectionRepo,

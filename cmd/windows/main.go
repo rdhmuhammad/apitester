@@ -101,10 +101,12 @@ func runService(elog *eventlog.Log, name string, isDebug bool) {
 	svcInst := &WinService{elog: elog}
 	if isDebug {
 		err := debug.Run(name, svcInst)
+		log.Println("Running Debug")
 		if err != nil {
 			log.Fatalln("Error running service in debug mode.")
 		}
 	} else {
+		log.Println("Running Production: ", name)
 		err := svc.Run(name, svcInst)
 		if err != nil {
 			log.Fatalln("Error running service in Service Control mode.")

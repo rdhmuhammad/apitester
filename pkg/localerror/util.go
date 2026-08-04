@@ -76,10 +76,10 @@ func (receiver InternalError) Error() string {
 }
 
 type HandleError struct {
-	logger *logger.ReZero
+	logger logger.Logger
 }
 
-func NewHandlerError(lg *logger.ReZero) HandleError {
+func NewHandlerError(lg logger.Logger) HandleError {
 	return HandleError{
 		logger: lg,
 	}

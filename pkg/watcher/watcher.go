@@ -15,9 +15,10 @@ type FileWatcher struct {
 	watcher *fsnotify.Watcher
 	State   *FileState
 	pathCh  chan string
+	logger  logger.Logger
 }
 
-func New() *FileWatcher {
+func New(lg logger.Logger) *FileWatcher {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		panic(err)
@@ -27,6 +28,7 @@ func New() *FileWatcher {
 		watcher: w,
 		State:   &FileState{},
 		pathCh:  make(chan string, 1),
+		logger:  lg,
 	}
 
 	go fw.listen()
@@ -63,7 +65,7 @@ func (fw *FileWatcher) listen() {
 
 		case event, ok := <-fw.watcher.Events:
 			if !ok {
-				logger.Infof("file watcher events channel closed")
+				fw.logger.Infof("file watcher events channel closed")
 				return
 			}
 			if currentPath == "" || filepath.Clean(event.Name) != filepath.Clean(currentPath) {
@@ -88,7 +90,7 @@ func (fw *FileWatcher) listen() {
 			if !ok {
 				return
 			}
-			logger.Errorf("watcher error: %v", err)
+			fw.logger.Errorf("watcher error: %v", err)
 		}
 	}
 }

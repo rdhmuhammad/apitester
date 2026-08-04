@@ -33,7 +33,7 @@ type UsecaseInterface interface {
 	DeleteTest(id, name string) error
 }
 
-func NewController(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[domain.Collection]) Controller {
+func NewController(lg logger.Logger, collectionRepo bbolt.RepositoryInterface[domain.Collection]) Controller {
 	return Controller{
 		Uc: NewUsecase(lg, collectionRepo),
 	}
