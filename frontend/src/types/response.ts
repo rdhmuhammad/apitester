@@ -25,8 +25,3 @@ export interface ScriptLog {
     timestamp: number
 }
 
-export interface ScriptLog {
-    type: "log" | "error" | "warn" | "info"
-    message: string
-    timestamp: number
-}

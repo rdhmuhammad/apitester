@@ -22,11 +22,11 @@ import {
     setScriptLogs,
     setScriptMutations,
     setScriptResult,
-    updateVariable,
+    updateVariable, selectCollectionScript,
 } from "@/app/slices/collectionSlices.ts";
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
 import {buildRawRequest, parseBlobResponse, useSendRequest} from "@/layout/hooks/useSendRequest.ts";
-import {runScript} from "@/layout/hooks/useScriptRunner.ts";
+import {runPreScript, runPostScript} from "@/layout/hooks/useScriptRunner.ts";
 import CustomToast from "@/components/common/toast";
 import type {ColtReqMethod} from "@/app/slices";
 import type {CollectionVar, ItemUrl} from "@/pages/editor/types/api.ts";
@@ -44,9 +44,14 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const baseUrlOptions = useAppSelector(selectBaseUrlValues)
     const variables = useAppSelector(selectVariable)
     const scriptValue = useAppSelector(selectActiveRequestScript)
+    const preScriptValue = useAppSelector(selectCollectionScript)
     const collectionData = useAppSelector(selectCollectionData)
     const envVars = useAppSelector(selectActiveEnvironmentVariables)
     const activeTabId = useAppSelector(selectActiveTabId)
+
+    useEffect(() => {
+        pull()
+    }, []);
 
     useEffect(() => {
         const raw = currRequest?.request?.url?.raw ?? ''
@@ -131,15 +136,25 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     }
 
 
+    function resolveModeRequest(): string {
+        const find = (currRequest?.request?.header ?? []).find(h => h.key === 'Content-Type');
+        if (!find) return "raw"
+        return find.value == 'application/json' ? "raw" : "formdata"
+    }
 
-    const handleSendRequest = () => {
+    const handleSendRequest = async () => {
         if (!currRequest?.id || isSending) return
         if (onSend) onSend()
         setIsSending(true)
-        useSendRequest({
+        let request = {
             baseUrl: selectedBaseUrl,
             endpoint: formatEndpoint(endpoint),
             method: requestMethod,
+            body: {
+                mode: resolveModeRequest(),
+                raw: currRequest?.request?.body?.raw,
+                formData: currRequest?.request?.body?.formdata
+            },
             headers: (currRequest?.request?.header ?? [])
                 .filter(h => !h.disabled)
                 .map((header) => ({
@@ -149,18 +164,50 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             requestParams: (currRequest?.request?.url.query ?? [])
                 .filter(q => !q.disabled),
             contentType: getContentType(currRequest),
-            raw: currRequest?.request?.body?.raw,
-            formData: currRequest?.request?.body?.formdata
-        }).then(async (response) => {
+        };
+        const varsObj: Record<string, string> = {}
+        variables.forEach(v => { varsObj[v.key] = v.value })
+        if (preScriptValue?.trim()) {
+            try {
+                const { result, mutations, logs, request: mutatedRequest } = await runPreScript({
+                    script: preScriptValue,
+                    request,
+                    variables: varsObj,
+                })
+                dispatch(setScriptResult({ id: currRequest.id, type: "pre", result }))
+                dispatch(setScriptMutations({ id: currRequest.id, type: "pre", mutations }))
+                dispatch(setScriptLogs({ id: currRequest.id, type: "pre", logs }))
+                for (const [key, value] of Object.entries(mutations)) {
+                    const existing = variables.find(v => v.key === key)
+                    if (value === null) {
+                        if (existing) dispatch(removeVariable({ id: existing.id }))
+                    } else if (existing) {
+                        dispatch(updateVariable({ ...existing, value }))
+                    } else {
+                        dispatch(addVariable({
+                            id: crypto.randomUUID(),
+                            key,
+                            value,
+                            type: "string",
+                            category: "",
+                        }))
+                    }
+                }
+                if (mutatedRequest) {
+                    request = { ...request, ...mutatedRequest }
+                }
+            } catch (err: any) {
+                CustomToast.error(`Pre-script error: ${err.message}`)
+            }
+        }
+        useSendRequest(request).
+        then(async (response) => {
             if (!response) return
             dispatch(setCurrentResponse({ id: currRequest.id, response }))
             if (!scriptValue?.trim()) return
 
             try {
-                const varsObj: Record<string, string> = {}
-                variables.forEach(v => { varsObj[v.key] = v.value })
-
-                const { result, mutations, logs } = await runScript({
+                const { result, mutations, logs } = await runPostScript({
                     script: scriptValue,
                     response,
                     variables: varsObj,
@@ -182,9 +229,9 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         }))
                     }
                 }
-                dispatch(setScriptResult({ id: currRequest.id, result }))
-                dispatch(setScriptMutations({ id: currRequest.id, mutations }))
-                dispatch(setScriptLogs({ id: currRequest.id, logs }))
+                dispatch(setScriptResult({ id: currRequest.id, type: "post", result }))
+                dispatch(setScriptMutations({ id: currRequest.id, type: "post", mutations }))
+                dispatch(setScriptLogs({ id: currRequest.id, type: "post", logs }))
             } catch (err: any) {
                 CustomToast.error(`Script error: ${err.message}`)
             }
@@ -198,22 +245,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             dispatch(setCurrentResponse({
                 id: currRequest.id,
                 response: {
-                    rawRequest: buildRawRequest({
-                        baseUrl: selectedBaseUrl,
-                        endpoint: formatEndpoint(endpoint),
-                        method: requestMethod,
-                        headers: (currRequest?.request?.header ?? [])
-                            .filter(h => !h.disabled)
-                            .map((header) => ({
-                                ...header,
-                                value: resolveVariableValue(header.value ?? "")
-                            })),
-                        requestParams: (currRequest?.request?.url.query ?? [])
-                            .filter(q => !q.disabled),
-                        contentType: getContentType(currRequest),
-                        raw: currRequest?.request?.body?.raw,
-                        formData: currRequest?.request?.body?.formdata
-                    }),
+                    rawRequest: buildRawRequest(request),
                     protocol: 'HTTP/1.1',
                     responseSize: size,
                     responseTime: response?.duration,

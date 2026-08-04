@@ -11,8 +11,11 @@ export interface ISendRequest {
     headers: ItemUrl[]
     requestParams: ItemUrl[]
     contentType: string
-    raw?: string
-    formData?: ItemUrl[]
+    body: {
+        mode: string
+        raw?: string
+        formData?: ItemUrl[]
+    }
 }
 
 type AxiosResponseWithDuration<T = unknown> = AxiosResponse<T> & {
@@ -57,9 +60,9 @@ export const buildRawRequest = (request: ISendRequest): string => {
 
     let bodyStr = ''
     if (request.contentType === 'application/json') {
-        bodyStr = request.raw ?? ''
-    } else if (request.contentType === 'multipart/form-data' && request.formData) {
-        bodyStr = request.formData
+        bodyStr = request.body.raw ?? ''
+    } else if (request.contentType === 'multipart/form-data' && request.body.formData) {
+        bodyStr = request.body.formData
             .map(f => `${f.key}: ${f.value}`)
             .join('\n')
     }
@@ -123,8 +126,8 @@ export const useSendRequest = async (request: ISendRequest):Promise<SendResponse
             return acc
         }, {} as Record<string, string>),
         data: request.contentType === "application/json"
-            ? (request.raw ?? "{}") :
-            formData(request.formData ?? []),
+            ? (request.body.raw ?? "{}") :
+            formData(request.body.formData ?? []),
         responseType: "blob",
     }) as AxiosResponseWithDuration<Blob>
 

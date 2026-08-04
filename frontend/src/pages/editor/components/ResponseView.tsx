@@ -77,6 +77,10 @@ const ResponseView: React.FC = () => {
     const scriptMutations = useAppSelector(selectScriptMutations)
     const examples = selectedRequest?.exampleResponse ?? []
 
+    const { pre: preResult, post: postResult } = scriptResult
+    const { pre: preLogs = [], post: postLogs = [] } = scriptLogs
+    const { pre: preMutations = {}, post: postMutations = {} } = scriptMutations
+
     const [sourceTab, setSourceTab] = useState("actual")
 
     const activeExample = sourceTab === "actual"
@@ -109,24 +113,35 @@ const ResponseView: React.FC = () => {
     }, [responseBody])
 
     const prettyResult = useMemo(() => {
-        if (scriptResult === null || scriptResult === undefined) return ""
-        try {
-            return typeof scriptResult === "string"
-                ? scriptResult
-                : JSON.stringify(scriptResult, null, 2)
-        } catch {
-            return String(scriptResult)
+        return (val: unknown) => {
+            if (val === null || val === undefined) return ""
+            try { return typeof val === "string" ? val : JSON.stringify(val, null, 2) }
+            catch { return String(val) }
         }
-    }, [scriptResult])
+    }, [])
 
-    const mutationKeys = Object.keys(scriptMutations)
-    const hasLogs = scriptLogs.length > 0
-    const hasMutations = mutationKeys.length > 0
-    const hasResult = prettyResult.length > 0
+    const prettyPreResult = useMemo(() => prettyResult(preResult), [preResult, prettyResult])
+    const prettyPostResult = useMemo(() => prettyResult(postResult), [postResult, prettyResult])
+
+    const preMutationKeys = Object.keys(preMutations)
+    const postMutationKeys = Object.keys(postMutations)
+    const hasPreResult = prettyPreResult.length > 0
+    const hasPostResult = prettyPostResult.length > 0
+    const hasPreLogs = preLogs.length > 0
+    const hasPostLogs = postLogs.length > 0
+    const hasPreMutations = preMutationKeys.length > 0
+    const hasPostMutations = postMutationKeys.length > 0
+    const hasResult = hasPreResult || hasPostResult
+    const hasLogs = hasPreLogs || hasPostLogs
+    const hasMutations = hasPreMutations || hasPostMutations
+
     const [responseOpen, setResponseOpen] = useState(true)
-    const [resultOpen, setResultOpen] = useState(true)
-    const [mutationsOpen, setMutationsOpen] = useState(true)
-    const [logsOpen, setLogsOpen] = useState(true)
+    const [preResultOpen, setPreResultOpen] = useState(true)
+    const [postResultOpen, setPostResultOpen] = useState(true)
+    const [preMutationsOpen, setPreMutationsOpen] = useState(true)
+    const [postMutationsOpen, setPostMutationsOpen] = useState(true)
+    const [preLogsOpen, setPreLogsOpen] = useState(true)
+    const [postLogsOpen, setPostLogsOpen] = useState(true)
 
     const [dialogOpen, setDialogOpen] = useState(false)
     const [exampleName, setExampleName] = useState("")
@@ -339,32 +354,49 @@ const ResponseView: React.FC = () => {
                                 </Collapsible>
                             )}
 
-                            {/* Script Result */}
-                            {hasResult && (
-                                <Collapsible open={resultOpen} onOpenChange={setResultOpen}
+                            {/* Pre-request Script Result */}
+                            {hasPreResult && (
+                                <Collapsible open={preResultOpen} onOpenChange={setPreResultOpen}
                                     className="rounded-lg border border-slate-200">
                                     <SectionHeader
-                                        label="Script Result"
-                                        open={resultOpen}
-                                        onToggle={() => setResultOpen(!resultOpen)}
+                                        label="Pre-request Script Result"
+                                        open={preResultOpen}
+                                        onToggle={() => setPreResultOpen(!preResultOpen)}
                                     />
                                     <CollapsibleContent className="px-3 pb-3">
                                         <pre className="font-mono text-xs text-slate-300 bg-[#272822] rounded-md p-3 overflow-auto max-h-[200px]">
-                                            {prettyResult}
+                                            {prettyPreResult}
                                         </pre>
                                     </CollapsibleContent>
                                 </Collapsible>
                             )}
 
-                            {/* Mutations */}
-                            {hasMutations && (
-                                <Collapsible open={mutationsOpen} onOpenChange={setMutationsOpen}
+                            {/* Post-request Script Result */}
+                            {hasPostResult && (
+                                <Collapsible open={postResultOpen} onOpenChange={setPostResultOpen}
                                     className="rounded-lg border border-slate-200">
                                     <SectionHeader
-                                        label="Mutations"
-                                        count={mutationKeys.length}
-                                        open={mutationsOpen}
-                                        onToggle={() => setMutationsOpen(!mutationsOpen)}
+                                        label="Post-request Script Result"
+                                        open={postResultOpen}
+                                        onToggle={() => setPostResultOpen(!postResultOpen)}
+                                    />
+                                    <CollapsibleContent className="px-3 pb-3">
+                                        <pre className="font-mono text-xs text-slate-300 bg-[#272822] rounded-md p-3 overflow-auto max-h-[200px]">
+                                            {prettyPostResult}
+                                        </pre>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            )}
+
+                            {/* Pre-request Mutations */}
+                            {hasPreMutations && (
+                                <Collapsible open={preMutationsOpen} onOpenChange={setPreMutationsOpen}
+                                    className="rounded-lg border border-slate-200">
+                                    <SectionHeader
+                                        label="Pre-request Mutations"
+                                        count={preMutationKeys.length}
+                                        open={preMutationsOpen}
+                                        onToggle={() => setPreMutationsOpen(!preMutationsOpen)}
                                     />
                                     <CollapsibleContent className="px-3 pb-3">
                                         <div className="overflow-hidden rounded-md border border-slate-200">
@@ -373,13 +405,13 @@ const ResponseView: React.FC = () => {
                                                 <span>Key</span>
                                                 <span>Value</span>
                                             </div>
-                                            {mutationKeys.map((key) => (
+                                            {preMutationKeys.map((key) => (
                                                 <div key={key}
                                                     className="grid grid-cols-2 border-t border-slate-200 px-3 py-1.5 text-xs">
                                                     <span
                                                         className="font-mono text-slate-700 truncate">{key}</span>
                                                     <span className="font-mono text-slate-500 truncate">
-                                                        {scriptMutations[key] ?? "(deleted)"}
+                                                        {preMutations[key] ?? "(deleted)"}
                                                     </span>
                                                 </div>
                                             ))}
@@ -388,19 +420,71 @@ const ResponseView: React.FC = () => {
                                 </Collapsible>
                             )}
 
-                            {/* Console Logs */}
-                            {hasLogs && (
-                                <Collapsible open={logsOpen} onOpenChange={setLogsOpen}
+                            {/* Post-request Mutations */}
+                            {hasPostMutations && (
+                                <Collapsible open={postMutationsOpen} onOpenChange={setPostMutationsOpen}
                                     className="rounded-lg border border-slate-200">
                                     <SectionHeader
-                                        label="Console Logs"
-                                        count={scriptLogs.length}
-                                        open={logsOpen}
-                                        onToggle={() => setLogsOpen(!logsOpen)}
+                                        label="Post-request Mutations"
+                                        count={postMutationKeys.length}
+                                        open={postMutationsOpen}
+                                        onToggle={() => setPostMutationsOpen(!postMutationsOpen)}
+                                    />
+                                    <CollapsibleContent className="px-3 pb-3">
+                                        <div className="overflow-hidden rounded-md border border-slate-200">
+                                            <div
+                                                className="grid grid-cols-2 bg-slate-100 px-3 py-1.5 text-xs font-medium uppercase text-slate-600">
+                                                <span>Key</span>
+                                                <span>Value</span>
+                                            </div>
+                                            {postMutationKeys.map((key) => (
+                                                <div key={key}
+                                                    className="grid grid-cols-2 border-t border-slate-200 px-3 py-1.5 text-xs">
+                                                    <span
+                                                        className="font-mono text-slate-700 truncate">{key}</span>
+                                                    <span className="font-mono text-slate-500 truncate">
+                                                        {postMutations[key] ?? "(deleted)"}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            )}
+
+                            {/* Pre-request Console Logs */}
+                            {hasPreLogs && (
+                                <Collapsible open={preLogsOpen} onOpenChange={setPreLogsOpen}
+                                    className="rounded-lg border border-slate-200">
+                                    <SectionHeader
+                                        label="Pre-request Console Logs"
+                                        count={preLogs.length}
+                                        open={preLogsOpen}
+                                        onToggle={() => setPreLogsOpen(!preLogsOpen)}
                                     />
                                     <CollapsibleContent className="px-3 pb-3">
                                         <div className="bg-[#272822] rounded-md p-3 max-h-[300px] overflow-auto font-mono">
-                                            {scriptLogs.map((log, i) => (
+                                            {preLogs.map((log, i) => (
+                                                <LogEntry key={i} log={log}/>
+                                            ))}
+                                        </div>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            )}
+
+                            {/* Post-request Console Logs */}
+                            {hasPostLogs && (
+                                <Collapsible open={postLogsOpen} onOpenChange={setPostLogsOpen}
+                                    className="rounded-lg border border-slate-200">
+                                    <SectionHeader
+                                        label="Post-request Console Logs"
+                                        count={postLogs.length}
+                                        open={postLogsOpen}
+                                        onToggle={() => setPostLogsOpen(!postLogsOpen)}
+                                    />
+                                    <CollapsibleContent className="px-3 pb-3">
+                                        <div className="bg-[#272822] rounded-md p-3 max-h-[300px] overflow-auto font-mono">
+                                            {postLogs.map((log, i) => (
                                                 <LogEntry key={i} log={log}/>
                                             ))}
                                         </div>

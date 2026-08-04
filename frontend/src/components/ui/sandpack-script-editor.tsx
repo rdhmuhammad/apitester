@@ -6,7 +6,6 @@ import {
 } from "@codesandbox/sandpack-react"
 import { autocompletion, completionKeymap, type CompletionSource } from "@codemirror/autocomplete"
 import { useEffect, useMemo, useRef } from "react"
-
 export interface SandpackScriptEditorProps {
     value: string
     onChange: (code: string) => void
@@ -45,7 +44,7 @@ export const SandpackScriptEditor: React.FC<SandpackScriptEditorProps> = ({
 
     const editorExtensions = useMemo(() => {
         if (!autoComplete) return undefined
-        if (autoComplete === true) return {
+        if (autoComplete) return {
             extensions: [autocompletion()],
             extensionsKeymap: [completionKeymap],
         }
@@ -55,22 +54,32 @@ export const SandpackScriptEditor: React.FC<SandpackScriptEditorProps> = ({
         }
     }, [autoComplete])
 
+    // @ts-ignore
     return (
         <SandpackProvider
             key={editorKey}
+            template={'node'}
             files={files}
             customSetup={{
                 entry: "/index.js",
+                dependencies: {
+                    "crypto-js": "latest",
+                },
             }}
             options={{
                 autorun: false,
+                initMode: "immediate",
+                recompileMode: "immediate",
             }}
         >
             <SyncScript onChange={onChange} />
             <SandpackLayout>
+                {/*@ts-ignore*/}
                 <SandpackCodeEditor
+                    style={{minHeight: '590px'}}
                     showTabs={false}
-                    showLineNumbers
+                    showInlineErrors={true}
+                    showLineNumbers={true}
                     showRunButton={false}
                     wrapContent
                     readOnly={readOnly}
