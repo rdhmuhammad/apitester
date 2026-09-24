@@ -3,12 +3,11 @@
 package logger
 
 import (
+	"context"
 	"os"
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	sentrygin "github.com/getsentry/sentry-go/gin"
-	"github.com/gin-gonic/gin"
 )
 
 type Sentry struct {
@@ -23,7 +22,7 @@ type Hub interface {
 type Catcher interface {
 	Catch(err error)
 	CaptureMessage(msg string)
-	SetHubFromContext(ctx *gin.Context)
+	SetHubFromContext(ctx context.Context)
 }
 
 func Default() Catcher {
@@ -59,6 +58,6 @@ func (c *Sentry) CaptureMessage(msg string) {
 	c.hub.CaptureMessage(msg)
 }
 
-func (c *Sentry) SetHubFromContext(ctx *gin.Context) {
-	c.hub = sentrygin.GetHubFromContext(ctx)
+func (c *Sentry) SetHubFromContext(ctx context.Context) {
+	c.hub = sentry.GetHubFromContext(ctx)
 }

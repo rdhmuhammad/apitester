@@ -8,4 +8,7 @@ deployment/desktop/build
 deployment/desktop/installer
 deployment/docker/out
 apitester
-.env.prod
+.env.stag
+graphify-out
+.opencode
+main.exe

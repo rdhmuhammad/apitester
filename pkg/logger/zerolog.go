@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 )
 
@@ -86,46 +86,47 @@ func DefaultLogger() ReZero {
 		level:  level}
 }
 
-func (l *ReZero) LoggingRequest(c *gin.Context) {
-
-	if zerolog.DebugLevel != l.level {
-		c.Next()
-		return
-	}
-
-	// Read the request body
-	var bodyBytes []byte
-	if c.Request.Body != nil {
-		bodyBytes, _ = io.ReadAll(c.Request.Body)
-	}
-
-	// Restore the body so it can be read again by subsequent handlers
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-
-	// Build log event
-	event := l.logger.Info().
-		Str("method", c.Request.Method).
-		Str("path", c.Request.URL.Path).
-		Str("query", c.Request.URL.RawQuery).
-		Str("client_ip", c.ClientIP()).
-		Str("user_agent", c.Request.UserAgent())
-
-	// Only log body if it exists and is valid JSON, otherwise log as string
-	if len(bodyBytes) > 0 {
-		// Mask sensitive fields like password
-		maskedBody := sensitiveFieldRegex.ReplaceAll(bodyBytes, []byte(`"password":"*****"`))
-
-		// Check if it's valid JSON by looking for opening brace or bracket
-		trimmed := bytes.TrimSpace(maskedBody)
-		if len(trimmed) > 0 && (trimmed[0] == '{' || trimmed[0] == '[') {
-			event = event.RawJSON("body", maskedBody)
-		} else {
-			event = event.Str("body", string(maskedBody))
+func (l *ReZero) LoggingRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if zerolog.DebugLevel != l.level {
+			next.ServeHTTP(w, r)
+			return
 		}
-	}
 
-	event.Msg("incoming request")
-	c.Next()
+		// Read the request body
+		var bodyBytes []byte
+		if r.Body != nil {
+			bodyBytes, _ = io.ReadAll(r.Body)
+		}
+
+		// Restore the body so it can be read again by subsequent handlers
+		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		// Build log event
+		event := l.logger.Info().
+			Str("method", r.Method).
+			Str("path", r.URL.Path).
+			Str("query", r.URL.RawQuery).
+			Str("remote_addr", r.RemoteAddr).
+			Str("user_agent", r.UserAgent())
+
+		// Only log body if it exists and is valid JSON, otherwise log as string
+		if len(bodyBytes) > 0 {
+			// Mask sensitive fields like password
+			maskedBody := sensitiveFieldRegex.ReplaceAll(bodyBytes, []byte(`"password":"*****"`))
+
+			// Check if it's valid JSON by looking for opening brace or bracket
+			trimmed := bytes.TrimSpace(maskedBody)
+			if len(trimmed) > 0 && (trimmed[0] == '{' || trimmed[0] == '[') {
+				event = event.RawJSON("body", maskedBody)
+			} else {
+				event = event.Str("body", string(maskedBody))
+			}
+		}
+
+		event.Msg("incoming request")
+		next.ServeHTTP(w, r)
+	})
 }
 
 // Info logs an info level message

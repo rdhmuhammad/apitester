@@ -12,6 +12,19 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/.env': {
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     rollupOptions: {
       output: {
@@ -47,7 +60,7 @@ export default defineConfig({
           "vendor-redux": ["@reduxjs/toolkit", "react-redux"],
           "vendor-query": ["@tanstack/react-query"],
           "vendor-forms": ["react-hook-form", "zod", "@hookform/resolvers"],
-          "vendor-editor": ["react-ace", "ace-builds"],
+          "vendor-editor": ["@codesandbox/sandpack-react"],
           "vendor-router": ["react-router-dom"],
           "vendor-i18n": ["i18next", "react-i18next"],
           "vendor-charts": ["recharts"],

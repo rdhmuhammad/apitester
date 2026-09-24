@@ -1,12 +1,10 @@
 package watch
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-	"github.com/rdhmuhammad/apitester/internal/domain"
-	"github.com/rdhmuhammad/apitester/pkg/bbolt"
 	"github.com/rdhmuhammad/apitester/pkg/logger"
 	"github.com/rdhmuhammad/apitester/pkg/mapper"
 	"github.com/rdhmuhammad/apitester/shared/payload"
@@ -18,72 +16,43 @@ type Controller struct {
 }
 
 type UsecaseInterface interface {
-	Read(id string) (ReadResponse, error)
-	ListCollections() ([]domain.Collection, error)
-	SelectCollection(id string) (domain.Collection, error)
-	WriteCollection(id string, content string) error
-	GetActiveCollection() (domain.Collection, error)
-	ReadSelectedCollection() (ReadResponse, error)
+	Read() (ReadResponse, error)
+	WriteCollection(content string) error
 }
 
-func NewController(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[domain.Collection], selectedCollectionRepo bbolt.RepositoryInterface[domain.SelectedCollection]) Controller {
+func NewController(lg *logger.ReZero, collectionPath string) Controller {
 	return Controller{
-		Uc: NewUsecase(lg, collectionRepo, selectedCollectionRepo),
+		Uc:     NewUsecase(lg, collectionPath),
+		mapper: mapper.NewMapper(),
 	}
 }
 
-func (ctrl Controller) Read(c *gin.Context) {
-	id := c.Param("id")
-	res, err := ctrl.Uc.Read(id)
-	ctrl.mapper.NewResponse(c, payload.NewSuccessResponse(res, "Success"),
-		err,
-	)
+func (ctrl Controller) Read(w http.ResponseWriter, r *http.Request) {
+	res, err := ctrl.Uc.Read()
+	ctrl.mapper.NewResponse(w, payload.NewSuccessResponse(res, "Success"), err)
 }
 
-func (ctrl Controller) SelectCollection(c *gin.Context) {
-	id := c.Param("id")
-	res, err := ctrl.Uc.SelectCollection(id)
-	ctrl.mapper.NewResponse(c, payload.NewSuccessResponse(res, "Collection selected"), err)
-}
-
-func (ctrl Controller) WriteCollection(c *gin.Context) {
-	id := c.Param("id")
-	body, err := io.ReadAll(c.Request.Body)
+func (ctrl Controller) WriteCollection(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, payload.DefaultErrorInvalidDataWithMessage(err.Error()))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(payload.DefaultErrorInvalidDataWithMessage(err.Error()))
 		return
 	}
 
-	err = ctrl.Uc.WriteCollection(id, string(body))
+	err = ctrl.Uc.WriteCollection(string(body))
 	if invalid, invalidErr := ctrl.mapper.IsInvalidDataError(err); invalid {
-		c.JSON(http.StatusBadRequest, payload.DefaultErrorInvalidDataWithMessage(invalidErr.Error()))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(payload.DefaultErrorInvalidDataWithMessage(invalidErr.Error()))
 		return
 	}
 
-	ctrl.mapper.NewResponse(c, payload.NewSuccessResponseNoData("Collection written successfully"), err)
+	ctrl.mapper.NewResponse(w, payload.NewSuccessResponseNoData("Collection written successfully"), err)
 }
 
-func (ctrl Controller) GetActiveCollection(c *gin.Context) {
-	res, err := ctrl.Uc.GetActiveCollection()
-	ctrl.mapper.NewResponse(c, payload.NewSuccessResponse(res, "Success"), err)
-}
-
-func (ctrl Controller) ListCollections(c *gin.Context) {
-	res, err := ctrl.Uc.ListCollections()
-	ctrl.mapper.NewResponse(c, payload.NewSuccessResponse(res, "Success"), err)
-}
-
-func (ctrl Controller) ReadSelectedCollection(c *gin.Context) {
-	res, err := ctrl.Uc.ReadSelectedCollection()
-	ctrl.mapper.NewResponse(c, payload.NewSuccessResponse(res, "Success"), err)
-}
-
-func (ctrl Controller) Route(rg *gin.RouterGroup) {
-	collection := rg.Group("/collection")
-	collection.GET("/read/:id", ctrl.Read)
-	collection.GET("/list", ctrl.ListCollections)
-	collection.PUT("/select/:id", ctrl.SelectCollection)
-	collection.PUT("/write/:id", ctrl.WriteCollection)
-	collection.GET("/get-active", ctrl.GetActiveCollection)
-	collection.GET("/read-selected", ctrl.ReadSelectedCollection)
+func (ctrl Controller) Register(mux *http.ServeMux, prefix string) {
+	mux.HandleFunc("GET "+prefix+"/collection/read", ctrl.Read)
+	mux.HandleFunc("PUT "+prefix+"/collection/write", ctrl.WriteCollection)
 }

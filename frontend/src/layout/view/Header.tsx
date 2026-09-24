@@ -33,7 +33,6 @@ import type {CollectionVar, ItemUrl} from "@/pages/editor/types/api.ts";
 import {addQueryParam, setUrlRaw, updateQueryParam} from "@/app/slices/requestSlices.ts";
 import CollectionManagerDialog from "@/layout/components/CollectionManagerDialog.tsx";
 import {useCollectionPushPull} from "@/layout/hooks/useCollectionPushPull.ts";
-import {selectActiveEnvironmentVariables} from "@/app/slices/environmentSlice.ts"
 
 const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     {
@@ -45,7 +44,6 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const variables = useAppSelector(selectVariable)
     const scriptValue = useAppSelector(selectActiveRequestScript)
     const collectionData = useAppSelector(selectCollectionData)
-    const envVars = useAppSelector(selectActiveEnvironmentVariables)
     const activeTabId = useAppSelector(selectActiveTabId)
 
     useEffect(() => {
@@ -96,7 +94,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
         return value.replace(/\{\{([^{}]+)\}\}/g, (_, key: string) => {
             const k = key.trim()
             const matchedVar = variables.find((item) => item.key === k)
-            return envVars[k] ?? matchedVar?.value ?? `{{${key}}}`
+            return matchedVar?.value ?? `{{${key}}}`
         })
     }
 
@@ -169,7 +167,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                 const {result, mutations, logs} = await runScript({
                     script: scriptValue,
                     response,
-                    variables: varsObj,
+                    collectionVariables: varsObj,
                 })
 
                 for (const [key, value] of Object.entries(mutations)) {

@@ -1,40 +1,40 @@
 package mapper
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/rdhmuhammad/apitester/pkg/localerror"
 	payload "github.com/rdhmuhammad/apitester/shared/payload"
 )
 
-func (m Mapper) NewResponse(c *gin.Context, res *payload.Response, err error) {
+func writeJSON(w http.ResponseWriter, status int, data any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(data)
+}
+
+func (m Mapper) NewResponse(w http.ResponseWriter, res *payload.Response, err error) {
 	if err != nil {
 		if m.IsAccessControlError(err) {
-			c.JSON(
-				http.StatusUnauthorized,
-				payload.DefaultErrorInvalidDataWithMessage(err.Error()),
-			)
+			writeJSON(w, http.StatusUnauthorized, payload.DefaultErrorInvalidDataWithMessage(err.Error()))
 			return
 		}
 		fmt.Printf("ERROR: %s \n", err.Error())
-		c.JSON(
-			http.StatusInternalServerError,
-			payload.DefaultErrorResponseWithMessage(err.Error(), err),
-		)
+		writeJSON(w, http.StatusInternalServerError, payload.DefaultErrorResponseWithMessage(err.Error(), err))
 		return
 	}
 	if res != nil {
 		res.Message = "Success"
-		c.JSON(http.StatusOK, res)
+		writeJSON(w, http.StatusOK, res)
 		return
 	}
 
-	c.Status(http.StatusOK)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (m Mapper) IsInvalidDataError(err error) (bool, localerror.InvalidDataError) {
@@ -72,7 +72,6 @@ func (m Mapper) ErrorIs(template error, targer error) bool {
 
 	match, err := regexp.MatchString(pattern+"$", targer.Error())
 	if err != nil {
-
 		return false
 	}
 

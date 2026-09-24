@@ -139,6 +139,11 @@ const collectionSlices = createSlice({
 
             state.data.info = action.payload
         },
+        setCollectionAuth(state, action: PayloadAction<CollectionAuth | undefined>) {
+            if (!state.data) return
+
+            state.data.auth = action.payload
+        },
         addVariable(state, action: PayloadAction<CollectionVar>) {
             state.variable.push(action.payload)
             syncCollectionVariables(state)
@@ -355,6 +360,7 @@ export const {
     setActiveRequestScript,
     setCollectionScript,
     setCollectionInfo,
+    setCollectionAuth,
     addVariable,
     removeVariable,
     updateVariable,
@@ -570,7 +576,9 @@ const isBaseUrlVariable = (item: CollectionVar) =>
     item.key.toLowerCase().includes('base_url') || item.category?.toUpperCase() === 'BASE_URL'
 
 const resolveBaseUrlValue = (value: string): string => {
-    if (value === DEFAULT_BASE_URL_VALUE || !value.trim()) return ''
+    if (value === DEFAULT_BASE_URL_VALUE || !value.trim()) {
+        return typeof window !== 'undefined' ? window.location.origin : ''
+    }
     return value
 }
 

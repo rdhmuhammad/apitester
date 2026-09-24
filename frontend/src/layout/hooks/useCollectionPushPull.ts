@@ -5,7 +5,6 @@ import {saveActiveToData, selectCollectionData} from "@/app/slices/collectionSli
 import {store} from "@/app/store/store.ts"
 import {CollectionServices} from "@/layout/services/collection.ts"
 import CustomToast from "@/components/common/toast"
-import {fetchEnvironments} from "@/app/slices/environmentSlice.ts";
 
 export function useCollectionPushPull() {
     const dispatch = useAppDispatch()
@@ -15,9 +14,7 @@ export function useCollectionPushPull() {
     const pull = useCallback(async () => {
         setIsPulling(true)
         try {
-            const active = await CollectionServices.getActiveCollection()
-            await dispatch(fetchCollections(active.id)).unwrap()
-            await dispatch(fetchEnvironments(active.id)).unwrap()
+            await dispatch(fetchCollections()).unwrap()
             CustomToast.success("Collection pulled successfully")
         } catch {
             CustomToast.error("Failed to pull collection")
@@ -31,8 +28,7 @@ export function useCollectionPushPull() {
         try {
             dispatch(saveActiveToData())
             const data = selectCollectionData(store.getState())
-            const active = await CollectionServices.getActiveCollection()
-            await CollectionServices.writeCollection(active.id, JSON.stringify(data, null, 2))
+            await CollectionServices.writeCollection(JSON.stringify(data, null, 2))
             CustomToast.success("Collection pushed successfully")
         } catch {
             CustomToast.error("Failed to push collection")

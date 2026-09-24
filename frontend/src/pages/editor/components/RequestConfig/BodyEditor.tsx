@@ -1,6 +1,4 @@
-import 'ace-builds/src-noconflict/ace.js'
-import 'ace-builds/src-noconflict/mode-json.js'
-import AceEditor from "react-ace";
+import {SandpackScriptEditor} from "@/components/ui/sandpack-script-editor.tsx";
 import {Card} from "@/components/ui/card.tsx";
 import {SearchIcon, ToggleLeft, ToggleRight, Trash2, Plus} from "lucide-react";
 import {Input} from "@/components/ui/input.tsx";
@@ -8,7 +6,6 @@ import {Button} from "@/components/ui/button.tsx";
 import CustomToast from "@/components/common/toast";
 import {cn} from "@/lib/utils.ts";
 import React, {useEffect, useRef, useState} from "react";
-import type {IAceEditor} from "react-ace/lib/types";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {selectRequestBody, setBody} from "@/app/slices/requestSlices.ts";
@@ -35,7 +32,6 @@ export const BodyEditor: React.FC<IBodyEditor> = (
         selectedText: string;
     }
 
-    const editorRef = useRef<IAceEditor | null>(null)
     const editorContainerRef = useRef<HTMLDivElement | null>(null)
     const [editorHeight, setEditorHeight] = useState(280)
     const [menu, setMenu] = useState<MenuState>({
@@ -55,7 +51,6 @@ export const BodyEditor: React.FC<IBodyEditor> = (
             const nextHeight = entries[0]?.contentRect.height
             if (!nextHeight) return
             setEditorHeight(nextHeight)
-            editorRef.current?.editor.resize()
         })
 
         resizeObserver.observe(container)
@@ -67,23 +62,6 @@ export const BodyEditor: React.FC<IBodyEditor> = (
 
     const onClosePopup = () => {
         setMenu((m) => (m.open ? {...m, open: false} : m))
-    }
-
-    const onEditorLoad = (editor: IAceEditor) => {
-        editorRef.current = editor
-
-        editor.container.addEventListener("contextmenu", (ev: MouseEvent) => {
-            const selectedText = editor.getSelectedText()
-            if (selectedText) {
-                ev.preventDefault()
-                setMenu({
-                    open: true,
-                    x: ev.clientX,
-                    y: ev.clientY,
-                    selectedText
-                })
-            }
-        })
     }
 
     interface IVariable {
@@ -161,32 +139,23 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                         className="min-h-[280px] resize-y overflow-auto rounded-lg border border-slate-200"
                         onClick={menu.open ? onClosePopup : undefined}
                     >
-                        <AceEditor
-                            placeholder="Request body in json"
-                            mode="json"
-                            theme="github"
-                            name="blah2"
-                            fontSize={14}
-                            width="100%"
-                            height={`${editorHeight}px`}
-                            lineHeight={19}
-                            onLoad={onEditorLoad}
-                            onChange={e => {
+                        <SandpackScriptEditor
+                            value={selectBody?.raw ?? ""}
+                            onChange={(e) => {
                                 dispatch(setBody({body: e}))
                             }}
-                            showPrintMargin={true}
-                            showGutter={true}
-                            value={selectBody?.raw ?? ""}
-                            highlightActiveLine={true}
-                            setOptions={{
-                                enableBasicAutocompletion: false,
-                                enableLiveAutocompletion: true,
-                                enableSnippets: false,
-                                enableMobileMenu: true,
-                                useWorker: false,
-                                showLineNumbers: true,
-                                tabSize: 2,
-                            }}/>
+                            fileName="body.json"
+                            style={{ height: `${editorHeight}px`, minHeight: "280px" }}
+                            className="h-full"
+                            onSelectionContextMenu={(selectedText, position) => {
+                                setMenu({
+                                    open: true,
+                                    x: position.x,
+                                    y: position.y,
+                                    selectedText
+                                })
+                            }}
+                        />
                     </div>
                     {
                         menu.open && (

@@ -1,18 +1,13 @@
 package watch
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/rdhmuhammad/apitester/internal/domain"
-	"github.com/rdhmuhammad/apitester/pkg/bbolt"
 	"github.com/rdhmuhammad/apitester/pkg/localerror"
 	"github.com/rdhmuhammad/apitester/pkg/logger"
 	"github.com/rdhmuhammad/apitester/pkg/watcher"
@@ -21,91 +16,30 @@ import (
 var baseURLRegex = regexp.MustCompile(`(?i)(base.*url|url.*base)`)
 
 type Usecase struct {
-	watcher                *watcher.FileWatcher
-	errHandler             localerror.HandleError
-	collectionRepo         bbolt.RepositoryInterface[domain.Collection]
-	selectedCollectionRepo bbolt.RepositoryInterface[domain.SelectedCollection]
+	watcher    *watcher.FileWatcher
+	errHandler localerror.HandleError
+	path       string
 }
 
-func NewUsecase(lg *logger.ReZero, collectionRepo bbolt.RepositoryInterface[domain.Collection], selectedCollectionRepo bbolt.RepositoryInterface[domain.SelectedCollection]) *Usecase {
+func NewUsecase(lg *logger.ReZero, collectionPath string) *Usecase {
 	fw := watcher.New()
-
-	if selected := findSelectedCollection(collectionRepo); selected != nil {
-		fw.Watch(selected.Path)
+	if collectionPath != "" {
+		fw.Watch(collectionPath)
 	}
 
-	u := &Usecase{
-		errHandler:             localerror.NewHandlerError(lg),
-		watcher:                fw,
-		collectionRepo:         collectionRepo,
-		selectedCollectionRepo: selectedCollectionRepo,
-	}
-
-	u.seedCollections()
-
-	return u
-}
-
-func findSelectedCollection(repo bbolt.RepositoryInterface[domain.Collection]) *domain.Collection {
-	all, err := repo.List(context.Background())
-	if err != nil {
-		return nil
-	}
-	for i := range all {
-		if all[i].IsSelected {
-			return &all[i]
-		}
-	}
-	return nil
-}
-
-func (u *Usecase) seedCollections() {
-	for i := 0; ; i++ {
-		name := os.Getenv(fmt.Sprintf("COLLECTION_%d_NAME", i))
-		path := os.Getenv(fmt.Sprintf("COLLECTION_%d_PATH", i))
-		if name == "" || path == "" {
-			break
-		}
-
-		existing, err := u.collectionRepo.List(context.Background())
-		if err != nil {
-			continue
-		}
-
-		alreadyExists := false
-		for _, c := range existing {
-			if c.Name == name {
-				alreadyExists = true
-				break
-			}
-		}
-		if alreadyExists {
-			continue
-		}
-
-		u.collectionRepo.Create(context.Background(), uuid.NewString(), &domain.Collection{
-			Name:      name,
-			Path:      path,
-			ID:        uuid.NewString(),
-			CreatedAt: time.Now(),
-		})
+	return &Usecase{
+		errHandler: localerror.NewHandlerError(lg),
+		watcher:    fw,
+		path:       collectionPath,
 	}
 }
 
-func (u *Usecase) ListCollections() ([]domain.Collection, error) {
-	return u.collectionRepo.List(context.Background())
-}
-
-func (u *Usecase) Read(id string) (ReadResponse, error) {
-	collection, err := u.collectionRepo.View(context.Background(), id)
-	if err != nil {
-		return ReadResponse{}, u.errHandler.ErrorReturn(err)
-	}
-	if collection == nil {
-		return ReadResponse{}, localerror.InvalidData("Collection not found")
+func (u *Usecase) Read() (ReadResponse, error) {
+	if u.path == "" {
+		return ReadResponse{}, localerror.InvalidData("Collection path is not set")
 	}
 
-	fileBytes, err := os.ReadFile(collection.Path)
+	fileBytes, err := os.ReadFile(u.path)
 	if err != nil {
 		return ReadResponse{}, u.errHandler.ErrorReturn(err)
 	}
@@ -123,101 +57,33 @@ func (u *Usecase) Read(id string) (ReadResponse, error) {
 	}
 
 	docsContent.Item = setId(docsContent.Item)
+
+	info, _ := os.Stat(u.path)
+	var updatedAt time.Time
+	if info != nil {
+		updatedAt = info.ModTime()
+	}
+
 	return ReadResponse{
 		Content:   docsContent,
 		Changed:   false,
-		UpdatedAt: collection.UpdatedAt,
+		UpdatedAt: updatedAt,
 	}, nil
 }
 
-func (u *Usecase) SelectCollection(id string) (domain.Collection, error) {
-	all, err := u.collectionRepo.List(context.Background())
-	if err != nil {
-		return domain.Collection{}, u.errHandler.ErrorReturn(err)
-	}
-
-	var selected *domain.Collection
-	for _, c := range all {
-		c.IsSelected = false
-		if c.ID == id {
-			c.IsSelected = true
-			selected = &c
-		}
-		if err := u.collectionRepo.Update(context.Background(), c.ID, &c); err != nil {
-			return domain.Collection{}, u.errHandler.ErrorReturn(err)
-		}
-	}
-
-	if selected == nil {
-		return domain.Collection{}, localerror.InvalidData("Collection not found")
-	}
-
-	allSelected, err := u.selectedCollectionRepo.List(context.Background())
-	if err != nil {
-		return domain.Collection{}, u.errHandler.ErrorReturn(err)
-	}
-	for _, s := range allSelected {
-		if err := u.selectedCollectionRepo.Delete(context.Background(), s.ID); err != nil {
-			return domain.Collection{}, u.errHandler.ErrorReturn(err)
-		}
-	}
-
-	recordID := uuid.NewString()
-	if err := u.selectedCollectionRepo.Create(context.Background(), recordID, &domain.SelectedCollection{
-		ID:         recordID,
-		Collection: selected.ID,
-		CreatedAt:  time.Now(),
-	}); err != nil {
-		return domain.Collection{}, u.errHandler.ErrorReturn(err)
-	}
-
-	u.watcher.Watch(selected.Path)
-
-	return *selected, nil
-}
-
-func (u *Usecase) GetActiveCollection() (domain.Collection, error) {
-	selected := findSelectedCollection(u.collectionRepo)
-	if selected == nil {
-		return domain.Collection{}, localerror.InvalidData("No active collection")
-	}
-	return *selected, nil
-}
-
-func (u *Usecase) ReadSelectedCollection() (ReadResponse, error) {
-	all, err := u.selectedCollectionRepo.List(context.Background())
-	if err != nil {
-		return ReadResponse{}, u.errHandler.ErrorReturn(err)
-	}
-	if len(all) == 0 {
-		return ReadResponse{}, localerror.InvalidData("No selected collection found")
-	}
-
-	sort.Slice(all, func(i, j int) bool {
-		return all[i].CreatedAt.After(all[j].CreatedAt)
-	})
-
-	return u.Read(all[0].Collection)
-}
-
-func (u *Usecase) WriteCollection(id string, content string) error {
+func (u *Usecase) WriteCollection(content string) error {
 	if content == "" {
 		return localerror.InvalidData("Collection content is required")
 	}
-
-	collection, err := u.collectionRepo.View(context.Background(), id)
-	if err != nil {
-		return u.errHandler.ErrorReturn(err)
-	}
-	if collection == nil {
-		return localerror.InvalidData("Collection not found")
+	if u.path == "" {
+		return localerror.InvalidData("Collection path is not set")
 	}
 
-	if err := os.WriteFile(collection.Path, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(u.path, []byte(content), 0644); err != nil {
 		return u.errHandler.ErrorReturn(err)
 	}
 
-	info, err := os.Stat(collection.Path)
+	info, err := os.Stat(u.path)
 	if err != nil {
 		return u.errHandler.ErrorReturn(err)
 	}
@@ -233,34 +99,8 @@ func (u *Usecase) WriteCollection(id string, content string) error {
 	return nil
 }
 
-func (u *Usecase) saveToFile(content []byte) error {
-	selected := findSelectedCollection(u.collectionRepo)
-	if selected == nil {
-		return localerror.InvalidData("No active collection selected")
-	}
-
-	if err := os.WriteFile(selected.Path, content, 0644); err != nil {
-		return u.errHandler.ErrorReturn(err)
-	}
-
-	info, err := os.Stat(selected.Path)
-	if err != nil {
-		return u.errHandler.ErrorReturn(err)
-	}
-
-	if u.watcher != nil && u.watcher.State != nil {
-		u.watcher.State.Update(string(content), info.ModTime())
-	}
-
-	if info.ModTime().IsZero() && u.watcher != nil && u.watcher.State != nil {
-		u.watcher.State.Update(string(content), time.Now())
-	}
-
-	return nil
-}
-
 func setId(item []CollectionItem) []CollectionItem {
-	for i, _ := range item {
+	for i := range item {
 		item[i].ID = uuid.NewString()
 
 		if item[i].Request != nil {

@@ -1,15 +1,49 @@
 import Axios from "axios";
 import type {AxiosError, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 
-const getBaseURL = () => {
-    return import.meta.env.VITE_API_URL || "/api/v1"
-}
+export const parseEnv = (text: string): Record<string, string> => {
+    const env: Record<string, string> = {};
+    for (const line of text.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const idx = trimmed.indexOf("=");
+        if (idx > 0) {
+            const key = trimmed.slice(0, idx).trim();
+            const val = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, "");
+            env[key] = val;
+        }
+    }
+    return env;
+};
+
+let apiBaseURL = import.meta.env.VITE_API_URL || "/api/v1";
 
 export const axios = Axios.create({
-    baseURL: getBaseURL(),
+    baseURL: apiBaseURL,
     withCredentials: true,
 });
 
+export const syncEnvFromTargetService = async (): Promise<Record<string, string>> => {
+    try {
+        const res = await fetch("/.env");
+        if (res.ok) {
+            const text = await res.text();
+            const env = parseEnv(text);
+            if (env["VITE_API_URL"]) {
+                apiBaseURL = env["VITE_API_URL"];
+                axios.defaults.baseURL = apiBaseURL;
+            }
+            return env;
+        }
+    } catch (_) {
+        // Fallback to default relative baseURL
+    }
+    return {};
+};
+
+if (typeof window !== "undefined") {
+    syncEnvFromTargetService();
+}
 
 export interface ApiError {
     code: number;

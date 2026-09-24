@@ -22,11 +22,7 @@ import {
     selectActiveRequestTab,
 } from "@/app/slices/collectionSlices.ts";
 import {useMemo, useState, useCallback, useEffect} from "react";
-import AceEditor from "react-ace";
-
-import 'ace-builds/src-noconflict/ace.js'
-import 'ace-builds/src-noconflict/mode-json.js'
-import 'ace-builds/src-noconflict/theme-monokai.js'
+import {SandpackScriptEditor} from "@/components/ui/sandpack-script-editor.tsx";
 import * as XLSX from 'xlsx';
 
 const SectionHeader: React.FC<{
@@ -253,7 +249,7 @@ const ResponseView: React.FC = () => {
                 </div>
 
                 <TabsContent value="pretty" className="h-[calc(100%-3.2rem)]">
-                    <div>
+                    <div className="h-full">
                         {isImage && currResponse?.data ? (
                             <div className="flex items-center justify-center h-[300px] bg-slate-100 rounded-md">
                                 <img src={currResponse.data as string} alt="response" className="max-w-full max-h-full object-contain" />
@@ -290,27 +286,14 @@ const ResponseView: React.FC = () => {
                                 </table>
                             </div>
                         ) : (
-                            <AceEditor
+                            <SandpackScriptEditor
                                 readOnly
-                                placeholder=""
-                                mode="json"
-                                theme="monokai"
-                                width="full"
-                                name="response"
-                                fontSize={14}
-                                lineHeight={19}
-                                showPrintMargin={false}
-                                showGutter={false}
-                                highlightActiveLine={true}
                                 value={prettyResponse}
-                                setOptions={{
-                                    enableBasicAutocompletion: false,
-                                    enableLiveAutocompletion: false,
-                                    enableSnippets: false,
-                                    enableMobileMenu: false,
-                                    showLineNumbers: false,
-                                    tabSize: 2,
-                                }}/>
+                                fileName="response.json"
+                                showLineNumbers={false}
+                                className="h-full"
+                                style={{ height: "100%" }}
+                            />
                         )}
                     </div>
                 </TabsContent>

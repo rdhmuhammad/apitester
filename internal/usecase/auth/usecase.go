@@ -6,32 +6,57 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
-	"github.com/rdhmuhammad/apitester/internal/domain"
-	"github.com/rdhmuhammad/apitester/pkg/bbolt"
 	"github.com/rdhmuhammad/apitester/pkg/localerror"
 	"github.com/rdhmuhammad/apitester/pkg/logger"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Usecase struct {
-	errHandler localerror.HandleError
-	userRepo   bbolt.RepositoryInterface[domain.User]
-	jwtSecret  []byte
+type User struct {
+	Username string
+	Password string
 }
 
-func NewUsecase(lg *logger.ReZero, userRepo bbolt.RepositoryInterface[domain.User]) *Usecase {
+type Usecase struct {
+	errHandler localerror.HandleError
+	users      map[string]User
+	jwtSecret  []byte
+	hasAuth    bool
+}
+
+func NewUsecase(lg *logger.ReZero, adminUsername, adminPassword string) *Usecase {
 	u := &Usecase{
 		errHandler: localerror.NewHandlerError(lg),
-		userRepo:   userRepo,
+		users:      make(map[string]User),
 		jwtSecret:  jwtSecretFromEnv(),
 	}
-	u.seedAdmin()
+
+	if adminUsername == "" {
+		adminUsername = os.Getenv("ADMIN_USERNAME")
+	}
+	if adminPassword == "" {
+		adminPassword = os.Getenv("ADMIN_PASSWORD")
+	}
+
+	if adminUsername != "" && adminPassword != "" {
+		hashed, err := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
+		if err == nil {
+			u.users[adminUsername] = User{
+				Username: adminUsername,
+				Password: string(hashed),
+			}
+			u.hasAuth = true
+		}
+	}
+
 	return u
 }
 
-func JWTSecret() []byte {
-	return jwtSecretFromEnv()
+func (u *Usecase) HasAuth() bool {
+	return u.hasAuth
+}
+
+func (u *Usecase) JWTSecret() []byte {
+	return u.jwtSecret
 }
 
 func jwtSecretFromEnv() []byte {
@@ -42,52 +67,17 @@ func jwtSecretFromEnv() []byte {
 	return []byte(secret)
 }
 
-func (u *Usecase) seedAdmin() {
-	username := os.Getenv("ADMIN_USERNAME")
-	password := os.Getenv("ADMIN_PASSWORD")
-	if username == "" || password == "" {
-		return
-	}
-
-	existing, err := u.userRepo.List(context.Background())
-	if err != nil {
-		return
-	}
-
-	for _, user := range existing {
-		if user.Username == username {
-			return
-		}
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return
-	}
-
-	u.userRepo.Create(context.Background(), uuid.NewString(), &domain.User{
-		ID:        uuid.NewString(),
-		Username:  username,
-		Password:  string(hashedPassword),
-		CreatedAt: time.Now(),
-	})
-}
-
 func (u *Usecase) Login(ctx context.Context, req LoginRequest) (LoginResponse, error) {
-	users, err := u.userRepo.List(ctx)
-	if err != nil {
-		return LoginResponse{}, u.errHandler.ErrorReturn(err)
+	if !u.hasAuth {
+		return LoginResponse{
+			Username:  "public",
+			Token:     "public-token",
+			ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
+		}, nil
 	}
 
-	var user *domain.User
-	for i := range users {
-		if users[i].Username == req.Username {
-			user = &users[i]
-			break
-		}
-	}
-
-	if user == nil {
+	user, exists := u.users[req.Username]
+	if !exists {
 		return LoginResponse{}, localerror.InvalidData("Invalid credentials")
 	}
 
