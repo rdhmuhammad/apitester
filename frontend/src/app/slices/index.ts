@@ -35,9 +35,9 @@ export interface ActiveItem{
     response: SendResponse | null
     exampleResponse?: CollectionResponse[]
     authType?: "none" | "inherit" | "bearer"
-    scriptResult?: unknown
+    scriptResult?: ScriptResultDto[];
     scriptLogs?: ScriptLog[]
-    scriptMutations?: Record<string, string | null>
+    scriptMutations?: ScriptMutationDto[] | Record<string, string | null>
 }
 
 export const fetchCollections = createAppAsyncThunk(
@@ -58,3 +58,16 @@ export const initialState: CollectionState = {
     dirTree: new Map<string, DirTree>(),
     dirtyRequestIds: [],
 }
+
+
+export interface ScriptResultDto {
+    type: ScriptType
+    data?: unknown
+}
+
+export interface ScriptMutationDto {
+    type: ScriptType
+    mutations: Record<string, string | null>
+}
+
+export type ScriptType = "prerequest" | "postrequest"

@@ -23,4 +23,5 @@ export interface ScriptLog {
     type: "log" | "error" | "warn" | "info"
     message: string
     timestamp: number
+    scriptType?: "prerequest" | "postrequest"
 }

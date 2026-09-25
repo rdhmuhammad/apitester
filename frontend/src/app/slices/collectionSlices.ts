@@ -9,7 +9,7 @@ import {
     type ColtReqMethod,
     type DirTree,
     fetchCollections,
-    initialState
+    initialState, type ScriptResultDto, type ScriptMutationDto
 } from "@/app/slices/index.ts";
 import {
     addHeader,
@@ -158,6 +158,10 @@ const collectionSlices = createSlice({
             )
             syncCollectionVariables(state)
         },
+        setVariables(state, action: PayloadAction<CollectionVar[]>) {
+            state.variable = action.payload
+            syncCollectionVariables(state)
+        },
         addBaseUrl(state, action: PayloadAction<CollectionVar>) {
             state.baseUrl.push(action.payload)
             syncCollectionVariables(state)
@@ -194,20 +198,18 @@ const collectionSlices = createSlice({
             if (idx < 0) return
             state.openRequestTabs[idx].authType = action.payload.authType
         },
-        setScriptResult(state, action: PayloadAction<{ id: string; result: unknown }>) {
+        setScriptResult(state, action: PayloadAction<{
+            id: string;
+            result: ScriptResultDto[];
+            logs: ScriptLog[];
+            mutations: ScriptMutationDto[] | Record<string, string | null>
+            }>) {
             const idx = findCurrentActiveRequestIndex(state.openRequestTabs, action.payload.id)
             if (idx < 0) return
             state.openRequestTabs[idx].scriptResult = action.payload.result
-        },
-        setScriptLogs(state, action: PayloadAction<{ id: string; logs: ScriptLog[] }>) {
-            const idx = findCurrentActiveRequestIndex(state.openRequestTabs, action.payload.id)
-            if (idx < 0) return
             state.openRequestTabs[idx].scriptLogs = action.payload.logs
-        },
-        setScriptMutations(state, action: PayloadAction<{ id: string; mutations: Record<string, string | null> }>) {
-            const idx = findCurrentActiveRequestIndex(state.openRequestTabs, action.payload.id)
-            if (idx < 0) return
             state.openRequestTabs[idx].scriptMutations = action.payload.mutations
+
         },
         saveExampleResponse(state, action: PayloadAction<{ id: string; name: string }>) {
             const idx = findCurrentActiveRequestIndex(state.openRequestTabs, action.payload.id)
@@ -364,14 +366,13 @@ export const {
     addVariable,
     removeVariable,
     updateVariable,
+    setVariables,
     addBaseUrl,
     removeBaseUrl,
     clearDirtyRequestIds,
     saveActiveToData,
     setAuthType,
     setScriptResult,
-    setScriptLogs,
-    setScriptMutations,
     saveExampleResponse,
     createNewRequest,
     deleteRequest,
@@ -485,14 +486,14 @@ export const selectAuthType = (state: RootState): "none" | "inherit" | "bearer" 
     return "bearer"
 }
 
-export const selectScriptResult = (state: RootState): unknown =>
+export const selectScriptResult = (state: RootState): ScriptResultDto[] | null =>
     getCurrentActiveRequest(state)?.scriptResult ?? null
 
 export const selectScriptLogs = (state: RootState): ScriptLog[] =>
     getCurrentActiveRequest(state)?.scriptLogs ?? []
 
-export const selectScriptMutations = (state: RootState): Record<string, string | null> =>
-    getCurrentActiveRequest(state)?.scriptMutations ?? {}
+export const selectScriptMutations = (state: RootState): ScriptMutationDto[] | Record<string, string | null> =>
+    getCurrentActiveRequest(state)?.scriptMutations ?? []
 
 export const selectDirTree = (state: RootState): Map<string, DirTree> => {
     if (state.collection?.dirTree) {

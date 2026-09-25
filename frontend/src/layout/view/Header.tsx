@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {Images} from "@/config/constant/Images.tsx";
 import {cn, getContentType} from "@/lib/utils.ts";
 import {isTestTab} from "@/lib/tabUtils.ts";
@@ -10,41 +10,48 @@ import {LoaderCircle, Plus, RefreshCw, Send, Settings} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
     addBaseUrl,
-    addVariable,
-    removeVariable,
     selectActiveRequestScript,
     selectActiveTabId,
     selectBaseUrlValues,
     selectCollectionData,
+    selectCollectionScript,
     selectRequest,
     selectVariable,
-    setCurrentResponse,
-    setScriptLogs,
-    setScriptMutations,
-    setScriptResult,
-    updateVariable,
+    setVariables,
 } from "@/app/slices/collectionSlices.ts";
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
-import {buildRawRequest, parseBlobResponse, useSendRequest} from "@/layout/hooks/useSendRequest.ts";
-import {runScript} from "@/layout/hooks/useScriptRunner.ts";
-import CustomToast from "@/components/common/toast";
+import {useSendRequest} from "@/layout/hooks/useSendRequest.ts";
 import type {ColtReqMethod} from "@/app/slices";
 import type {CollectionVar, ItemUrl} from "@/pages/editor/types/api.ts";
 import {addQueryParam, setUrlRaw, updateQueryParam} from "@/app/slices/requestSlices.ts";
 import CollectionManagerDialog from "@/layout/components/CollectionManagerDialog.tsx";
 import {useCollectionPushPull} from "@/layout/hooks/useCollectionPushPull.ts";
+import type {RestRequestResponse} from "@/layout/types/scriptRunner.ts";
 
 const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     {
         onSend
     }) => {
     const dispatch = useAppDispatch()
+    const sendRequest = useSendRequest()
     const currRequest = useAppSelector(selectRequest)
     const baseUrlOptions = useAppSelector(selectBaseUrlValues)
     const variables = useAppSelector(selectVariable)
     const scriptValue = useAppSelector(selectActiveRequestScript)
+    const preScriptValue = useAppSelector(selectCollectionScript)
     const collectionData = useAppSelector(selectCollectionData)
     const activeTabId = useAppSelector(selectActiveTabId)
+
+    const variablesRef = useRef(variables)
+    useEffect(() => {
+        variablesRef.current = variables
+    }, [variables])
+
+    const setRuntimeVariables: React.Dispatch<React.SetStateAction<CollectionVar[]>> = useCallback((action) => {
+        const next = typeof action === 'function' ? action(variablesRef.current) : action
+        variablesRef.current = next
+        dispatch(setVariables(next))
+    }, [dispatch])
 
     useEffect(() => {
         const raw = currRequest?.request?.url?.raw ?? ''
@@ -133,103 +140,58 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     }
 
 
-    const handleSendRequest = () => {
+    const handleSendRequest = async () => {
         if (!currRequest?.id || isSending) return
         if (onSend) onSend()
         setIsSending(true)
-        useSendRequest({
-            baseUrl: selectedBaseUrl,
-            endpoint: formatEndpoint(endpoint),
+
+        const requestContext: RestRequestResponse = {
+            id: currRequest.id,
+            name: currRequest.name,
             method: requestMethod,
-            headers: (currRequest?.request?.header ?? [])
-                .filter(h => !h.disabled)
-                .map((header) => ({
-                    ...header,
-                    value: resolveVariableValue(header.value ?? "")
-                })),
-            requestParams: (currRequest?.request?.url.query ?? [])
-                .filter(q => !q.disabled),
-            contentType: getContentType(currRequest),
-            raw: currRequest?.request?.body?.raw,
-            formData: currRequest?.request?.body?.formdata
-        }).then(async (response) => {
-            if (!response) return
-            console.log(response)
-            dispatch(setCurrentResponse({id: currRequest.id, response}))
-            if (!scriptValue?.trim()) return
+            headers: (currRequest.request?.header ?? []).map(h => ({ ...h })),
+            query: (currRequest.request?.url?.query ?? []).map(q => ({ ...q })),
+            url: {
+                raw: currRequest.request?.url?.raw ?? endpoint,
+                host: currRequest.request?.url?.host ?? [],
+                path: currRequest.request?.url?.path ?? [],
+                query: currRequest.request?.url?.query ?? [],
+            },
+            body: currRequest.request?.body,
+            script: scriptValue ?? "",
+            version: "1.0",
+        }
 
-            try {
-                const varsObj: Record<string, string> = {}
-                variables.forEach(v => {
-                    varsObj[v.key] = v.value
-                })
-
-                const {result, mutations, logs} = await runScript({
-                    script: scriptValue,
-                    response,
-                    collectionVariables: varsObj,
-                })
-
-                for (const [key, value] of Object.entries(mutations)) {
-                    const existing = variables.find(v => v.key === key)
-                    if (value === null) {
-                        if (existing) dispatch(removeVariable({id: existing.id}))
-                    } else if (existing) {
-                        dispatch(updateVariable({...existing, value}))
-                    } else {
-                        dispatch(addVariable({
-                            id: crypto.randomUUID(),
-                            key,
-                            value,
-                            type: "string",
-                            category: "",
-                        }))
-                    }
+        try {
+            await sendRequest(
+                {
+                    baseUrl: selectedBaseUrl,
+                    endpoint: formatEndpoint(endpoint),
+                    method: requestMethod,
+                    headers: (currRequest?.request?.header ?? [])
+                        .filter(h => !h.disabled)
+                        .map((header) => ({
+                            ...header,
+                            value: resolveVariableValue(header.value ?? "")
+                        })),
+                    requestParams: (currRequest?.request?.url.query ?? [])
+                        .filter(q => !q.disabled),
+                    contentType: getContentType(currRequest),
+                    raw: currRequest?.request?.body?.raw,
+                    formData: currRequest?.request?.body?.formdata,
+                },
+                {
+                    requestId: currRequest.id,
+                    request: requestContext,
+                    preScriptValue,
+                    scriptValue,
+                    runtimeVariables: [...variablesRef.current],
+                    setRuntimeVariables,
                 }
-                dispatch(setScriptResult({id: currRequest.id, result}))
-                dispatch(setScriptMutations({id: currRequest.id, mutations}))
-                dispatch(setScriptLogs({id: currRequest.id, logs}))
-            } catch (err: any) {
-                CustomToast.error(`Script error: ${err}`)
-            }
-        }).catch(async response => {
-            if (!response) return
-            const blob = response?.response?.data as Blob
-            const contentType = response?.response?.headers?.["content-type"] ?? ""
-            const {data, size, isBinary} = blob
-                ? await parseBlobResponse(blob, contentType)
-                : {data: null, size: "0", isBinary: false}
-            dispatch(setCurrentResponse({
-                id: currRequest.id,
-                response: {
-                    rawRequest: buildRawRequest({
-                        baseUrl: selectedBaseUrl,
-                        endpoint: formatEndpoint(endpoint),
-                        method: requestMethod,
-                        headers: (currRequest?.request?.header ?? [])
-                            .filter(h => !h.disabled)
-                            .map((header) => ({
-                                ...header,
-                                value: resolveVariableValue(header.value ?? "")
-                            })),
-                        requestParams: (currRequest?.request?.url.query ?? [])
-                            .filter(q => !q.disabled),
-                        contentType: getContentType(currRequest),
-                        raw: currRequest?.request?.body?.raw,
-                        formData: currRequest?.request?.body?.formdata
-                    }),
-                    protocol: 'HTTP/1.1',
-                    responseSize: size,
-                    responseTime: response?.duration,
-                    statusCode: response?.response?.status,
-                    data,
-                    statusText: response?.response?.statusText,
-                    contentType,
-                    isBinary,
-                }
-            }))
-            CustomToast.error(response.message as string);
-        }).finally(() => setIsSending(false))
+            )
+        } finally {
+            setIsSending(false)
+        }
     };
 
     useEffect(() => {

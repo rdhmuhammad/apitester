@@ -368,7 +368,7 @@ const ScriptManage: React.FC<ScriptManageProps> = ({
                                     onChange={(e) =>
                                         setMockRequest((prev) => ({
                                             ...prev,
-                                            url: {raw: e.target.value},
+                                            url: {...prev.url, raw: e.target.value},
                                         }))
                                     }
                                     placeholder="https://api.example.com/users"
