@@ -1,4 +1,5 @@
 import {useEffect} from "react";
+import {ThemeProvider} from "next-themes";
 import {Sonner} from "@/components/ui/sonner";
 import {TooltipProvider} from "@/components/ui/tooltip";
 import {Provider} from "react-redux";
@@ -20,12 +21,14 @@ const AuthInitializer = ({children}: { children: React.ReactNode }) => {
 
 const App = () => (
     <Provider store={store}>
-        <TooltipProvider>
-            <AuthInitializer>
-                <Sonner position="top-right" richColors/>
-                <RouterProvider router={router}/>
-            </AuthInitializer>
-        </TooltipProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="apitester-theme">
+            <TooltipProvider>
+                <AuthInitializer>
+                    <Sonner position="top-right" richColors/>
+                    <RouterProvider router={router}/>
+                </AuthInitializer>
+            </TooltipProvider>
+        </ThemeProvider>
     </Provider>
 );
 

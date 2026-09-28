@@ -223,7 +223,6 @@ const ScriptManage: React.FC<ScriptManageProps> = ({
                             onChange={setScript}
                             fileName="script.js"
                             showSearch={true}
-                            theme="dark"
                             dependencies={SCRIPT_DEPENDENCIES}
                             autoComplete={SCRIPT_COMPLETIONS}
                             extensions={scriptExtensions}

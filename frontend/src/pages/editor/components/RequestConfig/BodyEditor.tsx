@@ -136,7 +136,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                 <div className="relative rounded-lg overflow-hidden">
                     <div
                         ref={editorContainerRef}
-                        className="min-h-[280px] resize-y overflow-auto rounded-lg border border-slate-200"
+                        className="min-h-[280px] resize-y overflow-auto rounded-lg border border-border"
                         onClick={menu.open ? onClosePopup : undefined}
                     >
                         <SandpackScriptEditor
@@ -199,9 +199,9 @@ export const BodyEditor: React.FC<IBodyEditor> = (
             )
         case "multipart/form-data":
             return (
-                <div className="relative rounded-lg overflow-hidden border border-slate-200">
+                <div className="relative rounded-lg overflow-hidden border border-border">
                     <div
-                        className="grid grid-cols-12 bg-slate-100 px-3 py-2 text-xs font-medium uppercase tracking-wide text-slate-600">
+                        className="grid grid-cols-12 bg-muted/50 px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         <span className="col-span-3">Key</span>
                         <span className="col-span-3">Value</span>
                         <span className="col-span-4">Description</span>
@@ -210,22 +210,22 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                     {selectBody?.formdata?.map((item) => (
                         <div key={item.id ?? item.key}
                              className={cn(
-                                 "grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center",
+                                 "grid grid-cols-12 border-t border-border px-3 py-2 items-center",
                                  item.disabled && "opacity-50"
                              )}>
                             <div className="col-span-3">
                                 <Input
                                     value={item.key}
                                     onChange={(e) => updateFormdataField(item.id!, "key", e.target.value)}
-                                    className="h-8 bg-white"
+                                    className="h-8 bg-background"
                                     disabled={item.disabled}
                                 />
                             </div>
                             <div className="col-span-3 pl-2">
                                 <div className={cn(
-                                    "flex h-8 items-center justify-between rounded-md border border-slate-200 bg-white",
+                                    "flex h-8 items-center justify-between rounded-md border border-input bg-background",
                                     "transition-[color,box-shadow]",
-                                    " focus-within:ring-[3px] focus-within:ring-gray-300",
+                                    " focus-within:ring-[3px] focus-within:ring-ring/50",
                                 )}>
                                     {item.type === "file" ? (
                                         <div className="ml-2">
@@ -269,9 +269,9 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                             toggleMultipartField("type", item.id!)
                                         }}
                                         className={cn(
-                                            "mr-2 select-none rounded-sm border border-slate-200",
-                                            "px-2 py-0.5 text-[11px] font-medium text-slate-500 ",
-                                            "hover:bg-gray-100",
+                                            "mr-2 select-none rounded-sm border border-border",
+                                            "px-2 py-0.5 text-[11px] font-medium text-muted-foreground",
+                                            "hover:bg-muted",
                                             "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                         )}
                                     >
@@ -283,7 +283,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                 <Input
                                     value={item.description ?? ""}
                                     onChange={(e) => updateFormdataField(item.id!, "description", e.target.value)}
-                                    className="h-8 bg-white text-xs text-gray-500"
+                                    className="h-8 bg-background text-xs text-muted-foreground"
                                     disabled={item.disabled}
                                     placeholder="description"
                                 />
@@ -299,7 +299,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                     {!item.disabled ? (
                                         <ToggleRight className="h-4 w-4 text-emerald-600"/>
                                     ) : (
-                                        <ToggleLeft className="h-4 w-4 text-slate-400"/>
+                                        <ToggleLeft className="h-4 w-4 text-muted-foreground"/>
                                     )}
                                 </Button>
                                 <Button
@@ -307,14 +307,14 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                     variant="ghost"
                                     size="sm"
                                         onClick={() => removeFormdataField(item.id!)}
-                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                                 >
                                     <Trash2 className="h-4 w-4"/>
                                 </Button>
                             </div>
                         </div>
                     ))}
-                    <div className="grid grid-cols-12 border-t border-slate-200 px-3 py-2 items-center">
+                    <div className="grid grid-cols-12 border-t border-border px-3 py-2 items-center">
                         <div className="col-span-3">
                             <Input
                                 value={newFdKey}
@@ -325,9 +325,9 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                         </div>
                             <div className="col-span-3 pl-2">
                                 <div className={cn(
-                                    "flex h-8 items-center justify-between rounded-md border border-slate-200 bg-white",
+                                    "flex h-8 items-center justify-between rounded-md border border-input bg-background",
                                     "transition-[color,box-shadow]",
-                                    " focus-within:ring-[3px] focus-within:ring-gray-300",
+                                    " focus-within:ring-[3px] focus-within:ring-ring/50",
                                 )}>
                                     {newFdValueType === "file" ? (
                                         <div className="ml-2">
@@ -373,9 +373,9 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                             setNewFdValueType(newFdValueType === "file" ? "text" : "file")
                                         }}
                                         className={cn(
-                                            "mr-2 select-none rounded-sm border border-slate-200",
-                                            "px-2 py-0.5 text-[11px] font-medium text-slate-500 ",
-                                            "hover:bg-gray-100",
+                                            "mr-2 select-none rounded-sm border border-border",
+                                            "px-2 py-0.5 text-[11px] font-medium text-muted-foreground",
+                                            "hover:bg-muted",
                                             "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                         )}
                                     >

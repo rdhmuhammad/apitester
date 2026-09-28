@@ -9,10 +9,11 @@ type ReadResponse struct {
 }
 
 type DocsContent struct {
-	Info     CollectionInfo   `json:"info"`
-	Item     []CollectionItem `json:"item"`
-	Auth     *CollectionAuth  `json:"auth,omitempty"`
-	Variable []CollectionVar  `json:"variable"`
+	Info     CollectionInfo    `json:"info"`
+	Item     []CollectionItem  `json:"item"`
+	Auth     *CollectionAuth   `json:"auth,omitempty"`
+	Variable []CollectionVar   `json:"variable"`
+	Event    []CollectionEvent `json:"event"`
 }
 
 type CollectionInfo struct {
@@ -56,10 +57,25 @@ type ResponseCookie struct {
 type Request struct {
 	FunIden     string       `json:"funIden"`
 	Method      string       `json:"method"`
+	Auth        *ReqAuth     `json:"auth,omitempty"`
 	Header      []Header     `json:"header"`
 	Body        *RequestBody `json:"body,omitempty"`
 	URL         RequestURL   `json:"url"`
 	Description string       `json:"description,omitempty"`
+}
+
+type ReqAuth struct {
+	Type       string     `json:"type"`
+	Bearer     []Property `json:"bearer,omitempty"`
+	AuthSource string     `json:"authSource" binding:"omitempty,oneof=inherit onrequest none"`
+}
+
+func (r *ReqAuth) SetType(auth string) {
+	if auth == "" {
+		r.Type = "bearer"
+		return
+	}
+	r.Type = auth
 }
 
 type Header struct {

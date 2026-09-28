@@ -6,7 +6,8 @@ import {isTestTab} from "@/lib/tabUtils.ts";
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
-import {LoaderCircle, Plus, RefreshCw, Send, Settings} from "lucide-react";
+import {LoaderCircle, Moon, Plus, RefreshCw, Send, Settings, Sun} from "lucide-react";
+import {useTheme} from "@/hooks/useTheme.ts";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
     addBaseUrl,
@@ -97,6 +98,14 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const [isSending, setIsSending] = useState(false);
     const [managerOpen, setManagerOpen] = useState(false);
     const {pull, push, isPulling, isPushing} = useCollectionPushPull()
+    const { theme, setTheme, resolvedTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const isDark = mounted ? (resolvedTheme || theme) === "dark" : false;
     const resolveVariableValue = (value: string): string => {
         return value.replace(/\{\{([^{}]+)\}\}/g, (_, key: string) => {
             const k = key.trim()
@@ -238,7 +247,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     }
 
     return (
-        <header className="fixed top-0 z-50 w-full gap-4 h-[60px] bg-white border-b border-gray-200 px-6 shadow-sm
+        <header className="fixed top-0 z-50 w-full gap-4 h-[60px] bg-background border-b border-border px-6 shadow-sm
          flex flex-row items-center">
             <div className="basis-1/4 flex flex-row h-full items-center gap-3">
                 <img
@@ -246,7 +255,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     alt='Stock management'
                     className='w-[30px] h-[37px] object-cover'
                 />
-                <h1 className="text-xl italic font-semibold text-gray-800">
+                <h1 className="text-xl italic font-semibold text-foreground">
                     Apitester
                 </h1>
                 <div className="flex items-center h-full gap-2 ml-4">
@@ -267,6 +276,20 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     >
                         <RefreshCw className={cn("h-4 w-4", (isPulling || isPushing) && "animate-spin")}/>
                     </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9"
+                        title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                        aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                        onClick={() => setTheme(isDark ? "light" : "dark")}
+                    >
+                        {isDark ? (
+                            <Sun className="h-4 w-4 text-amber-500" />
+                        ) : (
+                            <Moon className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+                        )}
+                    </Button>
                     <CollectionManagerDialog open={managerOpen} onOpenChange={setManagerOpen}/>
                 </div>
             </div>
@@ -284,7 +307,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     </SelectTrigger>
                     <SelectContent>
                         {requestMethods.map((method) => (
-                            <SelectItem key={method} value={method} className={cn("font-semibold", "text-black")}>
+                            <SelectItem key={method} value={method} className={cn("font-semibold text-foreground")}>
                                 {method}
                             </SelectItem>
                         ))}

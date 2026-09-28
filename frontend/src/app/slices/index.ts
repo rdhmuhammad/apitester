@@ -1,4 +1,5 @@
-import type {CollectionItem, CollectionResponse, CollectionVar, DocsContent, Request} from "@/pages/editor/types/api.ts";
+import type {CollectionItem, CollectionResponse, CollectionVar, DocsContent, Request, ReqAuth} from "@/pages/editor/types/api.ts";
+export type { ReqAuth };
 import type {ScriptLog, SendResponse} from "@/types/response.ts";
 import {createAppAsyncThunk} from "@/app/store/withTypes.ts";
 import {CollectionServices} from "@/layout/services/collection.ts";

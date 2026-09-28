@@ -19,12 +19,12 @@ import {
 import {cn} from "@/lib/utils.ts";
 
 const methodStyle: Record<ColtReqMethod | 'TEST', string> = {
-    GET: "bg-emerald-100 text-emerald-700",
-    POST: "bg-amber-100 text-amber-700",
-    PUT: "bg-blue-100 text-blue-700",
-    PATCH: "bg-violet-100 text-violet-700",
-    DELETE: "bg-rose-100 text-rose-700",
-    TEST: "bg-indigo-100 text-indigo-700",
+    GET: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400",
+    POST: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400",
+    PUT: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400",
+    PATCH: "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-400",
+    DELETE: "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400",
+    TEST: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400",
 };
 
 interface EditorTab {
@@ -75,29 +75,29 @@ const Editor: React.FC = () => {
     }
 
     return (
-        <div className="h-full overflow-auto bg-[linear-gradient(180deg,#eef4ff_0%,#f8fafc_22%,#f8fafc_100%)]">
+        <div className="h-full overflow-auto bg-[linear-gradient(180deg,#eef4ff_0%,#f8fafc_22%,#f8fafc_100%)] dark:bg-[linear-gradient(180deg,oklch(0.18_0.02_260)_0%,oklch(0.145_0_0)_22%,oklch(0.145_0_0)_100%)]">
             <div className={cn(
-                'fixed top-[60px] right-0 left-0 z-40 border-b border-slate-200/80',
-                ' bg-white/80 backdrop-blur md:left-64')
+                'fixed top-[60px] right-0 left-0 z-40 border-b border-border',
+                ' bg-background/80 backdrop-blur md:left-64')
             }>
                 <div className="mx-auto flex w-full max-w-[1500px] flex-col px-4 pt-4">
                     <div className="pb-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                             Workspace
                         </p>
-                        <h3 className="mt-1 text-3xl font-semibold text-slate-900">{collectionInfo ? collectionInfo?.name : 'Collection'}</h3>
-                        <h3 className="mt-1 text-sm font-normal text-slate-500">{collectionInfo ? collectionInfo?.description : ''}</h3>
+                        <h3 className="mt-1 text-3xl font-semibold text-foreground">{collectionInfo ? collectionInfo?.name : 'Collection'}</h3>
+                        <h3 className="mt-1 text-sm font-normal text-muted-foreground">{collectionInfo ? collectionInfo?.description : ''}</h3>
                     </div>
 
                     <Tabs value={effectiveActiveTabId} onValueChange={handleTabChange} className="gap-0">
                         <div className="flex items-end justify-between gap-3">
                             <TabsList
-                                className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none  border-slate-200 bg-transparent p-0">
+                                className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-border bg-transparent p-0">
                                 {allTabs.map((tab) => (
                                     <TabsTrigger
                                         key={tab.id}
                                         value={tab.id}
-                                        className="group relative h-11 flex-none rounded-none border border-transparent border-b-0 bg-transparent px-3 text-slate-500 shadow-none transition-all hover:bg-white hover:text-slate-700 data-[state=active]:border-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-[0_-1px_0_0_rgba(255,255,255,1),0_6px_18px_-14px_rgba(15,23,42,0.45)]"
+                                        className="group relative h-11 flex-none rounded-none border border-transparent border-b-0 bg-transparent px-3 text-muted-foreground shadow-none transition-all hover:bg-card hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                                     >
                                         <span
                                             className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-[0.16em] ${methodStyle[tab.method]}`}>
@@ -109,7 +109,7 @@ const Editor: React.FC = () => {
                                                 className="ml-1 h-2 w-2 rounded-full bg-orange-400 inline-block shrink-0"/>
                                         )}
                                         <span
-                                            className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 group-data-[state=active]:text-slate-500">
+                                            className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground group-data-[state=active]:text-muted-foreground">
                                             <Button variant='ghost'
                                                     onClick={(event) => {
                                                         event.preventDefault()
@@ -133,15 +133,15 @@ const Editor: React.FC = () => {
             <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col px-4 pb-4 pt-[140px]">
                 {!activeTab ? (
                     <div
-                        className={cn('rounded-2xl border border-t-0 border-slate-200',
-                            ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')
+                        className={cn('rounded-2xl border border-t-0 border-border',
+                            ' bg-card text-card-foreground shadow-sm')
                         }>
                         <WelcomeEditor/>
                     </div>
                 ):(
                     <div
-                        className={cn('rounded-b-2xl rounded-tr-2xl border border-t-0 border-slate-200',
-                            ' bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)]')
+                        className={cn('rounded-b-2xl rounded-tr-2xl border border-t-0 border-border',
+                            ' bg-card text-card-foreground shadow-sm')
                         }>
                         <RequestConfigTabs/>
                         <div className="pt-3">

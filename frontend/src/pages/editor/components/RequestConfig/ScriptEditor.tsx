@@ -110,12 +110,11 @@ export const ScriptEditor: React.FC = () => {
 
     return (
         <div className="relative rounded-lg overflow-hidden">
-            <div className="min-h-[280px] resize-y overflow-hidden rounded-lg border border-slate-200">
+            <div className="min-h-[280px] resize-y overflow-hidden rounded-lg border border-border">
                 <SandpackScriptEditor
                     editorKey={activeTabId}
                     showSearch={true}
                     fileName="script.js"
-                    theme="dark"
                     extensions={scriptExtensions}
                     value={script}
                     onChange={handleChange}

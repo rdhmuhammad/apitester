@@ -52,9 +52,18 @@ export interface ResponseCookie {
   httpOnly?: boolean;
 }
 
+export type AuthSourceType = "inherit" | "onrequest" | "none" | string;
+
+export interface ReqAuth {
+  type: string;
+  bearer?: AuthProperty[] | ItemUrl[];
+  authSource?: AuthSourceType;
+}
+
 export interface Request {
   funIden?: string;
   method: string;
+  auth?: ReqAuth;
   header: ItemUrl[];
   body?: RequestBody;
   url: RequestURL;
@@ -90,9 +99,11 @@ export interface CollectionAuth {
 }
 
 export interface AuthProperty {
+  id?: string;
   key: string;
   value: string;
-  type: string;
+  type?: string;
+  src?: string;
 }
 
 export interface CollectionEvent {

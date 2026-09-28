@@ -135,10 +135,10 @@ const SidebarLayout: React.FC = () => {
                         <button
                             type="button"
                             onClick={() => toggleFolder(node.id)}
-                            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
+                            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm font-medium text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                         >
-                            {isOpen ? <ChevronDown className="h-4 w-4 text-slate-500"/> :
-                                <ChevronRight className="h-4 w-4 text-slate-500"/>}
+                            {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground"/> :
+                                <ChevronRight className="h-4 w-4 text-muted-foreground"/>}
                             {isOpen ? <FolderOpen className="h-4 w-4 text-indigo-500"/> :
                                 <Folder className="h-4 w-4 text-indigo-500"/>}
                             <span className="truncate">{node.name}</span>
@@ -149,7 +149,7 @@ const SidebarLayout: React.FC = () => {
                         <button
                             type="button"
                             onClick={(e) => handleDeleteClick(e, node)}
-                            className="hidden group-hover:flex shrink-0 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
+                            className="hidden group-hover:flex shrink-0 p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                         >
                             <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -170,11 +170,11 @@ const SidebarLayout: React.FC = () => {
                 <button
                     type="button"
                     onClick={()=>toggleRequest(node.id)}
-                    className={cn('flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-slate-100 ', node.isActive && 'bg-indigo-100')}
+                    className={cn('flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-sidebar-accent text-sidebar-foreground/80 hover:text-sidebar-foreground', node.isActive && 'bg-indigo-100 text-indigo-900 font-medium dark:bg-indigo-950/60 dark:text-indigo-300')}
                 >
-                    <FileCode2 className="h-4 w-4 text-slate-400"/>
+                    <FileCode2 className="h-4 w-4 text-muted-foreground"/>
                     <span className={`w-12 text-xs font-semibold ${methodColorClass[node?.method ?? "GET"]}`}>{node?.method ?? "GET"}</span>
-                    <span className="truncate text-slate-700">{node.name}</span>
+                    <span className="truncate">{node.name}</span>
                     {dirtyRequestIds.includes(node.id) && (
                         <span className="ml-auto h-2 w-2 rounded-full bg-orange-400 shrink-0" />
                     )}
@@ -182,7 +182,7 @@ const SidebarLayout: React.FC = () => {
                 <button
                     type="button"
                     onClick={(e) => handleDeleteClick(e, node)}
-                    className="hidden group-hover:flex shrink-0 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
+                    className="hidden group-hover:flex shrink-0 p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                 >
                     <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -192,25 +192,25 @@ const SidebarLayout: React.FC = () => {
 
     return (
         <Sidebar
-            className="fixed left-0 top-[60px] z-30 h-[calc(100dvh-60px)] w-64 flex-col border-r border-gray-200 bg-white"
+            className="fixed left-0 top-[60px] z-30 h-[calc(100dvh-60px)] w-64 flex-col border-r border-border bg-sidebar"
             collapsible={"none"}
         >
-            <SidebarContent className="flex flex-col overflow-y-auto px-3 py-2 bg-white">
+            <SidebarContent className="flex flex-col overflow-y-auto px-3 py-2 bg-sidebar">
                 <div className="px-3 pb-2">
                     <div className="relative">
-                        <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-muted-foreground" />
                         <input
                             type="text"
                             placeholder="Search collections"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 text-xs pl-8 pr-3 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 transition"
+                            className="w-full bg-muted/40 border border-border text-foreground placeholder:text-muted-foreground text-xs pl-8 pr-3 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-ring transition"
                         />
                     </div>
                 </div>
                 <div className="mb-2 px-2 flex items-center space-x-1.5">
                     <FolderGit2 className="w-4 h-4 text-indigo-600" />
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Collections ({countFolders(tree)})</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Collections ({countFolders(tree)})</p>
                 </div>
                 <div className="">
                     {Array.from(tree.entries()).map(([_, collection])=>{

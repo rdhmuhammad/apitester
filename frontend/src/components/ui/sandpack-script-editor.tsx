@@ -26,6 +26,7 @@ import {
     type KeyboardEvent as ReactKeyboardEvent,
 } from "react"
 import { Search } from "lucide-react"
+import { useTheme } from "@/hooks/useTheme"
 
 export interface SandpackScriptEditorProps {
     value: string
@@ -739,7 +740,9 @@ const SandpackScriptEditorInstance: React.FC<SandpackScriptEditorProps> = ({
     )
 }
 
-export const SandpackScriptEditor: React.FC<SandpackScriptEditorProps> = ({ theme = "dark", ...props }) => {
+export const SandpackScriptEditor: React.FC<SandpackScriptEditorProps> = ({ theme, ...props }) => {
+    const { theme: appTheme, resolvedTheme } = useTheme()
+    const activeTheme: SandpackThemeProp = theme ?? ((resolvedTheme || appTheme) === "dark" ? "dark" : "light")
     const depsKey = useMemo(() => {
         if (!props.dependencies && !props.devDependencies) return ""
         const deps = Object.entries(props.dependencies ?? {}).sort().map(([k, v]) => `${k}@${v}`).join(",")
@@ -749,8 +752,8 @@ export const SandpackScriptEditor: React.FC<SandpackScriptEditorProps> = ({ them
 
     return (
         <SandpackScriptEditorInstance
-            key={`${props.editorKey ?? ""}:${props.fileName ?? "index.js"}:${theme}${depsKey}`}
-            theme={theme}
+            key={`${props.editorKey ?? ""}:${props.fileName ?? "index.js"}:${activeTheme}${depsKey}`}
+            theme={activeTheme}
             {...props}
         />
     )

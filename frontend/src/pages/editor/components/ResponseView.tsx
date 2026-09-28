@@ -258,13 +258,13 @@ const ResponseView: React.FC = () => {
     return (
         <>
             <section
-                className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+                className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
                     <div className="flex items-center gap-2">
-                        <h2 className="text-sm font-semibold text-slate-800">Response</h2>
+                        <h2 className="text-sm font-semibold text-foreground">Response</h2>
                         {responseCode && <Badge className={badgeColor}>{`${responseCode} ${responseStatus}`}</Badge>}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         {sourceTab === "actual" && (
                             <>
                                 <span>{currResponse?.responseTime ?? 0} ms</span>
@@ -275,9 +275,9 @@ const ResponseView: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="border-b border-slate-200 px-4 pt-2">
+                <div className="border-b border-border px-4 pt-2">
                     <Tabs value={sourceTab} onValueChange={onSourceChange}>
-                        <TabsList className="h-8 rounded-lg bg-slate-100">
+                        <TabsList className="h-8 rounded-lg bg-muted">
                             <TabsTrigger value="actual" className="h-7 px-3 text-xs">
                                 Actual Response
                             </TabsTrigger>
