@@ -54,7 +54,8 @@ const Editor: React.FC = () => {
         })
 
         const tabs = [...requestTabs]
-        const effectiveId = (activeTabId && tabs.some(t => t.id === activeTabId) ? activeTabId : tabs[tabs.length - 1]?.id) || ""
+        const currentActiveId = selectActiveTabId(state) || activeTabId
+        const effectiveId = (currentActiveId && tabs.some(t => t.id === currentActiveId) ? currentActiveId : tabs[tabs.length - 1]?.id) || ""
 
         return {
             allTabs: tabs,
@@ -100,7 +101,7 @@ const Editor: React.FC = () => {
                                         className="group relative h-11 flex-none rounded-none border border-transparent border-b-0 bg-transparent px-3 text-muted-foreground shadow-none transition-all hover:bg-card hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                                     >
                                         <span
-                                            className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-[0.16em] ${methodStyle[tab.method]}`}>
+                                            className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-[0.16em] ${methodStyle[tab.method] ?? "bg-slate-100 text-slate-700 dark:bg-slate-950/60 dark:text-slate-400"}`}>
                                             {tab.method}
                                         </span>
                                         <span className="max-w-[140px] truncate text-sm font-medium">{tab.label}</span>

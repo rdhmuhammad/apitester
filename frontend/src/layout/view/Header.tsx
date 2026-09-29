@@ -19,12 +19,13 @@ import {
     selectRequest,
     selectVariable,
     setVariables,
+    selectActiveExampleId,
 } from "@/app/slices/collectionSlices.ts";
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
 import {useSendRequest} from "@/layout/hooks/useSendRequest.ts";
 import type {ColtReqMethod} from "@/app/slices";
 import type {CollectionVar, ItemUrl} from "@/pages/editor/types/api.ts";
-import {addQueryParam, setUrlRaw, updateQueryParam} from "@/app/slices/requestSlices.ts";
+import {addQueryParam, setMethod, setUrlRaw, updateQueryParam} from "@/app/slices/requestSlices.ts";
 import CollectionManagerDialog from "@/layout/components/CollectionManagerDialog.tsx";
 import {useCollectionPushPull} from "@/layout/hooks/useCollectionPushPull.ts";
 import type {RestRequestResponse} from "@/layout/types/scriptRunner.ts";
@@ -42,6 +43,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     const preScriptValue = useAppSelector(selectCollectionScript)
     const collectionData = useAppSelector(selectCollectionData)
     const activeTabId = useAppSelector(selectActiveTabId)
+    const activeExampleId = useAppSelector(selectActiveExampleId)
 
     const variablesRef = useRef(variables)
     useEffect(() => {
@@ -61,7 +63,8 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     }, [currRequest?.request?.url?.raw]);
 
     useEffect(() => {
-        setRequestMethod(currRequest?.request?.method ?? 'GET')
+        const method = (currRequest?.request?.method?.toUpperCase() as ColtReqMethod[number]) || 'GET'
+        setRequestMethod(method)
     }, [currRequest?.request?.method]);
 
     useEffect(() => {
@@ -85,11 +88,11 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
 
     const requestMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
     const methodColorClass: Record<ColtReqMethod[number], string> = {
-        GET: "bg-emerald-600",
-        POST: "bg-amber-600",
-        PUT: "bg-blue-600",
-        PATCH: "bg-violet-600",
-        DELETE: "bg-red-600"
+        GET: "bg-emerald-600 dark:bg-emerald-600 hover:bg-emerald-700 dark:hover:bg-emerald-700",
+        POST: "bg-amber-600 dark:bg-amber-600 hover:bg-amber-700 dark:hover:bg-amber-700",
+        PUT: "bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700",
+        PATCH: "bg-violet-600 dark:bg-violet-600 hover:bg-violet-700 dark:hover:bg-violet-700",
+        DELETE: "bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700"
     };
     const [requestMethod, setRequestMethod] = useState<ColtReqMethod[number]>("GET");
     const [selectedBaseUrl, setSelectedBaseUrl] = useState("");
@@ -140,7 +143,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             try {
                 const parsedUrl = new URL(sanitizedEndpoint)
                 return `${parsedUrl.pathname}${parsedUrl.hash}`
-            } catch (_) {
+            } catch {
                 return sanitizedEndpoint.split('?')[0]
             }
         }
@@ -298,11 +301,22 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             <div className="basis-3/4 flex items-center h-full gap-3">
                 <Select
                     value={requestMethod}
-                    disabled={!collectionData}
-                    onValueChange={(value) => setRequestMethod(value as ColtReqMethod[number])}
+                    disabled={!collectionData || !currRequest || isTestTab(activeTabId)}
+                    onValueChange={(value) => {
+                        const nextMethod = value as ColtReqMethod[number]
+                        setRequestMethod(nextMethod)
+                        if (currRequest?.id) {
+                            dispatch(setMethod({method: nextMethod, id: currRequest.id}))
+                        } else {
+                            dispatch(setMethod({method: nextMethod}))
+                        }
+                    }}
                 >
                     <SelectTrigger
-                        className={cn("min-w-[110px] font-semibold text-white", methodColorClass[requestMethod])}>
+                        className={cn(
+                            "min-w-[110px] font-semibold text-white dark:text-white border-transparent dark:border-transparent [&_svg]:text-white",
+                            methodColorClass[requestMethod]
+                        )}>
                         <SelectValue placeholder="Method"/>
                     </SelectTrigger>
                     <SelectContent>
@@ -379,8 +393,9 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                     />
                 </div>
                 <Button
-                    disabled={!collectionData || isSending || isTestTab(activeTabId)}
+                    disabled={!collectionData || isSending || isTestTab(activeTabId) || Boolean(activeExampleId)}
                     onClick={handleSendRequest}
+                    title={activeExampleId ? "Switch to Actual Response to send" : undefined}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap"
                 >
                     {isSending ? (

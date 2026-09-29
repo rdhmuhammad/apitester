@@ -35,6 +35,7 @@ type CollectionItem struct {
 }
 
 type CollectionResponse struct {
+	ID              string           `json:"id"`
 	Name            string           `json:"name"`
 	OriginalRequest *Request         `json:"originalRequest,omitempty"`
 	Status          string           `json:"status"`

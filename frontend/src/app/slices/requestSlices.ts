@@ -17,6 +17,7 @@ const mapParam = (param: ItemUrl, payload: ItemUrl): ItemUrl => {
 
 type SetMethodPayload = {
     method: string
+    id?: string
 }
 
 type HeaderPayload = {
@@ -62,13 +63,24 @@ type SetUrlRawPayload = {
 
 const getSelectedRequest = (state: CollectionState): Request | null => {
     const activeTabId = state.activeTabId
-    if (activeTabId) {
-        const currentActive = state.openRequestTabs.find((item) => item.id === activeTabId)
-        if (currentActive?.request) return currentActive.request
+    const currentActive = activeTabId
+        ? state.openRequestTabs.find((item) => item.id === activeTabId)
+        : state.openRequestTabs[state.openRequestTabs.length - 1]
+
+    if (!currentActive) return null
+
+    if (currentActive.activeExampleId && currentActive.exampleResponse) {
+        const example = currentActive.exampleResponse.find(ex => ex.id === currentActive.activeExampleId)
+        if (example) {
+            const orig: Request = example.originalRequest ?? (currentActive.request
+                ? JSON.parse(JSON.stringify(currentActive.request))
+                : { method: 'GET', header: [], url: { raw: '', host: [''], path: [''], query: [] } })
+            example.originalRequest = orig
+            return orig
+        }
     }
 
-    const currentActive = state.openRequestTabs[state.openRequestTabs.length - 1]
-    return currentActive?.request ?? null
+    return currentActive.request ?? null
 }
 
 const getCurrentRequestFromState = (state: RootState): Request | null => {
@@ -78,12 +90,36 @@ const getCurrentRequestFromState = (state: RootState): Request | null => {
     }
 
     const currentActive = state.collection?.openRequestTabs?.[state.collection.openRequestTabs.length - 1]
+    if (!currentActive) return null
+
+    if (currentActive.activeExampleId && currentActive.exampleResponse) {
+        const example = currentActive.exampleResponse.find(ex => ex.id === currentActive.activeExampleId)
+        if (example?.originalRequest) {
+            return example.originalRequest
+        }
+        if (example) {
+            return currentActive.request ?? null
+        }
+    }
+
     return currentActive?.request ?? null
 }
 
 const getRequestByIdFromState = (state: RootState, id: string): Request | null => {
     const currentActive = state.collection?.openRequestTabs?.find((item) => item.id === id)
-    return currentActive?.request ?? null
+    if (!currentActive) return null
+
+    if (currentActive.activeExampleId && currentActive.exampleResponse) {
+        const example = currentActive.exampleResponse.find(ex => ex.id === currentActive.activeExampleId)
+        if (example?.originalRequest) {
+            return example.originalRequest
+        }
+        if (example) {
+            return currentActive.request ?? null
+        }
+    }
+
+    return currentActive.request ?? null
 }
 
 const getQueryString = (raw: string) => {
@@ -125,6 +161,40 @@ const markDirty = (state: CollectionState) => {
 }
 
 export const setMethodReducer = (state: CollectionState, action: PayloadAction<SetMethodPayload>) => {
+    const targetId = action.payload.id || state.activeTabId || state.openRequestTabs[state.openRequestTabs.length - 1]?.id
+    const currentActive = targetId ? state.openRequestTabs.find((item) => item.id === targetId) : null
+
+    if (currentActive) {
+        if (currentActive.activeExampleId && currentActive.exampleResponse) {
+            const example = currentActive.exampleResponse.find(ex => ex.id === currentActive.activeExampleId)
+            if (example) {
+                const orig: Request = example.originalRequest ?? (currentActive.request
+                    ? JSON.parse(JSON.stringify(currentActive.request))
+                    : { method: action.payload.method, header: [], url: { raw: '', host: [''], path: [''], query: [] } })
+                orig.method = action.payload.method
+                example.originalRequest = orig
+                if (targetId && !state.dirtyRequestIds.includes(targetId)) {
+                    state.dirtyRequestIds.push(targetId)
+                }
+                return
+            }
+        }
+
+        if (!currentActive.request) {
+            currentActive.request = {
+                method: action.payload.method,
+                header: [],
+                url: { raw: '', host: [''], path: [''], query: [] }
+            }
+        } else {
+            currentActive.request.method = action.payload.method
+        }
+        if (targetId && !state.dirtyRequestIds.includes(targetId)) {
+            state.dirtyRequestIds.push(targetId)
+        }
+        return
+    }
+
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 

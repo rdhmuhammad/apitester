@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -11,36 +11,18 @@ import { BodyEditor, type ContentType } from "@/pages/editor/components/RequestC
 import ScriptEditor from "@/pages/editor/components/RequestConfig/ScriptEditor.tsx";
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks.ts";
 import { removeHeader, selectHeader, selectRequestBody, updateHeader } from "@/app/slices/requestSlices.ts";
+import { selectActiveExample, setActiveExampleId } from "@/app/slices/collectionSlices.ts";
 
 export const RequestConfigTabs: React.FC = () => {
     const dispatch = useAppDispatch();
     const headers = useAppSelector(selectHeader);
     const requestBody = useAppSelector(selectRequestBody);
+    const activeExample = useAppSelector(selectActiveExample);
 
     const [contentType, setContentType] = useState<ContentType>(
         requestBody?.mode === "formdata" ? "multipart/form-data" : "application/json"
     );
-
-    useEffect(() => {
-        const nextType = requestBody?.mode === "formdata" ? "multipart/form-data" : "application/json";
-        if (nextType !== contentType) {
-            setContentType(nextType as ContentType);
-        }
-    }, [requestBody?.mode]);
-
-    useEffect(() => {
-        const ct = headers.find((h) => h.key.toLowerCase() === "content-type");
-        if (!ct) return;
-        dispatch(
-            updateHeader({
-                header: {
-                    ...ct,
-                    value: contentType,
-                    disabled: false,
-                },
-            })
-        );
-    }, [contentType]);
+    
 
     const hasContentType = headers.some(
         (h) => h.key.toLowerCase() === "content-type" && !h.disabled
@@ -84,6 +66,23 @@ export const RequestConfigTabs: React.FC = () => {
                     <p className="text-xs text-muted-foreground">Manage query params, auth, headers, and payload.</p>
                 </div>
             </div>
+            {activeExample && (
+                <div className="flex items-center justify-between border-b border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-2 text-xs text-amber-900 dark:text-amber-200">
+                    <div className="flex items-center gap-2">
+                        <span className="font-semibold">Editing Example:</span>
+                        <span className="font-medium underline decoration-amber-400">{activeExample.name}</span>
+                        <span className="text-amber-700/80 dark:text-amber-400/80 hidden sm:inline">(Changes to params, auth, headers, body, or URL apply to this example's request)</span>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+                        onClick={() => dispatch(setActiveExampleId({ exampleId: null }))}
+                    >
+                        Switch to Actual Request
+                    </Button>
+                </div>
+            )}
             <Tabs defaultValue="params" className="gap-0">
                 <div className="border-b border-border px-4 pt-3">
                     <TabsList className="h-10 rounded-lg bg-muted">

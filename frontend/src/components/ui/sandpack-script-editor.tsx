@@ -497,10 +497,11 @@ const lightAutocompleteTheme = EditorView.theme({
     },
 }, { dark: false })
 
-function SyncScript({ value, onChange, fileName }: {
+function SyncScript({ value, onChange, fileName, editorRef }: {
     value: string
     onChange?: (code: string) => void
     fileName: string
+    editorRef: React.RefObject<CodeEditorRef | null>
 }) {
     const { sandpack } = useSandpack()
     const filePath = `/${fileName}`
@@ -526,8 +527,24 @@ function SyncScript({ value, onChange, fileName }: {
         if (value === code) return
 
         lastCodeRef.current = value
+
+        try {
+            const cm = editorRef.current?.getCodemirror()
+            if (cm) {
+                const docLen = value.length
+                const needsClamp = cm.state.selection.ranges.some(r => r.to > docLen || r.from > docLen)
+                if (needsClamp) {
+                    cm.dispatch({
+                        selection: { anchor: Math.min(cm.state.selection.main.anchor, docLen) }
+                    })
+                }
+            }
+        } catch {
+            // Ignore if view is not ready
+        }
+
         updateFileRef.current(filePath, value)
-    }, [code, filePath, value])
+    }, [code, filePath, value, editorRef])
 
     return null
 }
@@ -558,9 +575,10 @@ const SandpackScriptEditorInstance: React.FC<SandpackScriptEditorProps> = ({
     const entryFile = "/__apitester_entry__.js"
     const editorRef = useRef<CodeEditorRef | null>(null)
     const [isSearchOpen, setIsSearchOpen] = useState(false)
+    const normalizedValue = useMemo(() => (typeof value === "string" ? value.replace(/\r\n/g, "\n") : ""), [value])
     // Sandpack resets its file state when these prop identities change.
     const [files] = useState(() => ({
-        [`/${fileName}`]: { code: value, active: true },
+        [`/${fileName}`]: { code: normalizedValue, active: true },
         [entryFile]: { code: "export default {};", hidden: true },
         ...(extraFiles ?? {}),
     }))
@@ -704,7 +722,7 @@ const SandpackScriptEditorInstance: React.FC<SandpackScriptEditorProps> = ({
             customSetup={customSetup}
             options={providerOptions}
         >
-            <SyncScript value={value} onChange={onChange} fileName={fileName} />
+            <SyncScript value={normalizedValue} onChange={onChange} fileName={fileName} editorRef={editorRef} />
             <SandpackLayout
                 className={`relative ${className ?? ""}`}
                 style={combinedStyle}

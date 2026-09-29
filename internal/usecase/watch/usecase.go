@@ -278,6 +278,9 @@ func processItems(items []CollectionItem, rootAuth *CollectionAuth) []Collection
 		}
 
 		for j := range items[i].Response {
+			if items[i].Response[j].ID == "" {
+				items[i].Response[j].ID = uuid.NewString()
+			}
 			for k := range items[i].Response[j].Header {
 				if items[i].Response[j].Header[k].Id == "" {
 					items[i].Response[j].Header[k].Id = uuid.NewString()
@@ -350,6 +353,12 @@ func setId(item []CollectionItem) []CollectionItem {
 						item[i].Request.Auth.Bearer[j].Id = uuid.NewString()
 					}
 				}
+			}
+		}
+
+		for j := range item[i].Response {
+			if item[i].Response[j].ID == "" {
+				item[i].Response[j].ID = uuid.NewString()
 			}
 		}
 

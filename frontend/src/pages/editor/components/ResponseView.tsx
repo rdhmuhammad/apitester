@@ -1,6 +1,16 @@
 import {Badge} from "@/components/ui/badge.tsx";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx";
 import {Button} from "@/components/ui/button.tsx";
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select.tsx";
+import { HTTP_STATUS_GROUPS, HTTP_STATUS_MAP, getHttpStatusText } from "@/lib/httpStatus.ts";
 import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "@/components/ui/collapsible";
 import {
     Dialog,
@@ -11,15 +21,23 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
-import {ChevronDown, Download, Eye, EyeOff, Link2} from "lucide-react";
+import {ChevronDown, Download, Eye, EyeOff, Link2, Pencil, Plus, X} from "lucide-react";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {
+    addExampleResponse,
+    removeExampleResponse,
+    renameExampleResponse,
     saveExampleResponse,
+    selectActiveExample,
+    selectActiveExampleId,
     selectActiveRequestTab,
     selectResponse,
     selectScriptLogs,
     selectScriptMutations,
     selectScriptResult,
+    setActiveExampleId,
+    updateExampleResponseBody,
+    updateExampleResponseStatus,
 } from "@/app/slices/collectionSlices.ts";
 import type {ScriptType} from "@/app/slices/index.ts";
 import type {ScriptLog} from "@/types/response.ts";
@@ -92,21 +110,35 @@ const ResponseView: React.FC = () => {
     const scriptMutations = useAppSelector(selectScriptMutations)
     const examples = selectedRequest?.exampleResponse ?? []
 
-    const [sourceTab, setSourceTab] = useState("actual")
+    const activeExampleId = useAppSelector(selectActiveExampleId)
+    const activeExample = useAppSelector(selectActiveExample)
+    const sourceTab = activeExampleId ?? "actual"
 
-    const activeExample = sourceTab === "actual"
-        ? null
-        : examples[Number(sourceTab)]
+    const [editingExampleId, setEditingExampleId] = useState<string | null>(null)
+    const [editingName, setEditingName] = useState("")
+
+    const startRename = (ex: any) => {
+        setEditingExampleId(ex.id ?? "")
+        setEditingName(ex.name)
+    }
+
+    const saveRename = (exampleId: string) => {
+        if (exampleId && editingName.trim()) {
+            dispatch(renameExampleResponse({ exampleId, name: editingName.trim() }))
+        }
+        setEditingExampleId(null)
+    }
 
     const responseCode = activeExample?.code ?? currResponse?.statusCode
-    const responseStatus = activeExample?.status ?? currResponse?.statusText ?? "OK"
+    const responseStatus = activeExample?.status ?? currResponse?.statusText ?? (responseCode ? getHttpStatusText(responseCode) : "OK")
     const badgeColor = (() => {
-        if (!responseCode) return "bg-slate-100 text-slate-700"
+        if (!responseCode) return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
         const s = Math.floor(responseCode / 100)
-        if (s === 2) return "bg-emerald-100 text-emerald-700"
-        if (s === 3) return "bg-blue-100 text-blue-700"
-        if (s === 4) return "bg-amber-100 text-amber-700"
-        return "bg-red-100 text-red-700"
+        if (s === 1) return "bg-sky-100 text-sky-700 dark:bg-sky-950/70 dark:text-sky-400"
+        if (s === 2) return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400"
+        if (s === 3) return "bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:text-blue-400"
+        if (s === 4) return "bg-amber-100 text-amber-700 dark:bg-amber-950/70 dark:text-amber-400"
+        return "bg-red-100 text-red-700 dark:bg-red-950/70 dark:text-red-400"
     })()
 
     const responseBody = useMemo(() => {
@@ -252,8 +284,23 @@ const ResponseView: React.FC = () => {
     }, [isExcel, currResponse?.data, visualizeExcel])
 
     const onSourceChange = useCallback((value: string) => {
-        setSourceTab(value)
-    }, [])
+        if (value === "actual") {
+            dispatch(setActiveExampleId({ exampleId: null }))
+        } else {
+            dispatch(setActiveExampleId({ exampleId: value }))
+        }
+    }, [dispatch])
+
+    const handleRemoveExample = useCallback((exampleId: string | undefined, index: number) => {
+        if (activeExampleId === exampleId) {
+            dispatch(setActiveExampleId({ exampleId: null }))
+        }
+        dispatch(removeExampleResponse({ id: exampleId, exampleId, requestId: selectedRequest?.id, index }))
+    }, [activeExampleId, dispatch, selectedRequest?.id])
+
+    const handleAddNewExample = useCallback(() => {
+        dispatch(addExampleResponse({ id: selectedRequest?.id }))
+    }, [dispatch, selectedRequest?.id])
 
     return (
         <>
@@ -262,7 +309,57 @@ const ResponseView: React.FC = () => {
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                     <div className="flex items-center gap-2">
                         <h2 className="text-sm font-semibold text-foreground">Response</h2>
-                        {responseCode && <Badge className={badgeColor}>{`${responseCode} ${responseStatus}`}</Badge>}
+                        {activeExample ? (
+                            <Select
+                                value={String(activeExample.code ?? 200)}
+                                onValueChange={(val) => {
+                                    const code = parseInt(val, 10)
+                                    const status = getHttpStatusText(code, activeExample.status || "OK")
+                                    dispatch(updateExampleResponseStatus({ exampleId: activeExample.id, code, status }))
+                                }}
+                            >
+                                <SelectTrigger
+                                    size="sm"
+                                    className={cn(
+                                        "h-7 w-auto min-w-[110px] gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-md border border-transparent shadow-none cursor-pointer transition-colors",
+                                        badgeColor
+                                    )}
+                                    title="Select HTTP response status code"
+                                >
+                                    <SelectValue>
+                                        {activeExample.code ?? 200} {activeExample.status ?? getHttpStatusText(activeExample.code ?? 200)}
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent className="max-h-[300px]">
+                                    {HTTP_STATUS_GROUPS.map((grp) => (
+                                        <SelectGroup key={grp.group}>
+                                            <SelectLabel className="text-[11px] font-semibold text-muted-foreground px-2 py-1">
+                                                {grp.group}
+                                            </SelectLabel>
+                                            {grp.items.map((item) => (
+                                                <SelectItem key={item.code} value={String(item.code)} className="text-xs">
+                                                    <span className="font-semibold">{item.code}</span>
+                                                    <span className="text-muted-foreground">{item.status}</span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectGroup>
+                                    ))}
+                                    {activeExample.code && !HTTP_STATUS_MAP[activeExample.code] && (
+                                        <SelectGroup key="custom">
+                                            <SelectLabel className="text-[11px] font-semibold text-muted-foreground px-2 py-1">
+                                                Custom
+                                            </SelectLabel>
+                                            <SelectItem value={String(activeExample.code)} className="text-xs">
+                                                <span className="font-semibold">{activeExample.code}</span>
+                                                <span className="text-muted-foreground">{activeExample.status}</span>
+                                            </SelectItem>
+                                        </SelectGroup>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            responseCode && <Badge className={badgeColor}>{`${responseCode} ${responseStatus}`}</Badge>
+                        )}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         {sourceTab === "actual" && (
@@ -275,33 +372,97 @@ const ResponseView: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="border-b border-border px-4 pt-2">
+                <div className="border-b border-border px-4 pt-2 flex items-center gap-1.5 overflow-x-auto">
                     <Tabs value={sourceTab} onValueChange={onSourceChange}>
-                        <TabsList className="h-8 rounded-lg bg-muted">
+                        <TabsList className="h-8 rounded-lg bg-muted flex items-center">
                             <TabsTrigger value="actual" className="h-7 px-3 text-xs">
                                 Actual Response
                             </TabsTrigger>
-                            {examples.map((ex, i) => (
-                                <TabsTrigger
-                                    key={i}
-                                    value={String(i)}
-                                    className="h-7 px-3 text-xs"
-                                >
-                                    Example: {ex.name}
-                                </TabsTrigger>
-                            ))}
+                            {examples.map((ex, i) => {
+                                const tabValue = ex.id || String(i)
+                                return (
+                                    <TabsTrigger
+                                        key={tabValue}
+                                        value={tabValue}
+                                        className="group relative h-7 px-2 text-xs flex items-center gap-1.5"
+                                    >
+                                        {editingExampleId === ex.id ? (
+                                            <input
+                                                type="text"
+                                                autoFocus
+                                                value={editingName}
+                                                onChange={(e) => setEditingName(e.target.value)}
+                                                onBlur={() => saveRename(ex.id!)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter") saveRename(ex.id!)
+                                                    if (e.key === "Escape") setEditingExampleId(null)
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="h-5 w-24 rounded border border-border bg-background px-1 text-xs text-foreground focus:outline-hidden"
+                                            />
+                                        ) : (
+                                            <span
+                                                onDoubleClick={(e) => {
+                                                    e.stopPropagation()
+                                                    startRename(ex)
+                                                }}
+                                                title="Double-click to rename"
+                                            >
+                                                Example: {ex.name}
+                                            </span>
+                                        )}
+                                        <button
+                                            type="button"
+                                            aria-label="Rename example"
+                                            className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground pointer-events-auto transition-colors opacity-70 hover:opacity-100"
+                                            title="Rename example"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                e.preventDefault()
+                                                startRename(ex)
+                                            }}
+                                        >
+                                            <Pencil className="size-2.5" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            aria-label="Remove example"
+                                            className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground pointer-events-auto transition-colors"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                e.preventDefault()
+                                                handleRemoveExample(ex.id, i)
+                                            }}
+                                        >
+                                            <X className="size-3" />
+                                        </button>
+                                    </TabsTrigger>
+                                )
+                            })}
                         </TabsList>
                     </Tabs>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground shrink-0 rounded-md"
+                        title="Add response example"
+                        aria-label="Add response example"
+                        onClick={handleAddNewExample}
+                    >
+                        <Plus className="h-4 w-4" />
+                    </Button>
                 </div>
 
                 <Tabs defaultValue="pretty" className="flex-1 overflow-hidden p-4">
                     <div className="mb-3 flex items-center justify-between">
-                        <TabsList className="h-9 rounded-lg bg-slate-100">
+                        <TabsList className="h-9 rounded-lg bg-muted">
                             <TabsTrigger value="pretty">Pretty</TabsTrigger>
                             <TabsTrigger value="console">Console</TabsTrigger>
                         </TabsList>
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" disabled={!currResponse}
+                            <Button variant="outline" size="sm" disabled={!currResponse || Boolean(activeExample)}
+                                    title={activeExample ? "Save is disabled when viewing an example" : undefined}
                                     onClick={() => setDialogOpen(true)}>
                                 <Download className="mr-1 h-4 w-4"/>
                                 Save
@@ -317,8 +478,8 @@ const ResponseView: React.FC = () => {
                         </div>
                     </div>
 
-                    <TabsContent value="pretty" className="h-[calc(100%-3.2rem)]">
-                        <div className="h-full">
+                    <TabsContent value="pretty" className={cn("h-[calc(100%-3.2rem)]", !prettyResponse?.trim() && "min-h-[280px]")}>
+                        <div className={cn("h-full", !prettyResponse?.trim() && "min-h-[280px]")}>
                             {isImage && currResponse?.data ? (
                                 <div className="flex items-center justify-center h-[300px] bg-slate-100 rounded-md">
                                     <img src={currResponse.data as string} alt="response"
@@ -361,12 +522,21 @@ const ResponseView: React.FC = () => {
                                 </div>
                             ) : (
                                 <SandpackScriptEditor
-                                    readOnly
+                                    editorKey={activeExample?.id ?? "actual-response"}
+                                    readOnly={!activeExample}
                                     value={prettyResponse}
+                                    onChange={(newCode) => {
+                                        if (activeExample?.id) {
+                                            dispatch(updateExampleResponseBody({ exampleId: activeExample.id, body: newCode }))
+                                        }
+                                    }}
                                     fileName="response.json"
                                     showLineNumbers={false}
-                                    className="h-full"
-                                    style={{height: "100%"}}
+                                    className={cn("h-full", !prettyResponse?.trim() && "min-h-[280px]")}
+                                    style={{
+                                        height: "100%",
+                                        ...(!prettyResponse?.trim() ? { minHeight: "280px" } : {}),
+                                    }}
                                 />
                             )}
                         </div>

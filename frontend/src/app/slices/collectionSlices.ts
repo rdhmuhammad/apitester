@@ -1,4 +1,4 @@
-import type {CollectionAuth, CollectionInfo, CollectionItem, CollectionResponse, CollectionVar, DocsContent} from "@/pages/editor/types/api.ts";
+import type {CollectionAuth, CollectionInfo, CollectionItem, CollectionResponse, CollectionVar, DocsContent, ItemUrl} from "@/pages/editor/types/api.ts";
 import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import type {RootState} from "@/app/store/store.ts";
 import {isArrayEmpty} from "@/lib/utils.ts";
@@ -219,6 +219,7 @@ const collectionSlices = createSlice({
             if (!active.response || !active.request) return
 
             const example: CollectionResponse = {
+                id: crypto.randomUUID(),
                 name: action.payload.name,
                 status: active.response.statusText,
                 code: active.response.statusCode,
@@ -231,6 +232,170 @@ const collectionSlices = createSlice({
             active.exampleResponse = [...(active.exampleResponse ?? []), example]
             if (!state.dirtyRequestIds.includes(action.payload.id)) {
                 state.dirtyRequestIds.push(action.payload.id)
+            }
+        },
+        addExampleResponse(state, action: PayloadAction<{ id?: string; name?: string } | undefined>) {
+            const targetId = action.payload?.id ?? state.activeTabId
+            const idx = targetId
+                ? findCurrentActiveRequestIndex(state.openRequestTabs, targetId)
+                : (state.openRequestTabs.length - 1)
+            if (idx < 0 || !state.openRequestTabs[idx]) return
+
+            const active = state.openRequestTabs[idx]
+
+            // Only clone from current active request of the tab
+            const clonedRequest = active.request
+                ? JSON.parse(JSON.stringify(active.request))
+                : { method: "GET", header: [], url: { raw: "", host: [""], path: [""], query: [] } }
+
+            const newId = crypto.randomUUID()
+            const count = (active.exampleResponse?.length ?? 0) + 1
+            const exampleName = action?.payload?.name?.trim() || `Example ${count}`
+
+            const newExample: CollectionResponse = {
+                id: newId,
+                name: exampleName,
+                status: "OK",
+                code: 200,
+                header: [],
+                cookie: [],
+                body: "",
+                originalRequest: clonedRequest,
+            }
+
+            active.exampleResponse = [...(active.exampleResponse ?? []), newExample]
+            active.activeExampleId = newId
+
+            if (!state.dirtyRequestIds.includes(active.id)) {
+                state.dirtyRequestIds.push(active.id)
+            }
+        },
+        removeExampleResponse(state, action: PayloadAction<{ id?: string; exampleId?: string; requestId?: string; index?: number } | string>) {
+            const exampleId = typeof action.payload === 'string'
+                ? action.payload
+                : (action.payload.id ?? action.payload.exampleId ?? '')
+            const index = typeof action.payload === 'object' ? action.payload.index : undefined
+            const requestId = typeof action.payload === 'object' ? action.payload.requestId : undefined
+
+            if (!exampleId && index === undefined) return
+
+            for (const tab of state.openRequestTabs) {
+                if (requestId && tab.id !== requestId) continue
+
+                if (exampleId && tab.exampleResponse?.some(ex => ex.id === exampleId)) {
+                    tab.exampleResponse = tab.exampleResponse.filter(ex => ex.id !== exampleId)
+                    if (tab.activeExampleId === exampleId) {
+                        tab.activeExampleId = null
+                    }
+                    if (!state.dirtyRequestIds.includes(tab.id)) {
+                        state.dirtyRequestIds.push(tab.id)
+                    }
+                } else if (!exampleId && index !== undefined && tab.exampleResponse && tab.exampleResponse[index]) {
+                    const removed = tab.exampleResponse[index]
+                    tab.exampleResponse = tab.exampleResponse.filter((_, idx) => idx !== index)
+                    if (removed?.id && tab.activeExampleId === removed.id) {
+                        tab.activeExampleId = null
+                    }
+                    if (!state.dirtyRequestIds.includes(tab.id)) {
+                        state.dirtyRequestIds.push(tab.id)
+                    }
+                }
+            }
+
+            const removeExampleFromTree = (items: CollectionItem[]) => {
+                for (const it of items) {
+                    if (requestId && it.id !== requestId && !it.item) continue
+                    if (exampleId && it.response?.some(ex => ex.id === exampleId)) {
+                        it.response = it.response.filter(ex => ex.id !== exampleId)
+                        if (!state.dirtyRequestIds.includes(it.id)) {
+                            state.dirtyRequestIds.push(it.id)
+                        }
+                    } else if (!exampleId && index !== undefined && (!requestId || it.id === requestId) && it.response && it.response[index]) {
+                        it.response = it.response.filter((_, idx) => idx !== index)
+                        if (!state.dirtyRequestIds.includes(it.id)) {
+                            state.dirtyRequestIds.push(it.id)
+                        }
+                    }
+                    if (it.item) {
+                        removeExampleFromTree(it.item)
+                    }
+                }
+            }
+            if (state.data?.item) {
+                removeExampleFromTree(state.data.item)
+            }
+        },
+        setActiveExampleId(state, action: PayloadAction<{ id?: string; exampleId: string | null }>) {
+            const targetId = action.payload.id || state.activeTabId
+            const tab = state.openRequestTabs.find(t => t.id === targetId)
+            if (!tab) return
+
+            tab.activeExampleId = action.payload.exampleId
+
+            if (action.payload.exampleId && tab.exampleResponse) {
+                const example = tab.exampleResponse.find(ex => ex.id === action.payload.exampleId)
+                if (example && !example.originalRequest) {
+                    example.originalRequest = tab.request
+                        ? JSON.parse(JSON.stringify(tab.request))
+                        : { method: "GET", header: [], url: { raw: "", host: [""], path: [""], query: [] } }
+                }
+            }
+        },
+        updateExampleResponseBody(state, action: PayloadAction<{ id?: string; exampleId?: string; body: string }>) {
+            const targetId = action.payload.id || state.activeTabId
+            const tab = state.openRequestTabs.find(t => t.id === targetId)
+            const exampleId = action.payload.exampleId || tab?.activeExampleId
+            if (!tab || !exampleId) return
+
+            const example = tab.exampleResponse?.find(ex => ex.id === exampleId)
+            if (example) {
+                example.body = action.payload.body
+                if (!state.dirtyRequestIds.includes(tab.id)) {
+                    state.dirtyRequestIds.push(tab.id)
+                }
+            }
+        },
+        updateExampleResponseStatus(state, action: PayloadAction<{ id?: string; exampleId?: string; code: number; status: string }>) {
+            const targetId = action.payload.id || state.activeTabId
+            const tab = state.openRequestTabs.find(t => t.id === targetId)
+            const exampleId = action.payload.exampleId || tab?.activeExampleId
+            if (!tab || !exampleId) return
+
+            const example = tab.exampleResponse?.find(ex => ex.id === exampleId)
+            if (example) {
+                example.code = action.payload.code
+                example.status = action.payload.status
+                if (!state.dirtyRequestIds.includes(tab.id)) {
+                    state.dirtyRequestIds.push(tab.id)
+                }
+            }
+        },
+        renameExampleResponse(state, action: PayloadAction<{ id?: string; exampleId?: string; name: string }>) {
+            const targetId = action.payload.id || state.activeTabId
+            const tab = state.openRequestTabs.find(t => t.id === targetId)
+            const exampleId = action.payload.exampleId || tab?.activeExampleId
+            if (!tab || !exampleId) return
+
+            const example = tab.exampleResponse?.find(ex => ex.id === exampleId)
+            if (example) {
+                example.name = action.payload.name
+                if (!state.dirtyRequestIds.includes(tab.id)) {
+                    state.dirtyRequestIds.push(tab.id)
+                }
+            }
+        },
+        updateExampleResponseHeader(state, action: PayloadAction<{ id?: string; exampleId?: string; header: ItemUrl[] }>) {
+            const targetId = action.payload.id || state.activeTabId
+            const tab = state.openRequestTabs.find(t => t.id === targetId)
+            const exampleId = action.payload.exampleId || tab?.activeExampleId
+            if (!tab || !exampleId) return
+
+            const example = tab.exampleResponse?.find(ex => ex.id === exampleId)
+            if (example) {
+                example.header = action.payload.header
+                if (!state.dirtyRequestIds.includes(tab.id)) {
+                    state.dirtyRequestIds.push(tab.id)
+                }
             }
         },
         createNewRequest(state) {
@@ -374,10 +539,19 @@ export const {
     setAuthType,
     setScriptResult,
     saveExampleResponse,
+    addExampleResponse,
+    removeExampleResponse,
+    setActiveExampleId,
+    updateExampleResponseBody,
+    updateExampleResponseStatus,
+    renameExampleResponse,
+    updateExampleResponseHeader,
     createNewRequest,
     deleteRequest,
     deleteFolder,
 } = collectionSlices.actions
+
+export const deleteExampleResponse = removeExampleResponse
 
 export const setActiveRequest = addActiveRequest
 export type {ColtReqMethod, DirTree} from "@/app/slices/index.ts"
@@ -502,22 +676,40 @@ export const selectDirTree = (state: RootState): Map<string, DirTree> => {
     return new Map<string, DirTree>()
 }
 
+export const selectActiveExampleId = (state: RootState): string | null =>
+    getCurrentActiveRequest(state)?.activeExampleId ?? null
+
+export const selectActiveExample = (state: RootState): CollectionResponse | null => {
+    const current = getCurrentActiveRequest(state)
+    if (!current?.activeExampleId || !current.exampleResponse) return null
+    return current.exampleResponse.find(ex => ex.id === current.activeExampleId) ?? null
+}
+
 const buildSelectedRequest = (state: RootState, current: ActiveItem): CollectionItem | null => {
     const collectionItem = state.collection?.data?.item
         ? diveActiveRequest(current.id, state.collection.data.item)
         : null
+
+    let targetRequest = current.request ?? collectionItem?.request
+    if (current.activeExampleId && current.exampleResponse) {
+        const example = current.exampleResponse.find(ex => ex.id === current.activeExampleId)
+        if (example?.originalRequest) {
+            targetRequest = example.originalRequest
+        }
+    }
+
     if (!collectionItem) {
         return {
             id: current.id,
             name: '',
-            request: current.request ?? undefined,
+            request: targetRequest ?? undefined,
             response: current.exampleResponse,
         }
     }
 
     return {
         ...collectionItem,
-        request: current.request ?? collectionItem.request,
+        request: targetRequest ?? collectionItem.request,
         response: current.exampleResponse ?? collectionItem.response,
     }
 }

@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react"
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts"
-import {selectActiveRequestScript, selectActiveTabId, setActiveRequestScript} from "@/app/slices/collectionSlices.ts"
+import {selectActiveRequestScript, selectActiveTabId, selectActiveExampleId, setActiveRequestScript} from "@/app/slices/collectionSlices.ts"
 import {SandpackScriptEditor} from "@/components/ui/sandpack-script-editor"
 import {pmCompletionSource, resCompletionSource} from "@/lib/pmCompletions"
 import {type Diagnostic, linter} from "@codemirror/lint";
@@ -64,6 +64,7 @@ export const ScriptEditor: React.FC = () => {
     const dispatch = useAppDispatch()
     const scriptValue = useAppSelector(selectActiveRequestScript)
     const activeTabId = useAppSelector(selectActiveTabId)
+    const activeExampleId = useAppSelector(selectActiveExampleId)
 
     const [script, setScript] = useState(scriptValue)
     const lastDispatchedRef = useRef(scriptValue)
@@ -112,7 +113,7 @@ export const ScriptEditor: React.FC = () => {
         <div className="relative rounded-lg overflow-hidden">
             <div className="min-h-[280px] resize-y overflow-hidden rounded-lg border border-border">
                 <SandpackScriptEditor
-                    editorKey={activeTabId}
+                    editorKey={`${activeTabId}-${activeExampleId ?? "actual"}`}
                     showSearch={true}
                     fileName="script.js"
                     extensions={scriptExtensions}

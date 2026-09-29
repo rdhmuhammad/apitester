@@ -9,6 +9,7 @@ import React, {useEffect, useRef, useState} from "react";
 import type {ItemUrl} from "@/pages/editor/types/api.ts";
 import {useAppDispatch, useAppSelector} from "@/app/store/hooks.ts";
 import {selectRequestBody, setBody} from "@/app/slices/requestSlices.ts";
+import {selectActiveTabId, selectActiveExampleId} from "@/app/slices/collectionSlices.ts";
 import {setFile, removeFile} from "@/lib/fileStore.ts";
 
 export type ContentType = "application/json" | "multipart/form-data";
@@ -23,6 +24,8 @@ export const BodyEditor: React.FC<IBodyEditor> = (
     }) => {
 
     const selectBody = useAppSelector(selectRequestBody);
+    const activeTabId = useAppSelector(selectActiveTabId);
+    const activeExampleId = useAppSelector(selectActiveExampleId);
     const dispatch = useAppDispatch()
 
     type MenuState = {
@@ -140,6 +143,7 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                         onClick={menu.open ? onClosePopup : undefined}
                     >
                         <SandpackScriptEditor
+                            editorKey={`${activeTabId ?? "tab"}-${activeExampleId ?? "actual"}`}
                             value={selectBody?.raw ?? ""}
                             onChange={(e) => {
                                 dispatch(setBody({body: e}))

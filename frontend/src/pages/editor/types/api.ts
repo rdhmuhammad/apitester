@@ -33,6 +33,7 @@ export interface CollectionItem {
 }
 
 export interface CollectionResponse {
+  id?: string;
   name: string;
   originalRequest?: Request;
   status: string;
