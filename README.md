@@ -24,6 +24,10 @@
     <br />
     <a href="https://apitester-frontend.vercel.app/#/editor">View Demo</a>
     &middot;
+    <a href="https://github.com/rdhmuhammad/apitester-desktop">Desktop Version</a>
+    &middot;
+    <a href="https://github.com/rdhmuhammad/apitester-generator-spring">Spring Boot Generator</a>
+    &middot;
     <a href="https://github.com/rdhmuhammad/apitester/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     &middot;
     <a href="https://github.com/rdhmuhammad/apitester/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
@@ -32,6 +36,10 @@
 
 <!-- ABOUT THE PROJECT -->
 ## 📖 About The Project
+
+> [!TIP]
+> * **Desktop Version**: If you want to use the full version as a standalone desktop application, download it at [apitester-desktop](https://github.com/rdhmuhammad/apitester-desktop).
+> * **Java Spring Boot**: If you want to generate specifications and apply API Tester to Java Spring Boot, use [apitester-generator-spring](https://github.com/rdhmuhammad/apitester-generator-spring).
 
 <div align="center">
     <img src="https://raw.githubusercontent.com/rdhmuhammad/apitester/refs/heads/main/resource/example_gui/request.png" width="45%" alt="Example request">
@@ -232,8 +240,8 @@ The following items represent the planned direction of the project and upcoming 
 - [x] Authentication & protected documentation mode
 - [x] Dark mode support
 - [x] Folder tree search and request/folder deletion
-- [x] Automatic API Docs generator for Golang (scanning controller structs and handlers)
-- [x] Automatic API Docs generator for Java Spring
+- [ ] Automatic API Docs generator for Golang (scanning controller structs and handlers)
+- [x] Automatic API Docs generator for Java Spring ([apitester-generator-spring](https://github.com/rdhmuhammad/apitester-generator-spring))
 
 See the [project backlog](https://github.com/users/rdhmuhammad/projects/1) for a full list of proposed features.
 
