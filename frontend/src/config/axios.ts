@@ -25,15 +25,23 @@ export const axios = Axios.create({
 
 export const syncEnvFromTargetService = async (): Promise<Record<string, string>> => {
     try {
-        const res = await fetch("/.env");
-        if (res.ok) {
-            const text = await res.text();
-            const env = parseEnv(text);
-            if (env["VITE_API_URL"]) {
-                apiBaseURL = env["VITE_API_URL"];
-                axios.defaults.baseURL = apiBaseURL;
+        const envPaths = ["/apitester/.env", "./.env", "/.env"];
+        for (const p of envPaths) {
+            try {
+                const res = await fetch(p);
+                const contentType = res.headers.get("content-type") || "";
+                if (res.ok && !contentType.includes("text/html")) {
+                    const text = await res.text();
+                    const env = parseEnv(text);
+                    if (env["VITE_API_URL"]) {
+                        apiBaseURL = env["VITE_API_URL"];
+                        axios.defaults.baseURL = apiBaseURL;
+                        return env;
+                    }
+                }
+            } catch (_) {
+                // Try next path
             }
-            return env;
         }
     } catch (_) {
         // Fallback to default relative baseURL
@@ -74,6 +82,9 @@ type AxiosErrorWithDuration<T = unknown> = AxiosError<T> & {
 axios.interceptors.request.use(
     async (config) => {
         const newConfig = config as RequestConfigWithMetadata
+        if (!newConfig.baseURL || newConfig.baseURL === "/api/v1" || newConfig.baseURL === "/apitester/api/v1") {
+            newConfig.baseURL = apiBaseURL;
+        }
         newConfig.metadata = {startTime: Date.now()}
         return newConfig;
     },

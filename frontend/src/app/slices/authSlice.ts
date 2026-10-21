@@ -48,9 +48,16 @@ const authSlice = createSlice({
                 state.error = null
             })
             .addCase(loginThunk.fulfilled, (state, action) => {
+                if (!action.payload) {
+                    state.status = 'failed'
+                    state.isAuthenticated = false
+                    state.username = null
+                    state.error = 'Login failed'
+                    return
+                }
                 state.status = 'succeeded'
                 state.isAuthenticated = true
-                state.username = action.payload.username
+                state.username = action.payload.username ?? null
                 state.error = null
             })
             .addCase(loginThunk.rejected, (state, action) => {
@@ -62,9 +69,16 @@ const authSlice = createSlice({
                 state.status = 'loading'
             })
             .addCase(checkAuthThunk.fulfilled, (state, action) => {
+                if (!action.payload) {
+                    state.status = 'failed'
+                    state.isAuthenticated = false
+                    state.username = null
+                    state.error = null
+                    return
+                }
                 state.status = 'succeeded'
-                state.isAuthenticated = action.payload.authenticated
-                state.username = action.payload.username
+                state.isAuthenticated = Boolean(action.payload.authenticated)
+                state.username = action.payload.username ?? null
                 state.error = null
             })
             .addCase(checkAuthThunk.rejected, (state) => {

@@ -15,6 +15,16 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      '/apitester/api': {
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8080',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/apitester/, ''),
+      },
+      '/apitester/.env': {
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8080',
+        changeOrigin: true,
+        rewrite: () => '/.env',
+      },
       '/api': {
         target: process.env.VITE_BACKEND_URL || 'http://localhost:8080',
         changeOrigin: true,
