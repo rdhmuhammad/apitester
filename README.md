@@ -22,15 +22,15 @@
     An integrated ecosystem for integration testing and API documentation — read Postman specifications directly from code and run an interactive GUI (Swagger UI-style) embedded in your Go service.
     <br />
     <br />
-    <a href="https://apitester-frontend.vercel.app/#/editor">View Demo</a>
+    <a href="https://apitester-frontend.vercel.app/#/editor" target="_blank" rel="noopener noreferrer">View Demo</a>
     &middot;
-    <a href="https://github.com/rdhmuhammad/apitester-desktop">Desktop Version</a>
+    <a href="https://github.com/rdhmuhammad/apitester-desktop" target="_blank" rel="noopener noreferrer">Desktop Version</a>
     &middot;
-    <a href="https://github.com/rdhmuhammad/apitester-generator-spring">Spring Boot Generator</a>
+    <a href="https://github.com/rdhmuhammad/apitester-generator-spring" target="_blank" rel="noopener noreferrer">Spring Boot Generator</a>
     &middot;
-    <a href="https://github.com/rdhmuhammad/apitester/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    <a href="https://github.com/rdhmuhammad/apitester/issues/new?labels=bug&template=bug-report---.md" target="_blank" rel="noopener noreferrer">Report Bug</a>
     &middot;
-    <a href="https://github.com/rdhmuhammad/apitester/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+    <a href="https://github.com/rdhmuhammad/apitester/issues/new?labels=enhancement&template=feature-request---.md" target="_blank" rel="noopener noreferrer">Request Feature</a>
   </p>
 </div>
 
