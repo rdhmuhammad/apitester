@@ -21,7 +21,7 @@
       "id": "var-base-url",
       "key": "baseUrl",
       "category": "BASE_URL",
-      "value": "http://localhost:8080",
+      "value": "https://apitester-frontend.vercel.app",
       "type": "string"
     },
     {
