@@ -90,7 +90,7 @@ func (h HandleError) ErrorPrint(err error) {
 }
 
 func (h HandleError) DebugPrint(err string, v ...interface{}) {
-	h.logger.Debugf(err, v)
+	h.logger.Debugf(err, v...)
 }
 
 func (h HandleError) ErrorReturn(err error) error {

@@ -1,0 +1,2118 @@
+{
+  "info": {
+    "_postman_id": "",
+    "name": "Asli Loyal API",
+    "description": "Covering endpoint for point transaction and member lifecycle",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "funIden": "",
+      "name": "Auth",
+      "item": [
+        {
+          "funIden": "",
+          "name": "Create",
+          "request": {
+            "funIden": "",
+            "method": "POST",
+            "header": [
+              {
+                "id": "42ad9388-1246-4e20-975c-d59636f444f5",
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\" : \"\",\r\n  \"password\" : \"\"\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ],
+              "query": null
+            }
+          },
+          "response": [
+            {
+              "id": "78065aec-c304-47e0-854f-90f9d15bf9fc",
+              "name": "200",
+              "originalRequest": {
+                "funIden": "",
+                "method": "POST",
+                "header": [
+                  {
+                    "id": "42ad9388-1246-4e20-975c-d59636f444f5",
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\" : \"key\",\n  \"password\" : \"\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ],
+                  "query": null
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": 200\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (response.statusCode === 200){",
+                  "  const token = response.data.data.token",
+                  "  pm.environment.set(\"token\", token)",
+                  "  ",
+                  "}",
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "id": "6731d9ba-1025-4174-9322-bb1655611e12"
+        },
+        {
+          "funIden": "",
+          "name": "Create",
+          "request": {
+            "funIden": "",
+            "method": "POST",
+            "header": [
+              {
+                "id": "1fbd0208-06c2-46de-a03d-ff5e922ddad9",
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\" : \"test\",\n  \"password\" : \"hai\",\n  \"isActive\" : false,\n  \"code\" : \"\",\n  \"role\" : \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/user",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "user"
+              ],
+              "query": null
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "id": "68e91a3a-25e3-4157-8ce6-870bd2117797"
+        }
+      ],
+      "id": "24644df5-0220-4b45-955d-7d9ae75cf3ce"
+    },
+    {
+      "funIden": "",
+      "name": "V1",
+      "item": [
+        {
+          "funIden": "",
+          "name": "Cashback",
+          "item": [
+            {
+              "funIden": "",
+              "name": "Check",
+              "request": {
+                "funIden": "",
+                "method": "GET",
+                "header": [
+                  {
+                    "id": "4df54c50-4415-4912-8f0b-3bd2667cfcef",
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/cashback/check-missing",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "cashback",
+                    "check-missing"
+                  ],
+                  "query": null
+                }
+              },
+              "response": [
+                {
+                  "id": "1f87d6e6-0436-4eda-80f4-a5f4a748b664",
+                  "name": "Success",
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "Text",
+                  "body": ""
+                }
+              ],
+              "id": "1616b15c-8602-4a5a-b99e-412c8ca3b297"
+            },
+            {
+              "funIden": "",
+              "name": "Add And Calculate Cashback",
+              "request": {
+                "funIden": "",
+                "method": "POST",
+                "header": [
+                  {
+                    "id": "57b68b95-b703-4619-80fd-616bb17b5922",
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "id": "185bcdf6-94b5-4d80-bd36-d34f34ea7eb9",
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"orderId\" : \"\",\r\n  \"memberId\" : \"\",\r\n  \"outletId\" : \"\"\r\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/cashback/add",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "cashback",
+                    "add"
+                  ],
+                  "query": null
+                }
+              },
+              "response": [
+                {
+                  "id": "7b820601-2de3-43f1-9882-5385bdb8da5c",
+                  "name": "Success",
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "Text",
+                  "body": ""
+                }
+              ],
+              "id": "59a35014-d185-4aa8-9152-7ee7672c8b43"
+            }
+          ],
+          "id": "33d6b093-e450-4db8-867f-37c7bb2387a1"
+        },
+        {
+          "funIden": "",
+          "name": "Dashboard",
+          "item": [
+            {
+              "funIden": "",
+              "name": "Dashboard",
+              "item": [
+                {
+                  "funIden": "",
+                  "name": "Get Summary",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [
+                      {
+                        "id": "6bc82ba7-112b-4695-a351-517f61e14d6a",
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/dashboard/chart?groupBy=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "dashboard",
+                        "chart"
+                      ],
+                      "query": [
+                        {
+                          "id": "6d1f1d51-07c8-4806-adb2-4eaaf4837b20",
+                          "key": "groupBy",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "c9af6c5c-2a6c-4702-95ce-3cf81f2cba2f",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "1777d03d-d722-43e3-9b55-5540674abf6f"
+                },
+                {
+                  "funIden": "",
+                  "name": "Get Summary",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [
+                      {
+                        "id": "5d4c87de-18b6-41d5-bfa6-41e1a7995fef",
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/dashboard/summary?endDate=&startDate=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "dashboard",
+                        "summary"
+                      ],
+                      "query": [
+                        {
+                          "id": "0a3e67a3-34cd-4794-ba93-228aac403d8f",
+                          "key": "endDate",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "a166c621-b75d-42ba-9a21-b4de89cf53c1",
+                          "key": "startDate",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "d2ff5d8a-ee54-4106-8599-d0cd83ad5a90",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "cc101e00-f39b-4e99-b26e-a9ac8c452823"
+                }
+              ],
+              "id": "942f0ed6-31af-4c5c-923c-cbac5e9d9722"
+            },
+            {
+              "funIden": "",
+              "name": "Report",
+              "item": [
+                {
+                  "funIden": "",
+                  "name": "Get Report",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/report?orderId=&endDate=&startDate=&memberId=&referenceType=&topupId=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "report"
+                      ],
+                      "query": [
+                        {
+                          "id": "3ca1383c-0d06-4330-9aa2-40807603f3f1",
+                          "key": "orderId",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "a5e57e5b-2431-47e1-a287-c320f6866f52",
+                          "key": "endDate",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "0a8d9eff-8fa1-4b1a-b74a-0d108e5abcc9",
+                          "key": "startDate",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "f849bcc1-b026-40d9-950e-b73a04ff27b9",
+                          "key": "memberId",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "aa89c5c8-3c43-4baf-82bb-2f8357e39aff",
+                          "key": "referenceType",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "4a7c94d9-ffa2-4014-9f63-326e80713c2e",
+                          "key": "topupId",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "7c9ba1be-289a-4378-ba8d-56322be462ee",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "0b2f714b-b4eb-4dd6-8607-d109caffe561"
+                },
+                {
+                  "funIden": "",
+                  "name": "Create Query Report",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "f2ca2687-c26c-44ce-8486-3b97b729d9d9",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"outletId\" : \"\",\r\n  \"startDate\" : \"\",\r\n  \"endDate\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/report/query",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "report",
+                        "query"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "af9b8553-50a0-4a4a-9305-51e5f384a431",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "3c2393b8-4114-484a-b468-dc1dede24f04"
+                },
+                {
+                  "funIden": "",
+                  "name": "Get Report Base64",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/report/base64?memberId=&endDate=&startDate=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "report",
+                        "base64"
+                      ],
+                      "query": [
+                        {
+                          "id": "b3a1558e-b9cf-46d0-95e2-8d201543b5b1",
+                          "key": "memberId",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "24e29018-2f5b-4728-93cd-71742b3105e4",
+                          "key": "endDate",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "d4ee3234-0d2b-4e4e-b14b-f2e47864dbc9",
+                          "key": "startDate",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "2222eaa8-6bd8-45f9-b7b5-b4ba15487f5c",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "f7d6749f-cde3-4ff8-af3b-c8ff841556a4"
+                },
+                {
+                  "funIden": "",
+                  "name": "Download Report",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/report/download?memberId=&endDate=&startDate=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "report",
+                        "download"
+                      ],
+                      "query": [
+                        {
+                          "id": "bd3d7767-5d9d-4b7c-be49-7ff097295b87",
+                          "key": "memberId",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "f228fdbd-b695-4612-ad73-7362e1d0f1a4",
+                          "key": "endDate",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "6865ec9a-2852-4a23-9613-a3b04ccfce25",
+                          "key": "startDate",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "8c9b0fc3-2853-4079-9b23-c0677852cf97",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "a3c43106-334a-4126-85e5-a61ce9686f19"
+                },
+                {
+                  "funIden": "",
+                  "name": "Get Report Query",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/report/query?memberId=&endDate=&startDate=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "report",
+                        "query"
+                      ],
+                      "query": [
+                        {
+                          "id": "686163f3-414f-4640-851e-a4a49d17b12e",
+                          "key": "memberId",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "b11451fe-2a65-4384-8ea8-f9336cbb43f5",
+                          "key": "endDate",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "b2b94b5e-d703-463d-888a-7cbdb8a07990",
+                          "key": "startDate",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "60701ff9-65dd-4f3c-9645-608d7a9f36b6",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "ec75f242-8e18-40a2-a60c-381bed07b44a"
+                }
+              ],
+              "id": "77e9996d-7069-4085-acef-643d473de314"
+            }
+          ],
+          "id": "c41ea25a-c6dc-4e21-b0db-8f9349bee881"
+        },
+        {
+          "funIden": "",
+          "name": "Mobile",
+          "item": [
+            {
+              "funIden": "",
+              "name": "Generate Link",
+              "item": [
+                {
+                  "funIden": "",
+                  "name": "Decode",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "e522ce87-ee5d-47b7-a4f8-928bb47c10bb",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"code\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/link/decode",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "link",
+                        "decode"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "bbb6ae65-855b-490a-b4da-8d041344a4c8",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "7fe0a9f8-4436-4e42-a89e-82429e9454ee"
+                },
+                {
+                  "funIden": "",
+                  "name": "Generate Link",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "865d167c-e67a-42d9-88b4-8aaa9a9dae83",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"orderId\" : \"\",\r\n  \"phone\" : \"\",\r\n  \"outletId\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/link/generate",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "link",
+                        "generate"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "1cf1627a-caa6-49bf-818f-073596595934",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "42f4d916-4ecc-4934-8442-d1ed1d18a0f9"
+                },
+                {
+                  "funIden": "",
+                  "name": "Set Expired",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "577babb7-0dad-4439-aa9b-52f81dd78466",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"code\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/link/set-expired",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "link",
+                        "set-expired"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "f3601a4c-a077-409d-952f-eb14caefffa4",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "4042e866-bcbf-4cef-9df1-cc1d53eb4608"
+                }
+              ],
+              "id": "803320e8-a49b-4fc5-a6ca-93bea39fc0f4"
+            },
+            {
+              "funIden": "",
+              "name": "Liveness",
+              "item": [
+                {
+                  "funIden": "",
+                  "name": "Check",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "557bfa85-5a85-43fc-a3e6-83bf61b15353",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"image\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/liveness/check",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "liveness",
+                        "check"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "49c2348c-c88d-4894-a77b-d787fda5cadd",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "6512b02c-cb08-4f77-8c16-de29e177ebd3"
+                },
+                {
+                  "funIden": "",
+                  "name": "Liveness Verify",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "df5f8842-9630-4088-949b-a8978209e780",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"liveImage\" : \"\",\r\n  \"phone\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/liveness/verify",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "liveness",
+                        "verify"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "2ae22d9b-dba4-4b93-aa7d-7977d286f925",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "9196a4cb-1eeb-433b-b610-9194f0a20a9d"
+                }
+              ],
+              "id": "f84ad1de-3582-4f8b-8583-892960252518"
+            },
+            {
+              "funIden": "",
+              "name": "Member",
+              "item": [
+                {
+                  "funIden": "",
+                  "name": "Get All",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/member?status=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "member"
+                      ],
+                      "query": [
+                        {
+                          "id": "78fb63eb-7ccd-44e6-86c8-e80a2d12a396",
+                          "key": "status",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "73fe8e3d-0422-4f8e-b72f-fb1625ef437c",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "fbf084c8-1b79-448e-acef-009e3f296bfc"
+                },
+                {
+                  "funIden": "",
+                  "name": "Get Detail",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/member/:code",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "member",
+                        "code"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "d3b21c15-7ccd-470c-b74e-c204a6804d0e",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "b74fe745-8124-4161-b3fa-8fe63f63fa82"
+                },
+                {
+                  "funIden": "",
+                  "name": "Top Up",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "7c9e91f9-99b4-4d65-9e68-f1fed807a78f",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"phone\" : \"\",\r\n  \"amount\" : 0,\r\n  \"method\" : \"\",\r\n  \"redirectUrl\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/member/topup",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "member",
+                        "topup"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "ecc0c572-b30e-40c6-af1c-f8000e0dbeca",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "df7acfd8-5346-434d-a2fc-78557387268e"
+                },
+                {
+                  "funIden": "",
+                  "name": "Create Online",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "02a03ff2-88b1-4fb5-9d2c-0606034144a8",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\" : \"\",\r\n  \"email\" : \"\",\r\n  \"phone\" : \"\",\r\n  \"address\" : \"\",\r\n  \"code\" : \"\",\r\n  \"image\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/member/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "member",
+                        "online"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "0ea34e8d-9ea4-47ba-bc3d-ff4ba3744eb8",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "f587514d-566b-4796-81d9-c8945039190a"
+                },
+                {
+                  "funIden": "",
+                  "name": "Verify Phone",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/member/verify/:phone",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "member",
+                        "verify",
+                        "phone"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "842891ba-0f17-43d3-85f3-a03ad9872d0b",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "00692ff4-4a2e-4c27-98bd-5a46b573e6ba"
+                },
+                {
+                  "funIden": "",
+                  "name": "Check Point",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "75ee92ec-58ad-4a8c-a731-ecf6d32470e8",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"memberId\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/member/check-point",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "member",
+                        "check-point"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "7edacb79-a9df-4ca7-a5d8-e3e1080079a7",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "c1221976-9f3d-4ad6-828c-129d511d466f"
+                },
+                {
+                  "funIden": "",
+                  "name": "Check Point",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "7e054979-5fa5-48ce-8f13-e3c7fd4f6d84",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"phone\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/member/check-point-phone",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "member",
+                        "check-point-phone"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "99a8e65c-dcdc-46c4-a85d-f10c922e2fbd",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "f698efbf-d9eb-4f68-997e-0057eb7d4c73"
+                }
+              ],
+              "id": "92c4e761-021b-4cc4-b917-204a7acdb64e"
+            },
+            {
+              "funIden": "",
+              "name": "Member Ledger",
+              "item": [
+                {
+                  "funIden": "",
+                  "name": "Get All",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [
+                      {
+                        "id": "57e1a7d4-7d19-43e5-abd2-ead9bd4ba986",
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/member-ledger?orderId=&endDate=&startDate=&memberId=&referenceType=&topupId=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "member-ledger"
+                      ],
+                      "query": [
+                        {
+                          "id": "96137eb5-3843-45f0-983a-83020eb1d382",
+                          "key": "orderId",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "0b5082cf-a5dd-412c-8035-d1f82ad4f1ce",
+                          "key": "endDate",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "8873b6e3-40c5-43b1-bba8-d62ce63a4369",
+                          "key": "startDate",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "92d5bddb-aec6-45d5-b63a-0da5f5411057",
+                          "key": "memberId",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "fc184568-df0f-455a-b0d9-3af870073a77",
+                          "key": "referenceType",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "d2f9887d-6bda-4a11-b1b2-b16539c39dbb",
+                          "key": "topupId",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "9ecc42ab-8c54-4d25-b5a0-afa5683a7d88",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "b86a9922-29b3-41b8-b0a9-b91160df7250"
+                },
+                {
+                  "funIden": "",
+                  "name": "Get All",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [
+                      {
+                        "id": "29312935-8710-4ee5-9599-cdcd7311a869",
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/member-ledger/:membercode?orderId=&endDate=&startDate=&memberId=&referenceType=&topupId=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "member-ledger",
+                        "membercode"
+                      ],
+                      "query": [
+                        {
+                          "id": "d2b4aeab-0bd2-4edf-9348-fb37ff3457e2",
+                          "key": "orderId",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "f9773047-88e9-4cc4-8a1b-d2b96698e576",
+                          "key": "endDate",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "d22722fa-a063-4880-bf8d-a2cfc1ed47db",
+                          "key": "startDate",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "66a54acd-7a31-4160-8d2c-7545ccc88ee9",
+                          "key": "memberId",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "3c6cb7cc-638f-4650-a5f0-1140284fde12",
+                          "key": "referenceType",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "301497fa-d0cf-4f83-8f1c-154e7aa646dc",
+                          "key": "topupId",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "a98ffc2d-d873-4a71-97d8-0e3c1a959e95",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "4e44b648-ea9f-40f9-a8b6-a1a06642e35b"
+                }
+              ],
+              "id": "647d0542-5349-43b0-a735-90b4b139f9d2"
+            },
+            {
+              "funIden": "",
+              "name": "Product",
+              "item": [
+                {
+                  "funIden": "",
+                  "name": "Get",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/product/:outletId?limit=&isOnline=false",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "product",
+                        "outletId"
+                      ],
+                      "query": [
+                        {
+                          "id": "969619af-476d-48e9-9899-0cc73c9d7510",
+                          "key": "limit",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "9a9d9eed-ff56-4c79-a667-69a0567e65a5",
+                          "key": "isOnline",
+                          "value": "false",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "e8ef77f1-720d-4768-b2c7-a7e5d262ff68",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "447472e8-1319-40d1-8421-7fd7489a191a"
+                },
+                {
+                  "funIden": "",
+                  "name": "Get Category",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/product/category/:outletId?limit=&orderBy=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "product",
+                        "category",
+                        "outletId"
+                      ],
+                      "query": [
+                        {
+                          "id": "5b1c393f-7cb1-4afb-ad76-856a053a4082",
+                          "key": "limit",
+                          "value": "",
+                          "type": "text"
+                        },
+                        {
+                          "id": "0d5cefc1-4137-4665-bd3d-3e9ecb341b5e",
+                          "key": "orderBy",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "fd0d567a-e1af-46ed-96af-b36563f62ac8",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "da0ac4e4-03be-4648-96e3-1c453cf2d0da"
+                }
+              ],
+              "id": "f54ab08e-99ac-4467-b3e4-c1de8b490ead"
+            },
+            {
+              "funIden": "",
+              "name": "Transaction",
+              "item": [
+                {
+                  "funIden": "",
+                  "name": "Add To Cart",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "b7523ed4-d73b-485c-98a2-081d7a1130e2",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"orderId\" : \"\",\r\n  \"phone\" : \"\",\r\n  \"outletId\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/transaction/complete-transaction",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "transaction",
+                        "complete-transaction"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "c1272370-fa8d-4a21-872a-fe46bafb18c0",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "06e6b460-5145-4863-afde-3e567ab7c1d2"
+                },
+                {
+                  "funIden": "",
+                  "name": "Add To Cart",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "612a4d48-763f-4705-b4c3-518efe80c81c",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"items\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/transaction/add-cart/:orderId?outletId=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "transaction",
+                        "add-cart",
+                        "orderId"
+                      ],
+                      "query": [
+                        {
+                          "id": "d9e406a5-5f90-47de-9c1d-a001a3eeee2d",
+                          "key": "outletId",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "1cea8025-b256-495d-859b-4204e530f4e5",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "81155904-41d4-460a-b95e-ce87f0130e9b"
+                },
+                {
+                  "funIden": "",
+                  "name": "Update Cart",
+                  "request": {
+                    "funIden": "",
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "id": "df5697be-c4d1-438a-9657-bf7be3050d5f",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"orderDetailId\" : \"\",\r\n  \"qty\" : 0,\r\n  \"isUpdateBatchOrder\" : false\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/transaction/update-cart?outletId=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "transaction",
+                        "update-cart"
+                      ],
+                      "query": [
+                        {
+                          "id": "b8e04f14-c74a-45fd-a685-aa3be0b0d931",
+                          "key": "outletId",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "09f19e52-8998-4653-a42c-2c7833cc2471",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "f69881b2-6cc4-4ab8-ba87-f12f6901c2b4"
+                },
+                {
+                  "funIden": "",
+                  "name": "Create Order",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "febb75b1-e79c-4485-af23-0fa9c3797c33",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"memberId\" : \"\",\r\n  \"outletId\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/transaction/order",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "transaction",
+                        "order"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "164d23ad-242d-4d3d-aba7-cff54149dba7",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "9054f842-37e4-468e-9d41-431905af7765"
+                },
+                {
+                  "funIden": "",
+                  "name": "Get Cart",
+                  "request": {
+                    "funIden": "",
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/transaction/get-cart/:orderId?outletId=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "transaction",
+                        "get-cart",
+                        "orderId"
+                      ],
+                      "query": [
+                        {
+                          "id": "c46cdb8f-02ae-42d6-b7b1-345fa5ffd440",
+                          "key": "outletId",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "94cd3e43-86dd-43f0-83de-eccdb8cd0900",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "242f6c7c-ceaf-42c7-98e1-44ae029a1af6"
+                }
+              ],
+              "id": "8a8c02c3-f06b-4c49-89bc-8af70c00f564"
+            }
+          ],
+          "id": "353f4f75-5690-4b30-8f5c-1d40ec64b94b"
+        },
+        {
+          "funIden": "",
+          "name": "Outlet User",
+          "item": [
+            {
+              "funIden": "",
+              "name": "Get All",
+              "request": {
+                "funIden": "",
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/outlet",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "outlet"
+                  ],
+                  "query": null
+                }
+              },
+              "response": [
+                {
+                  "id": "4e4a90a9-dfb3-4576-976c-c8028d2c8266",
+                  "name": "Success",
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "Text",
+                  "body": ""
+                }
+              ],
+              "id": "31d36793-6085-4cfb-99e3-8746bf53c4a2"
+            },
+            {
+              "funIden": "",
+              "name": "Sync Outlets",
+              "request": {
+                "funIden": "",
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/outlet/admin/outlets/sync",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "outlet",
+                    "admin",
+                    "outlets",
+                    "sync"
+                  ],
+                  "query": null
+                }
+              },
+              "response": [
+                {
+                  "id": "a05d3398-aa80-4163-bebc-b18152cb5475",
+                  "name": "Success",
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "Text",
+                  "body": ""
+                }
+              ],
+              "id": "7d96b6d9-e82f-4f8e-b394-22137c773cfb"
+            }
+          ],
+          "id": "aa93481e-a95a-4bec-9cf6-9b1c6f692aa6"
+        },
+        {
+          "funIden": "",
+          "name": "Tixfly",
+          "item": [
+            {
+              "funIden": "",
+              "name": "Webhook",
+              "item": [
+                {
+                  "funIden": "",
+                  "name": "Chatbot Webhook",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "1e8fb819-1f58-4f82-9d2b-23751728db47",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"customerId\" : \"\",\r\n  \"customerPhone\" : \"\",\r\n  \"outletId\" : \"\",\r\n  \"timestamp\" : 0,\r\n  \"category\" : \"\",\r\n  \"payload\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/webhook/chatbot",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "webhook",
+                        "chatbot"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "977bffb3-0b91-411d-bc44-06d725cc9750",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "6d5e90f7-99e7-4d8f-b570-cbd30d89493f"
+                },
+                {
+                  "funIden": "",
+                  "name": "Payment Webhook",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "1161a3fc-c3f3-41ab-a7ae-166a1514d07d",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"amount\" : 0,\r\n  \"status\" : \"\",\r\n  \"adminFee\" : 0,\r\n  \"vaNumber\" : \"\",\r\n  \"netAmount\" : 0,\r\n  \"signature\" : \"\",\r\n  \"paymentRef\" : \"\",\r\n  \"totalAmount\" : 0,\r\n  \"approvalCode\" : \"\",\r\n  \"transactionId\" : \"\",\r\n  \"extTransactionCode\" : \"\",\r\n  \"paymentMethod\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/webhook/payment?code=",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "webhook",
+                        "payment"
+                      ],
+                      "query": [
+                        {
+                          "id": "6438d49a-e2b7-4880-bf04-0eb23c959820",
+                          "key": "code",
+                          "value": "",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "3c809c42-e040-4122-ba93-7e5f9ecada0a",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "2a301f75-4f12-4580-a00c-4ccf1b8cfdca"
+                },
+                {
+                  "funIden": "",
+                  "name": "Wa Webhook",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "b3c433e5-5fb1-48af-bd63-bf06dae38e0c",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"id\" : \"\",\r\n  \"timestamp\" : 0,\r\n  \"metadata\" : \"\",\r\n  \"me\" : \"\",\r\n  \"environment\" : \"\",\r\n  \"event\" : \"\",\r\n  \"session\" : \"\",\r\n  \"engine\" : \"\",\r\n  \"payload\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/webhook/wa",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "webhook",
+                        "wa"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "5989fa7f-dd0c-4efc-8afb-68dfead09a3c",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "ec39d96f-61aa-4bb1-9432-8abb0f5b8b21"
+                }
+              ],
+              "id": "d226f6f4-d161-4ba8-a394-e28fab8ca487"
+            }
+          ],
+          "id": "6f811e58-c5d4-40d1-9048-d33010682246"
+        }
+      ],
+      "id": "bbb765f6-bc21-4918-889b-6d4f148da64a"
+    },
+    {
+      "funIden": "",
+      "name": "V2",
+      "item": [
+        {
+          "funIden": "",
+          "name": "Closeloop",
+          "item": [
+            {
+              "funIden": "",
+              "name": "Member V2",
+              "item": [
+                {
+                  "funIden": "",
+                  "name": "Register Member",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "1b61ee7b-0558-4e1b-8ae1-c239189b77d8",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\" : \"\",\r\n  \"email\" : \"\",\r\n  \"phone\" : \"\",\r\n  \"address\" : \"\",\r\n  \"code\" : \"\",\r\n  \"image\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v2/member/online",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v2",
+                        "member",
+                        "online"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "cdb781a6-9471-4b2c-b4e6-d2875c4788bb",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "23ecfd82-ef6a-45d8-82ee-76c523591a10"
+                },
+                {
+                  "funIden": "",
+                  "name": "Check Member",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "b4bdaa2f-9020-4d59-9159-6df23eee95a2",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"phoneNumber\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v2/member/check-member",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v2",
+                        "member",
+                        "check-member"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "a6d71276-db3d-415d-bfa0-54ae39e8f2e2",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "2d0d17fc-ea89-427e-a6d0-d8626a5aa8cd"
+                },
+                {
+                  "funIden": "",
+                  "name": "Top Up",
+                  "request": {
+                    "funIden": "",
+                    "method": "POST",
+                    "header": [
+                      {
+                        "id": "f84db043-cb67-4e4b-9486-414e9422cb0d",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"phone\" : \"\",\r\n  \"amount\" : 0,\r\n  \"method\" : \"\",\r\n  \"redirectUrl\" : \"\"\r\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v2/member/topup",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v2",
+                        "member",
+                        "topup"
+                      ],
+                      "query": null
+                    }
+                  },
+                  "response": [
+                    {
+                      "id": "f8f48d50-f7f9-4559-8892-7a70b52a98cc",
+                      "name": "Success",
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "Text",
+                      "body": ""
+                    }
+                  ],
+                  "id": "73bfe8ed-15ae-4c0a-b873-f56c48e83171"
+                }
+              ],
+              "id": "2ade082a-f2d7-47ea-8379-2d7517186554"
+            }
+          ],
+          "id": "e975d3c1-24b4-4add-86e0-04c99d2309bc"
+        }
+      ],
+      "id": "e012f505-50a5-4fe1-8df2-975931111156"
+    },
+    {
+      "funIden": "",
+      "name": "Media",
+      "item": [
+        {
+          "funIden": "",
+          "name": "Proxy Media",
+          "request": {
+            "funIden": "",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/media?path=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "media"
+              ],
+              "query": [
+                {
+                  "id": "1501e03c-4123-46fa-ba9d-39630281d30c",
+                  "key": "path",
+                  "value": "",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "id": "e7fe5ccc-25f9-40ef-884f-12245d34dac9",
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "body": ""
+            }
+          ],
+          "id": "4c2c5790-c069-4663-a05b-e080bc6a60ee"
+        }
+      ],
+      "id": "463bce3d-30a1-4b41-9efe-f1bac4029b5b"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "id": "",
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "id": "",
+      "key": "baseUrl",
+      "category": "BASE_URL",
+      "value": "http://localhost:8080",
+      "type": ""
+    },
+    {
+      "id": "",
+      "key": "baseUrlDev",
+      "category": "BASE_URL",
+      "value": "http://172.19.253.20:8001",
+      "type": ""
+    },
+    {
+      "id": "",
+      "key": "token",
+      "category": "",
+      "value": "public-token",
+      "type": ""
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "console.log('test')"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}

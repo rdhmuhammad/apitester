@@ -93,5 +93,5 @@ func (m Mapper) ReplaceLabelErr(template error, params ...string) error {
 		)
 	}
 
-	return fmt.Errorf(customeErr)
+	return fmt.Errorf("%s", customeErr)
 }
