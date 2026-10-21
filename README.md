@@ -1,31 +1,13 @@
 <!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 <a id="readme-top"></a>
-<!--
-*** Thanks for checking out the Best-README-Template. If you have a suggestion
-*** that would make this better, please fork the repo and create a pull request
-*** or simply open an issue with the tag "enhancement".
-*** Don't forget to give the project a star!
-*** Thanks again! Now go create something AMAZING! :D
--->
-
-
 
 <!-- PROJECT SHIELDS -->
-<!--
-*** I'm using markdown "reference style" links for readability.
-*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
-*** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
-*** https://www.markdownguide.org/basic-syntax/#reference-style-links
--->
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![project_license][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
-
-
 
 <!-- PROJECT LOGO -->
 <br />
@@ -37,12 +19,10 @@
 <h3 align="center">API Tester</h3>
 
   <p align="center">
-    And integrate ecosystem for integration testing, read specification directly from code then run on gui like a postman
-    <br />
-    <a href="https://github.com/github_username/repo_name"><strong>Explore the docs »</strong></a>
+    An integrated ecosystem for integration testing and API documentation — read Postman specifications directly from code and run an interactive GUI (Swagger UI-style) embedded in your Go service.
     <br />
     <br />
-    <a href="https://github.com/github_username/repo_name">View Demo</a>
+    <a href="https://apitester-frontend.vercel.app/#/editor">View Demo</a>
     &middot;
     <a href="https://github.com/rdhmuhammad/apitester/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     &middot;
@@ -50,45 +30,45 @@
   </p>
 </div>
 
-
 <!-- ABOUT THE PROJECT -->
 ## 📖 About The Project
 
 <div align="center">
-    <img src="https://raw.githubusercontent.com/rdhmuhammad/apitester/refs/heads/main/resource/example_gui/request.png" width="250" alt="Example request">
-    <img src="https://raw.githubusercontent.com/rdhmuhammad/apitester/refs/heads/main/resource/example_gui/response.png" width="250" alt="Example response">
+    <img src="https://raw.githubusercontent.com/rdhmuhammad/apitester/refs/heads/main/resource/example_gui/request.png" width="45%" alt="Example request">
+    <img src="https://raw.githubusercontent.com/rdhmuhammad/apitester/refs/heads/main/resource/example_gui/response.png" width="45%" alt="Example response">
 </div>
+<br />
 
 Have you ever gotten tired of manually creating Postman requests every time you finish an endpoint?
-It gets even worse when you're working with endpoints that have massive request payloads like transaction APIs in e-commerce systems.
-Which often contain multiple nested objects, arrays, and dozens of fields that all need valid values.
-On top of that, you usually need to prepare several variations of the request to cover different test scenarios. 
-It can be repetitive, time-consuming, and honestly, pretty frustrating.
-<br>
-</br>
-Driven by these frustrations, my initial workaround was to delegate the task to agentic AI. While it worked, I felt that using AI for something highly repetitive and deterministic was a waste of resources. Many of these tasks can be automated without requiring an LLM at all.
+It gets even worse when you're working with endpoints that have massive request payloads like transaction APIs in e-commerce systems, which often contain multiple nested objects, arrays, and dozens of fields that all need valid values. On top of that, you usually need to prepare several variations of the request to cover different test scenarios. It can be repetitive, time-consuming, and frustrating.
 
-That's what motivated me to create this project.
+Driven by these frustrations, my initial workaround was to delegate the task to agentic AI. While it worked, using AI for something highly repetitive and deterministic felt like a waste of resources when it could be automated directly.
 
-The goal of this project is to reduce repetitive work during development. The first milestone is to build a generator that scans all controllers in a project and automatically generates API documentation, such as a `postman.json` collection.
-The generated documentation can then be hosted using this project's ecosystem. You can run it on the same machine as your main service or deploy it to a dedicated server, it doesn't really matter. The only requirement is that the API tester can communicate with the target service through the generated API documentation.
-By automating API documentation generation and hosting, developers can spend less time maintaining test collections and more time building features.
+**API Tester** solves this by providing an **embeddable API documentation and testing UI** for Go web applications (similar to Swagger UI / Redoc, but with full Postman collection compatibility and interactive testing features).
+
+### Key Features
+
+* **📦 Zero-Dependency Go Library**: Embeds the full-featured React SPA directly into your Go binary using Go `embed.FS`. No separate frontend hosting or Docker container required.
+* **📑 Native Postman v2.1 Support**: Uses standard Postman collection JSON files (`collection.json`) directly without proprietary lock-in.
+* **⚡ Bi-directional Live Sync**: Hot-reloads changes from disk using file watching (`fsnotify`), and allows pushing changes made in the GUI back to disk.
+* **🧪 Interactive Testing & Runner**: Execute `GET`, `POST`, `PUT`, `PATCH`, and `DELETE` requests with query parameters, headers, path variables, JSON/raw bodies, and multipart form uploads.
+* **📜 Scripting & Dynamic Variables**: Sandpack-powered pre-request and test script runner in the browser, with dynamic variable interpolation (`{{baseUrl}}`, `{{token}}`).
+* **📑 Multi-Tab Workspace**: Open and manage multiple requests side-by-side with unsaved changes tracking.
+* **🔒 Built-in Authentication (Optional)**: Protect your documentation endpoints with admin credentials and JWT cookie authentication.
+* **🌗 Dark Mode**: Modern, accessible UI with built-in light and dark themes.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 ### Built With
 
+* ![Go](https://img.shields.io/badge/Language-Go%201.25+-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+* ![net/http](https://img.shields.io/badge/Router-net%2Fhttp-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 * ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
-* ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
-* ![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
-* ![Tailwind](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
-* ![Redux](https://img.shields.io/badge/redux-%23593d88.svg?style=for-the-badge&logo=redux&logoColor=white)
-* ![Go](https://img.shields.io/badge/Language-V1.23.0-00ADD8?style=for-the-badge&logo=go&logoColor=white)
-* ![Gin](https://img.shields.io/badge/Framework-Gin_Gonic-00ADD8?style=for-the-badge&logo=gin&logoColor=white)
-* ![GORM](https://img.shields.io/badge/ORM-GORM-00ADD8?style=for-the-badge)
-* ![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)
+* ![React](https://img.shields.io/badge/react%2019-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+* ![Vite](https://img.shields.io/badge/vite%207-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
+* ![Tailwind CSS](https://img.shields.io/badge/tailwindcss%20v4-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
+* ![Redux Toolkit](https://img.shields.io/badge/redux-%23593d88.svg?style=for-the-badge&logo=redux&logoColor=white)
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## 📚 Table of Contents
@@ -98,7 +78,10 @@ By automating API documentation generation and hosting, developers can spend les
 
 - 🚀 [Getting Started](#-getting-started)
     - 📦 [Prerequisites](#-prerequisites)
-    - ▶️ [How to Run](#-how-to-run)
+    - ▶️ [Quick Start: Run the Example](#-quick-start-run-the-example)
+    - 🔌 [Embedding in Your Go Service](#-embedding-in-your-go-service)
+    - 🎨 [Frontend Development (Optional)](#-frontend-development-optional)
+- ⚙️ [Configuration Options](#️-configuration-options)
 - 🧩 [Roadmap](#-roadmap)
 - 👨‍💻 [Contributing](#-contributing)
     - 🤷️ [Top contributors](#-top-contributors)
@@ -107,107 +90,181 @@ By automating API documentation generation and hosting, developers can spend les
 
 </details>
 
-
 <!-- GETTING STARTED -->
 ## 🚀 Getting Started
-This project consists of two applications:
 
-* A Golang backend (To serve the api docs file)
-* A React frontend (GUI)
-
-For development, I usually run both applications locally with the required
-language runtimes and tools installed on my machine.
-
-If you prefer a containerized setup, I already include Docker Compose configuration. 
-This allows anyone to get the entire stack up and running quickly without manually 
-installing and configuring each dependency.
+API Tester can be used in two ways:
+1. **As a Go package embedded into your application** (just like Swagger UI or Scalar).
+2. **As a standalone example server** to test your collections immediately.
 
 ### 📦 Prerequisites
-Before running the project **locally**, ensure the following tools are installed and available in your environment.
-> **Note**: This project is currently focused on the Golang ecosystem
-> because that's what I use in my day-to-day development. 
-> It started as a tool for my own needs, but I plan to gradually extend it to support
-> other languages and environments in the future.
-* **Golang**: Version [1.24.0](https://go.dev/dl/) or higher
-* **MySQL**: Version 8.0
-* **NodeJS**: Version 22.0
-* **PNPM**: Version [10.23.0](https://pnpm.io/10.x/installation#on-windows)
 
-### ▶️ How to Run
+* **Golang**: Version `1.24.0` or higher (Go `1.25.0` recommended)
+* **Node.js & PNPM** *(Only required if developing or rebuilding the frontend GUI)*:
+  * Node.js: Version `22.0` or higher
+  * PNPM: Version `10.23.0` or higher
 
-1. Prepare your api docs file which following postman format e.g: `collection.json`
-   > **Note**: You normally won't need to create this file manually. 
-   > The intended workflow is to generate it automatically using 
-   > an API docs generator. Check out the generator repository for setup 
-   > instructions and more details[TODO].
-2. Place the file at `resource/apidocs/your_file_name.json`
-3. Copy ```env.example``` to ```env.[dev|stag|prod]```, choose your desired environment phase.
-4. Install Backend dependencies
-   ```bash
-    go mod download
-    ```
-5. Start Backend application by running these command
-   ```bash
-   go run cmd/main.go --env .env.stag
-   ```
-6. Set backend base url to `frontend/.env`
-   ```dotenv
-   VITE_API_URL=http://localhost:8999/api/v1
-   ```
-7. Install Frontend application dependencies
-   ```bash
-   cd frontend
-   pnpm run install
-   ``` 
-8. Start Frontend application by running these command
-   ```bash
-   pnpm run dev
-   ``` 
+> [!NOTE]
+> No external database (such as MySQL) or Docker container is required for runtime. API Tester reads and synchronizes directly with your local `collection.json` file.
+
+---
+
+### ▶️ Quick Start: Run the Example
+
+The fastest way to explore API Tester is to run the built-in example application, which spins up a mock REST API together with the embedded UI:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/rdhmuhammad/apitester.git
+cd apitester
+
+# 2. Run the example server
+go run _example/main.go --port 8080 --collection _example/collection.json
+```
+
+Then open your browser at **[http://localhost:8080](http://localhost:8080)**.
+
+The example server includes sample endpoints demonstrating:
+* `GET /health` & `GET /api/users` (Public endpoints)
+* `GET /api/items?category=&search=` (Query parameter filtering & pagination)
+* `GET`, `PUT`, `PATCH`, `DELETE /api/items/{id}` (Path parameters and JSON bodies)
+* `GET /api/secure/profile` & `POST /api/secure/action` (Bearer token authentication)
+* `POST /api/upload` (Multipart form-data file uploads)
+* `GET /api/headers` (Request headers inspection)
+
+---
+
+### 🔌 Embedding in Your Go Service
+
+Install the module in your Go project:
+
+```bash
+go get github.com/rdhmuhammad/apitester
+```
+
+Mount `apitester` onto your HTTP router in just a few lines:
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+
+	"github.com/rdhmuhammad/apitester"
+)
+
+func main() {
+	// Initialize Apitester with options
+	docs, err := apitester.NewDocs(
+		apitester.WithCollectionPath("resource/apidocs/collection.json"),
+		apitester.WithRoutePrefix("/api/v1"),
+		// Optional: Protect documentation with credentials
+		// apitester.WithCredentials("admin", "secret123"),
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize apitester: %v", err)
+	}
+
+	mux := http.NewServeMux()
+
+	// Register your application routes
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	})
+
+	// Mount the documentation UI and collection endpoints
+	mux.Handle("/", docs)
+
+	log.Println("Server running at http://localhost:8080/")
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+---
+
+### 🎨 Frontend Development (Optional)
+
+If you want to contribute to or customize the GUI:
+
+```bash
+# Navigate to the frontend directory
+cd frontend
+
+# Install dependencies
+pnpm install
+
+# Start the Vite development server
+pnpm run dev
+```
+
+To build the static assets into `frontend/dist` (which Go embeds via `embed.FS`):
+
+```bash
+pnpm run build
+```
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- CONFIGURATION OPTIONS -->
+## ⚙️ Configuration Options
+
+When initializing `apitester.NewDocs(opts...)`, you can customize behavior using functional options or environment variables:
+
+| Option | Environment Variable | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `WithCollectionPath(path)` | `COLLECTION_PATH` | `resource/apidocs/collection.json` | Path to your Postman collection JSON file. |
+| `WithRoutePrefix(prefix)` | — | `/api/v1` | URL prefix for Apitester internal API routes (`/collection/read`, `/collection/write`, `/auth/*`). |
+| `WithCredentials(user, pass)` | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | `""` *(Disabled)* | When specified, enables JWT cookie authentication for accessing the UI. |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- ROADMAP -->
 ## 🧩 Roadmap
-The following items represent the planned direction of the 
-project and upcoming features currently under consideration.
 
-- [ ] Request page can open multiple request. and able to create new request
-- [ ] API Docs generator for Golang
-- [ ] API Docs generator for Java Spring
-- [ ] Folder Tree has the meets the following criteria
-  - [ ] Can show the new request.
-  - [ ] Can modify the position, name of folder and request.
-  - [ ] Can create, remove folder and request.
-- [ ] Login page for user and user management for admin
-- [ ] Collection change history from source pull
+The following items represent the planned direction of the project and upcoming features:
+
+- [x] Multi-tab request workspace (open and edit multiple requests simultaneously)
+- [x] In-browser script runner & test assertions (powered by Sandpack)
+- [x] Live collection synchronization (Bi-directional Push/Pull & File Watcher)
+- [x] Authentication & protected documentation mode
+- [x] Dark mode support
+- [x] Folder tree search and request/folder deletion
+- [x] Automatic API Docs generator for Golang (scanning controller structs and handlers)
+- [x] Automatic API Docs generator for Java Spring
 
 See the [project backlog](https://github.com/users/rdhmuhammad/projects/1) for a full list of proposed features.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- CONTRIBUTING -->
 ## 👨‍💻 Contributing
-I'd love to see this project grow with help from the community. 
-If you'd like to contribute, please make sure to follow the protocols 
-and guidelines described below before opening a pull request.
 
-These rules aren't meant to be restrictive—they simply help keep the
-project organized, maintainable, and easy to review. If you have 
-questions, suggestions, or feature ideas, feel free to open an
-issue and start a discussion.
+Contributions make the open-source community an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-1. Send an email to rdhmuhammad57@gmail.com with the subject line: APITESTER CONTRIBUTE
-2. In the email, describe your idea, feature proposal, enhancement,
-   or any improvement you would like to contribute to the project.
-3. After reviewing the email, I will create a backlog item for the project so we
-   can track the progress and evaluate whether the contribution 
-   aligns with the project's primary goals and vision.
-4. Create your Feature Branch from the Issue which related to backlog (`git checkout -b feature/AmazingFeature`)
-5. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-6. Push to the Branch (`git push origin feature/AmazingFeature`)
-7. Open a Pull Request
+If you'd like to contribute, please follow these guidelines:
+
+1. Send an email to `rdhmuhammad57@gmail.com` with the subject line: `APITESTER CONTRIBUTE`, or open an issue on GitHub to discuss your proposal.
+2. Fork the project and create your feature branch:
+   ```bash
+   git checkout -b feature/AmazingFeature
+   ```
+3. Ensure tests pass:
+   ```bash
+   go test ./...
+   cd frontend && pnpm run build
+   ```
+4. Commit your changes:
+   ```bash
+   git commit -m "feat: add some AmazingFeature"
+   ```
+5. Push to the branch:
+   ```bash
+   git push origin feature/AmazingFeature
+   ```
+6. Open a Pull Request.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -217,16 +274,12 @@ issue and start a discussion.
   <img src="https://contrib.rocks/image?repo=rdhmuhammad/apitester" alt="contrib.rocks image" />
 </a>
 
-
-
 <!-- LICENSE -->
 ## 🗃 License
 
-Distributed under the project_license. See `LICENSE.txt` for more information.
+Distributed under the MIT License. See [`LICENSE`](LICENSE) for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- CONTACT -->
 ## ☎️ Contact
@@ -237,9 +290,7 @@ Project Link: [https://github.com/rdhmuhammad/apitester](https://github.com/rdhm
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
 <!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [contributors-shield]: https://img.shields.io/github/contributors/rdhmuhammad/apitester.svg?style=for-the-badge
 [contributors-url]: https://github.com/rdhmuhammad/apitester/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/rdhmuhammad/apitester.svg?style=for-the-badge
@@ -252,21 +303,3 @@ Project Link: [https://github.com/rdhmuhammad/apitester](https://github.com/rdhm
 [license-url]: https://github.com/rdhmuhammad/apitester/blob/main/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/ridhomuhammad57
-[product-screenshot]: images/screenshot.png
-<!-- Shields.io badges. You can a comprehensive list with many more badges at: https://github.com/inttter/md-badges -->
-[Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
-[Next-url]: https://nextjs.org/
-[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
-[React-url]: https://reactjs.org/
-[Vue.js]: https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D
-[Vue-url]: https://vuejs.org/
-[Angular.io]: https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white
-[Angular-url]: https://angular.io/
-[Svelte.dev]: https://img.shields.io/badge/Svelte-4A4A55?style=for-the-badge&logo=svelte&logoColor=FF3E00
-[Svelte-url]: https://svelte.dev/
-[Laravel.com]: https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white
-[Laravel-url]: https://laravel.com
-[Bootstrap.com]: https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white
-[Bootstrap-url]: https://getbootstrap.com
-[JQuery.com]: https://img.shields.io/badge/jQuery-0769AD?style=for-the-badge&logo=jquery&logoColor=white
-[JQuery-url]: https://jquery.com 
