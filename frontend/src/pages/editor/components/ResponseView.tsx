@@ -495,7 +495,7 @@ const ResponseView: React.FC = () => {
                                            className="max-w-full max-h-[400px]"/>
                                 </div>
                             ) : isPdf && currResponse?.data ? (
-                                <iframe src={currResponse.data as string}
+                                <iframe src={currResponse.data as string} sandbox=""
                                         className="w-full h-[500px] border-0 rounded-md"/>
                             ) : isExcel && visualizeExcel ? (
                                 <div className="h-full overflow-auto rounded-md border border-slate-200">

@@ -79,6 +79,12 @@ func (u *Usecase) WriteCollection(content string) error {
 		return localerror.InvalidData("Collection path is not set")
 	}
 
+	trimmed := strings.TrimPrefix(content, "\uFEFF")
+	var docsContent DocsContent
+	if err := json.Unmarshal([]byte(trimmed), &docsContent); err != nil {
+		return localerror.InvalidData("Invalid collection JSON: " + err.Error())
+	}
+
 	if err := os.WriteFile(u.path, []byte(content), 0644); err != nil {
 		return u.errHandler.ErrorReturn(err)
 	}

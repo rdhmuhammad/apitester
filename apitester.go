@@ -73,6 +73,9 @@ func NewDocs(opts ...Option) (*ApiTester, error) {
 	lg := logger.DefaultLogger()
 	watchCtrl := watch.NewController(&lg, cfg.CollectionPath)
 	authCtrl := auth.NewController(&lg, cfg.AdminUsername, cfg.AdminPassword)
+	if authCtrl.Uc.HasAuth() {
+		watchCtrl = watchCtrl.WithAuth(middleware.CookieAuth(authCtrl.Uc.JWTSecret()))
+	}
 
 	apiMux := http.NewServeMux()
 	watchCtrl.Register(apiMux, cfg.RoutePrefix)

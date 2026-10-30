@@ -10,9 +10,12 @@ import (
 	"github.com/rdhmuhammad/apitester/shared/payload"
 )
 
+const maxCollectionBodyBytes = 10 << 20 // 10 MB
+
 type Controller struct {
-	Uc     UsecaseInterface
-	mapper mapper.Mapper
+	Uc             UsecaseInterface
+	mapper         mapper.Mapper
+	authMiddleware func(http.Handler) http.Handler
 }
 
 type UsecaseInterface interface {
@@ -27,12 +30,18 @@ func NewController(lg *logger.ReZero, collectionPath string) Controller {
 	}
 }
 
+func (ctrl Controller) WithAuth(mw func(http.Handler) http.Handler) Controller {
+	ctrl.authMiddleware = mw
+	return ctrl
+}
+
 func (ctrl Controller) Read(w http.ResponseWriter, r *http.Request) {
 	res, err := ctrl.Uc.Read()
 	ctrl.mapper.NewResponse(w, payload.NewSuccessResponse(res, "Success"), err)
 }
 
 func (ctrl Controller) WriteCollection(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxCollectionBodyBytes)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -53,6 +62,12 @@ func (ctrl Controller) WriteCollection(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ctrl Controller) Register(mux *http.ServeMux, prefix string) {
-	mux.HandleFunc("GET "+prefix+"/collection/read", ctrl.Read)
-	mux.HandleFunc("PUT "+prefix+"/collection/write", ctrl.WriteCollection)
+	readHandler := http.Handler(http.HandlerFunc(ctrl.Read))
+	writeHandler := http.Handler(http.HandlerFunc(ctrl.WriteCollection))
+	if ctrl.authMiddleware != nil {
+		readHandler = ctrl.authMiddleware(readHandler)
+		writeHandler = ctrl.authMiddleware(writeHandler)
+	}
+	mux.Handle("GET "+prefix+"/collection/read", readHandler)
+	mux.Handle("PUT "+prefix+"/collection/write", writeHandler)
 }

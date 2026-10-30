@@ -46,12 +46,49 @@ self.require = function(moduleName) {
 };
 `;
 
+const LOCKDOWN_BOOTSTRAP = `
+(function() {
+    var blocked = [
+        'fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'WebTransport',
+        'BroadcastChannel', 'Worker', 'SharedWorker', 'importScripts',
+        'indexedDB', 'caches', 'webkitRequestFileSystem', 'webkitResolveLocalFileSystemURL'
+    ];
+    var targets = [self];
+    var proto = Object.getPrototypeOf(self);
+    while (proto && proto !== Object.prototype) {
+        targets.push(proto);
+        proto = Object.getPrototypeOf(proto);
+    }
+    blocked.forEach(function(prop) {
+        targets.forEach(function(t) {
+            try { delete t[prop]; } catch (_) {}
+            try {
+                Object.defineProperty(t, prop, {
+                    value: undefined,
+                    writable: false,
+                    configurable: false
+                });
+            } catch (_) {}
+        });
+    });
+    if (self.navigator) {
+        try {
+            Object.defineProperty(self, 'navigator', {
+                value: Object.freeze({ userAgent: 'ApitesterSandbox' }),
+                writable: false,
+                configurable: false
+            });
+        } catch (_) {}
+    }
+})();
+`;
+
 const WORKER_BOOTSTRAP = `
-` + CRYPTO_JS_BOOTSTRAP + `
-self.onmessage = function(e) {
-    var __script = e.data.script;
-    var __response = e.data.response;
-    var __vars = e.data.variables || {};
+` + CRYPTO_JS_BOOTSTRAP + LOCKDOWN_BOOTSTRAP + `
+self.__runDirect = function(data) {
+    var __script = data.script;
+    var __response = data.response;
+    var __vars = data.variables || {};
     var __mutations = {};
     var __logs = [];
 
@@ -93,26 +130,25 @@ self.onmessage = function(e) {
     };
 
     try {
-        delete self.fetch;
-        delete self.XMLHttpRequest;
-        delete self.WebSocket;
-        delete self.importScripts;
-
-        var fn = new Function('response', 'pm', __script);
+        var fn = new Function('response', 'pm', '"use strict";\\n' + __script);
         var result = fn(__response, pm);
-        self.postMessage({ ok: true, result: result, mutations: __mutations, logs: __logs });
+        return { ok: true, result: result, mutations: __mutations, logs: __logs };
     } catch (err) {
-        self.postMessage({ ok: false, error: err.message || 'Script execution failed', logs: __logs });
+        return { ok: false, error: err.message || 'Script execution failed', logs: __logs };
     }
+};
+self.onmessage = function(e) {
+    var postMsg = self.postMessage.bind(self);
+    postMsg(self.__runDirect(e.data));
 };
 `
 
 const PRE_REQUEST_WORKER_BOOTSTRAP = `
-` + CRYPTO_JS_BOOTSTRAP + `
-self.onmessage = function(e) {
-    var __script = e.data.script;
-    var request = e.data.request || {};
-    var __vars = e.data.variables || {};
+` + CRYPTO_JS_BOOTSTRAP + LOCKDOWN_BOOTSTRAP + `
+self.__runDirect = function(data) {
+    var __script = data.script;
+    var request = data.request || {};
+    var __vars = data.variables || {};
     var __mutations = {};
     var __logs = [];
 
@@ -155,45 +191,120 @@ self.onmessage = function(e) {
     };
 
     try {
-        delete self.fetch;
-        delete self.XMLHttpRequest;
-        delete self.WebSocket;
-        delete self.importScripts;
-
-        var fn = new Function('request', 'pm', __script);
+        var fn = new Function('request', 'pm', '"use strict";\\n' + __script);
         var result = fn(request, pm);
         var finalRequest = (result && typeof result === 'object' && !Array.isArray(result) && (result.method || result.headers || result.url || result.body)) ? Object.assign(request, result) : request;
-        self.postMessage({ ok: true, result: result, request: finalRequest, mutations: __mutations, logs: __logs });
+        return { ok: true, result: result, request: finalRequest, mutations: __mutations, logs: __logs };
     } catch (err) {
-        self.postMessage({ ok: false, error: err.message || 'Pre-request script execution failed', logs: __logs });
+        return { ok: false, error: err.message || 'Pre-request script execution failed', logs: __logs };
     }
+};
+self.onmessage = function(e) {
+    var postMsg = self.postMessage.bind(self);
+    postMsg(self.__runDirect(e.data));
 };
 `
 
-export function runScript(
-    input: ScriptInput
-): Promise<{ result: unknown; mutations: Record<string, string | null>; logs: ScriptLog[] }> {
+const SANDBOX_IFRAME_SRCDOC = `<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; connect-src 'none';">
+</head>
+<body>
+<script>
+window.addEventListener('message', function onInit(ev) {
+    if (!ev.data || ev.data.__init !== true) return;
+    window.removeEventListener('message', onInit);
+    var channelId = ev.data.channelId;
+    var bootstrap = ev.data.bootstrap;
+    var payload = ev.data.payload;
+    try {
+        var blob = new Blob([bootstrap], { type: 'application/javascript' });
+        var url = URL.createObjectURL(blob);
+        var worker = new Worker(url);
+        worker.onmessage = function(we) {
+            worker.terminate();
+            URL.revokeObjectURL(url);
+            parent.postMessage({ __channelId: channelId, data: we.data }, '*');
+        };
+        worker.onerror = function(err) {
+            worker.terminate();
+            URL.revokeObjectURL(url);
+            parent.postMessage({ __channelId: channelId, workerError: err.message || 'Worker error' }, '*');
+        };
+        worker.postMessage(payload);
+    } catch (_) {
+        try {
+            var fn = new Function('__payload', bootstrap + '\\n;return self.__runDirect(__payload);');
+            var out = fn(payload);
+            parent.postMessage({ __channelId: channelId, data: out }, '*');
+        } catch (err2) {
+            parent.postMessage({ __channelId: channelId, workerError: (err2 && err2.message) || 'Worker error' }, '*');
+        }
+    }
+});
+</script>
+</body>
+</html>`
+
+function runInSandboxedContext<T>(
+    bootstrap: string,
+    input: unknown,
+    timeoutMessage: string
+): Promise<T> {
+    if (typeof document !== "undefined" && document.body) {
+        return new Promise((resolve, reject) => {
+            const channelId = crypto.randomUUID()
+            const iframe = document.createElement("iframe")
+            iframe.style.display = "none"
+            iframe.setAttribute("sandbox", "allow-scripts")
+            iframe.srcdoc = SANDBOX_IFRAME_SRCDOC
+
+            const cleanup = () => {
+                clearTimeout(timer)
+                window.removeEventListener("message", onMessage)
+                iframe.remove()
+            }
+
+            const timer = setTimeout(() => {
+                cleanup()
+                reject(new Error(timeoutMessage))
+            }, 5000)
+
+            const onMessage = (e: MessageEvent) => {
+                if (e.source !== iframe.contentWindow || !e.data || e.data.__channelId !== channelId) return
+                cleanup()
+                if (e.data.workerError) {
+                    reject(new Error(e.data.workerError))
+                } else {
+                    resolve(e.data.data as T)
+                }
+            }
+
+            window.addEventListener("message", onMessage)
+            iframe.onload = () => {
+                iframe.contentWindow?.postMessage({ __init: true, channelId, bootstrap, payload: input }, "*")
+            }
+            document.body.appendChild(iframe)
+        })
+    }
+
     return new Promise((resolve, reject) => {
-        const blob = new Blob([WORKER_BOOTSTRAP], { type: "application/javascript" })
+        const blob = new Blob([bootstrap], { type: "application/javascript" })
         const url = URL.createObjectURL(blob)
         const worker = new Worker(url)
 
         const timer = setTimeout(() => {
             worker.terminate()
             URL.revokeObjectURL(url)
-            reject(new Error("Script timed out (5s)"))
+            reject(new Error(timeoutMessage))
         }, 5000)
 
-        worker.onmessage = (e: MessageEvent<ScriptOutput>) => {
+        worker.onmessage = (e: MessageEvent<T>) => {
             clearTimeout(timer)
             worker.terminate()
             URL.revokeObjectURL(url)
-            const { ok, result, mutations, error, logs } = e.data
-            if (ok) {
-                resolve({ result, mutations: mutations || {}, logs: logs || [] })
-            } else {
-                reject(new Error(error || "Unknown script error"))
-            }
+            resolve(e.data)
         }
 
         worker.onerror = (err) => {
@@ -207,44 +318,35 @@ export function runScript(
     })
 }
 
+export function runScript(
+    input: ScriptInput
+): Promise<{ result: unknown; mutations: Record<string, string | null>; logs: ScriptLog[] }> {
+    return runInSandboxedContext<ScriptOutput>(WORKER_BOOTSTRAP, input, "Script timed out (5s)").then(
+        ({ ok, result, mutations, error, logs }) => {
+            if (ok) {
+                return { result, mutations: mutations || {}, logs: logs || [] }
+            }
+            throw new Error(error || "Unknown script error")
+        }
+    )
+}
+
 export function runPreRequestScript(
     input: PreRequestScriptInput
 ): Promise<PreRequestScriptOutput> {
-    return new Promise((resolve, reject) => {
-        const blob = new Blob([PRE_REQUEST_WORKER_BOOTSTRAP], { type: "application/javascript" })
-        const url = URL.createObjectURL(blob)
-        const worker = new Worker(url)
-
-        const timer = setTimeout(() => {
-            worker.terminate()
-            URL.revokeObjectURL(url)
-            reject(new Error("Pre-request script timed out (5s)"))
-        }, 5000)
-
-        worker.onmessage = (e: MessageEvent<PreScriptWorkerOutput>) => {
-            clearTimeout(timer)
-            worker.terminate()
-            URL.revokeObjectURL(url)
-            const { ok, result, request, mutations, error, logs } = e.data
-            if (ok) {
-                resolve({
-                    result,
-                    request: request || input.request,
-                    mutations: mutations || {},
-                    logs: logs || []
-                })
-            } else {
-                reject(new Error(error || "Unknown pre-request script error"))
+    return runInSandboxedContext<PreScriptWorkerOutput>(
+        PRE_REQUEST_WORKER_BOOTSTRAP,
+        input,
+        "Pre-request script timed out (5s)"
+    ).then(({ ok, result, request, mutations, error, logs }) => {
+        if (ok) {
+            return {
+                result,
+                request: request || input.request,
+                mutations: mutations || {},
+                logs: logs || [],
             }
         }
-
-        worker.onerror = (err) => {
-            clearTimeout(timer)
-            worker.terminate()
-            URL.revokeObjectURL(url)
-            reject(new Error(err.message || "Worker error"))
-        }
-
-        worker.postMessage(input)
+        throw new Error(error || "Unknown pre-request script error")
     })
 }

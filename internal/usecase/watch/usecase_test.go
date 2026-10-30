@@ -2,11 +2,15 @@ package watch
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/rdhmuhammad/apitester/pkg/logger"
+	"github.com/rdhmuhammad/apitester/pkg/middleware"
 )
 
 func TestInitiate(t *testing.T) {
@@ -442,5 +446,41 @@ func TestInitiate_NestedItemsAndPreservedAuth(t *testing.T) {
 	}
 	if ctCount != 1 {
 		t.Errorf("expected exactly 1 Content-Type header, got %d", ctCount)
+	}
+}
+
+func TestWriteCollectionValidationAndAuth(t *testing.T) {
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "collection.json")
+	validJSON := `{"info":{"name":"Valid"}}`
+	if err := os.WriteFile(filePath, []byte(validJSON), 0644); err != nil {
+		t.Fatalf("failed to write initial json: %v", err)
+	}
+
+	lg := logger.DefaultLogger()
+	ctrl := NewController(&lg, filePath).WithAuth(middleware.CookieAuth([]byte("test-secret-32-bytes-long-123456")))
+	mux := http.NewServeMux()
+	ctrl.Register(mux, "/api/v1")
+
+	// 1. Unauthenticated read and write must return 401
+	for _, tc := range []struct{ method, url, body string }{
+		{"GET", "/api/v1/collection/read", ""},
+		{"PUT", "/api/v1/collection/write", validJSON},
+	} {
+		req := httptest.NewRequest(tc.method, tc.url, strings.NewReader(tc.body))
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("%s %s without auth: expected 401, got %d", tc.method, tc.url, rec.Code)
+		}
+	}
+
+	// 2. Invalid JSON write must be rejected and preserve existing file
+	if err := ctrl.Uc.WriteCollection("not-json-at-all"); err == nil {
+		t.Errorf("expected WriteCollection to reject invalid JSON")
+	}
+	afterBytes, _ := os.ReadFile(filePath)
+	if string(afterBytes) != validJSON {
+		t.Errorf("expected invalid write not to clobber file, got %q", string(afterBytes))
 	}
 }

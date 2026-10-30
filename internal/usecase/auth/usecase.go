@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"os"
 	"time"
 
@@ -60,11 +61,14 @@ func (u *Usecase) JWTSecret() []byte {
 }
 
 func jwtSecretFromEnv() []byte {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "default-secret-change-me"
+	if secret := os.Getenv("JWT_SECRET"); secret != "" {
+		return []byte(secret)
 	}
-	return []byte(secret)
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		panic("failed to generate random JWT secret: " + err.Error())
+	}
+	return b
 }
 
 func (u *Usecase) Login(ctx context.Context, req LoginRequest) (LoginResponse, error) {

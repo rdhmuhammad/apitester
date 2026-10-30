@@ -103,13 +103,14 @@ export function evaluateAssertion(expression: string, response: SendResponse): A
       }
     }
 
-    const result = new Function('response', `return !!(${expr});`)(response)
+    const actualVal = getValueByPath(response, expr)
+    const passed = Boolean(actualVal)
     return {
       ruleId: '',
       expression: expr,
-      passed: Boolean(result),
-      actualValue: result,
-      error: Boolean(result) ? undefined : `Expression evaluated to ${result}`,
+      passed,
+      actualValue: actualVal,
+      error: passed ? undefined : `Expression evaluated to ${String(actualVal)}`,
     }
   } catch (err: unknown) {
     return {
