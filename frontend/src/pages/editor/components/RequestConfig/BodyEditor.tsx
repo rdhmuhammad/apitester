@@ -241,7 +241,10 @@ export const BodyEditor: React.FC<IBodyEditor> = (
                                                     const file = e.target.files?.[0]
                                                     if (file) {
                                                         setFile(item.id!, file)
-                                                        updateFormdataField(item.id!, "src", file.name)
+                                                        const body = (selectBody?.formdata ?? []).map((it) =>
+                                                            it.id === item.id ? {...it, src: file.name, value: file.name} : it
+                                                        )
+                                                        dispatch(setBody({body}))
                                                     }
                                                 }}
                                                 disabled={item.disabled}

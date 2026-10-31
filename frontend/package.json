@@ -1,7 +1,7 @@
 {
   "name": "apitester",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.1",
   "author": "Ridho Muhammad",
   "main": "dist/main.js",
   "type": "module",

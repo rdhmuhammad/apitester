@@ -30,6 +30,7 @@ type AxiosResponseWithDuration<T = unknown> = AxiosResponse<T> & {
 const formData = (request: ItemUrl[]): FormData => {
     const dt = new FormData()
     for (const item of request) {
+        if (item.disabled || !item.key) continue
         if (item.type === "file" && item.id) {
             const file = getFile(item.id)
             if (file) {
@@ -43,9 +44,17 @@ const formData = (request: ItemUrl[]): FormData => {
 }
 
 export const buildRawRequest = (request: ISendRequest): string => {
+    const isFormData = request.contentType === 'multipart/form-data'
+    const headersWithoutCt = request.headers.filter(
+        h => h.key.toLowerCase() !== 'content-type' && !h.disabled && h.value
+    )
+    const effectiveContentType = isFormData
+        ? 'multipart/form-data; boundary=----WebKitFormBoundary...'
+        : request.contentType
+
     const allHeaders = [
-        {key: 'Content-Type', value: request.contentType},
-        ...request.headers,
+        ...(effectiveContentType ? [{key: 'Content-Type', value: effectiveContentType}] : []),
+        ...headersWithoutCt,
     ].filter(h => h.value)
 
     const headerLines = allHeaders
@@ -53,7 +62,7 @@ export const buildRawRequest = (request: ISendRequest): string => {
         .join('\n')
 
     const queryString = request.requestParams.length > 0
-        ? '?' + request.requestParams.map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value ?? '')}`).join('&')
+        ? '?' + request.requestParams.filter(p => !p.disabled && p.key).map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value ?? '')}`).join('&')
         : ''
 
     let host = ''
@@ -66,9 +75,10 @@ export const buildRawRequest = (request: ISendRequest): string => {
     let bodyStr = ''
     if (request.contentType === 'application/json') {
         bodyStr = request.raw ?? ''
-    } else if (request.contentType === 'multipart/form-data' && request.formData) {
+    } else if (isFormData && request.formData) {
         bodyStr = request.formData
-            .map(f => `${f.key}: ${f.value}`)
+            .filter(f => !f.disabled && f.key)
+            .map(f => `${f.key}: ${f.type === 'file' ? (f.src || f.value || '[File]') : f.value}`)
             .join('\n')
     }
 
@@ -115,29 +125,44 @@ export const parseBlobResponse = async (blob: Blob, contentType: string): Promis
 
 export const sendApiRequest = async (request: ISendRequest): Promise<SendResponse | null> => {
     const isFormData = request.contentType === "multipart/form-data"
-    console.log(request.baseUrl)
     let baseURL = request.baseUrl
     let url = request.endpoint
+
+    const requestHeaders: Record<string, string> = {}
+    for (const it of request.headers) {
+        if (it.disabled) continue
+        // When sending FormData, omit Content-Type header so Axios/browser automatically computes boundary
+        if (isFormData && it.key.toLowerCase() === "content-type") {
+            continue
+        }
+        requestHeaders[it.key] = it.value ?? ""
+    }
+    if (!isFormData && request.contentType) {
+        requestHeaders["Content-Type"] = request.contentType
+    }
+
+    let requestData: unknown = undefined
+    if (isFormData) {
+        requestData = formData(request.formData ?? [])
+    } else if (request.contentType === "application/json") {
+        requestData = request.raw ?? "{}"
+    } else if (request.raw) {
+        requestData = request.raw
+    }
 
     try {
         const response = await axios.request({
             method: request.method,
-            headers: {
-                ...(isFormData ? {} : {"Content-Type": request.contentType}),
-                ...request.headers.reduce((acc, it) => {
-                    acc[it.key] = it.value ?? ""
-                    return acc
-                }, {} as Record<string, string>)
-            },
+            headers: requestHeaders,
             baseURL,
             url,
             params: request.requestParams.reduce((acc, it) => {
-                acc[it.key] = it.value ?? ""
+                if (!it.disabled) {
+                    acc[it.key] = it.value ?? ""
+                }
                 return acc
             }, {} as Record<string, string>),
-            data: request.contentType === "application/json"
-                ? (request.raw ?? "{}") :
-                formData(request.formData ?? []),
+            data: requestData,
             responseType: "blob",
             validateStatus: () => true, // Do not throw on non-2xx status codes
             signal: request.signal,

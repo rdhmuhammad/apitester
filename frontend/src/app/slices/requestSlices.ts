@@ -40,6 +40,10 @@ type SetBodyPayload = {
     body: string | ItemUrl[]
 }
 
+type SetBodyModePayload = {
+    mode: "raw" | "formdata"
+}
+
 type AddUrlPathPayload = {
     path: string
 }
@@ -272,11 +276,31 @@ export const setBodyReducer = (state: CollectionState, action: PayloadAction<Set
     if (typeof action.payload.body === "string") {
         currentRequest.body.mode = "raw"
         currentRequest.body.raw = action.payload.body
-        delete currentRequest.body.formdata
     } else {
         currentRequest.body.mode = "formdata"
         currentRequest.body.formdata = action.payload.body
-        delete currentRequest.body.raw
+    }
+    markDirty(state)
+}
+
+export const setBodyModeReducer = (state: CollectionState, action: PayloadAction<SetBodyModePayload>) => {
+    const currentRequest = getSelectedRequest(state)
+    if (!currentRequest) return
+
+    if (!currentRequest.body) {
+        currentRequest.body = {
+            mode: action.payload.mode,
+            raw: "",
+            formdata: [],
+        }
+    } else {
+        currentRequest.body.mode = action.payload.mode
+        if (action.payload.mode === "formdata" && !currentRequest.body.formdata) {
+            currentRequest.body.formdata = []
+        }
+        if (action.payload.mode === "raw" && currentRequest.body.raw === undefined) {
+            currentRequest.body.raw = ""
+        }
     }
     markDirty(state)
 }
@@ -342,6 +366,7 @@ const requestSlices = createSlice({
         updateQueryParam: updateQueryParamReducer,
         removeQueryParam: removeQueryParamReducer,
         setBody: setBodyReducer,
+        setBodyMode: setBodyModeReducer,
         addUrlPath: addUrlPathReducer,
         updateUrlPath: updateUrlPathReducer,
         removeUrlPath: removeUrlPathReducer,
@@ -361,6 +386,7 @@ export const {
     updateQueryParam,
     removeQueryParam,
     setBody,
+    setBodyMode,
     addUrlPath,
     updateUrlPath,
     removeUrlPath,

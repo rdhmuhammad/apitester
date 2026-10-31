@@ -17,13 +17,33 @@ export function getJsonSizeInKB(data: Record<string, any> | string): string {
     return (bytes / 1024).toFixed(3);
 }
 
-export const getContentType = (currRequest: CollectionItem | null) => {
-    if (!currRequest) return '';
-    let header = currRequest?.request
-        ?.header?.filter(h => h?.key === 'Content-Type') ?? [];
-    if (header.length > 0) {
-        return header[0].value;
+export const getContentType = (currRequest: CollectionItem | null): string => {
+    if (!currRequest?.request) return '';
+
+    const headers = currRequest.request.header ?? [];
+    const ctHeader = headers.find(
+        (h) => h?.key?.toLowerCase() === 'content-type'
+    );
+
+    // If an explicit Content-Type header exists and is disabled, body is disabled
+    if (ctHeader?.disabled) {
+        return '';
     }
+
+    // If body mode is formdata, it's multipart/form-data
+    if (currRequest.request.body?.mode === 'formdata') {
+        return 'multipart/form-data';
+    }
+
+    // If an active Content-Type header exists, return its value
+    if (ctHeader?.value) {
+        return ctHeader.value;
+    }
+
+    if (currRequest.request.body?.mode === 'raw' && currRequest.request.body?.raw !== undefined) {
+        return 'application/json';
+    }
+
     return '';
 }
 

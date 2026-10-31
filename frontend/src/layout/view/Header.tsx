@@ -190,7 +190,10 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         .filter(q => !q.disabled),
                     contentType: getContentType(currRequest),
                     raw: currRequest?.request?.body?.raw,
-                    formData: currRequest?.request?.body?.formdata,
+                    formData: (currRequest?.request?.body?.formdata ?? []).map((item) => ({
+                        ...item,
+                        value: item.type === "file" ? item.value : resolveVariableValue(item.value ?? "")
+                    })),
                 },
                 {
                     requestId: currRequest.id,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -10,7 +10,7 @@ import HeadersContent from "@/pages/editor/components/RequestConfig/HeadersConte
 import { BodyEditor, type ContentType } from "@/pages/editor/components/RequestConfig/BodyEditor.tsx";
 import ScriptEditor from "@/pages/editor/components/RequestConfig/ScriptEditor.tsx";
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks.ts";
-import { removeHeader, selectHeader, selectRequestBody, updateHeader } from "@/app/slices/requestSlices.ts";
+import { selectHeader, selectRequestBody, updateHeader, setBodyMode } from "@/app/slices/requestSlices.ts";
 import { selectActiveExample, setActiveExampleId } from "@/app/slices/collectionSlices.ts";
 
 export const RequestConfigTabs: React.FC = () => {
@@ -19,20 +19,61 @@ export const RequestConfigTabs: React.FC = () => {
     const requestBody = useAppSelector(selectRequestBody);
     const activeExample = useAppSelector(selectActiveExample);
 
-    const [contentType, setContentType] = useState<ContentType>(
-        requestBody?.mode === "formdata" ? "multipart/form-data" : "application/json"
+    const ctHeader = headers.find(
+        (h) => h.key.toLowerCase() === "content-type" && !h.disabled
     );
-    
+    const currentContentType: ContentType =
+        requestBody?.mode === "formdata" || ctHeader?.value === "multipart/form-data"
+            ? "multipart/form-data"
+            : "application/json";
+
+    const [contentType, setContentType] = useState<ContentType>(currentContentType);
+
+    useEffect(() => {
+        setContentType(currentContentType);
+    }, [currentContentType]);
 
     const hasContentType = headers.some(
         (h) => h.key.toLowerCase() === "content-type" && !h.disabled
     );
 
+    const handleContentTypeChange = (newType: ContentType) => {
+        setContentType(newType);
+
+        // 1. Update request body mode in Redux
+        dispatch(setBodyMode({ mode: newType === "multipart/form-data" ? "formdata" : "raw" }));
+
+        // 2. Update or add Content-Type header in Redux
+        const ct = headers.find((h) => h.key.toLowerCase() === "content-type");
+        if (ct) {
+            dispatch(
+                updateHeader({
+                    header: {
+                        ...ct,
+                        value: newType,
+                        disabled: false,
+                    },
+                })
+            );
+        } else {
+            dispatch(
+                updateHeader({
+                    header: {
+                        id: crypto.randomUUID(),
+                        key: "Content-Type",
+                        value: newType,
+                        disabled: false,
+                    },
+                })
+            );
+        }
+    };
+
     const toggleBody = () => {
         const ct = headers.find((h) => h.key.toLowerCase() === "content-type");
         if (ct) {
             if (!ct.disabled) {
-                dispatch(removeHeader({ id: ct.id! }));
+                dispatch(updateHeader({ header: { ...ct, disabled: true } }));
             } else {
                 dispatch(
                     updateHeader({
@@ -111,7 +152,7 @@ export const RequestConfigTabs: React.FC = () => {
                         <div className="flex items-center justify-between">
                             <Select
                                 value={contentType}
-                                onValueChange={(value) => setContentType(value as ContentType)}
+                                onValueChange={(value) => handleContentTypeChange(value as ContentType)}
                             >
                                 <SelectTrigger>
                                     <SelectValue />
