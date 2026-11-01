@@ -7,6 +7,8 @@
 ---
 
 - [[concepts/collection-security-threat-model]] - Security threat vectors when consuming and executing `collection.json` in `apitester`.
+- [[concepts/path-variable-lifecycle]] - How `:word` endpoint segments become path variables, are synced, edited, and resolved at send time.
+- [[concepts/query-params-lifecycle]] - Bidirectional synchronization between endpoint URL query strings and the RequestConfig query params table.
 
 ## Related pages
 

@@ -92,10 +92,11 @@ type RequestBody struct {
 }
 
 type RequestURL struct {
-	Raw   string     `json:"raw"`
-	Host  []string   `json:"host"`
-	Path  []string   `json:"path"`
-	Query []Property `json:"query"`
+	Raw      string     `json:"raw"`
+	Host     []string   `json:"host"`
+	Path     []string   `json:"path"`
+	Query    []Property `json:"query"`
+	Variable []Property `json:"variable,omitempty"`
 }
 
 type CollectionAuth struct {
@@ -104,11 +105,13 @@ type CollectionAuth struct {
 }
 
 type Property struct {
-	Id    string `json:"id"`
-	Key   string `json:"key"`
-	Value string `json:"value"`
-	Type  string `json:"type,omitempty"`
-	Src   string `json:"src,omitempty"`
+	Id          string `json:"id"`
+	Key         string `json:"key"`
+	Value       string `json:"value"`
+	Description string `json:"description,omitempty"`
+	Disabled    bool   `json:"disabled,omitempty"`
+	Type        string `json:"type,omitempty"`
+	Src         string `json:"src,omitempty"`
 }
 
 type CollectionEvent struct {

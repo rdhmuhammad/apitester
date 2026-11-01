@@ -25,6 +25,8 @@ import {
     removeUrlPath,
     removeUrlPathReducer,
     setBody,
+    setBodyMode,
+    setBodyModeReducer,
     setBodyReducer,
     setMethod,
     setMethodReducer,
@@ -38,6 +40,8 @@ import {
     updateQueryParamReducer,
     updateUrlPath,
     updateUrlPathReducer,
+    updatePathVariable,
+    updatePathVariableReducer,
 } from "@/app/slices/requestSlices.ts";
 
 const DEFAULT_BASE_URL_VALUE = "__CURRENT_ORIGIN__"
@@ -507,11 +511,13 @@ const collectionSlices = createSlice({
         builder.addCase(updateQueryParam, updateQueryParamReducer)
         builder.addCase(removeQueryParam, removeQueryParamReducer)
         builder.addCase(setBody, setBodyReducer)
+        builder.addCase(setBodyMode, setBodyModeReducer)
         builder.addCase(addUrlPath, addUrlPathReducer)
         builder.addCase(updateUrlPath, updateUrlPathReducer)
         builder.addCase(removeUrlPath, removeUrlPathReducer)
         builder.addCase(setUrlPath, setUrlPathReducer)
         builder.addCase(setUrlRaw, setUrlRawReducer)
+        builder.addCase(updatePathVariable, updatePathVariableReducer)
     }
 })
 

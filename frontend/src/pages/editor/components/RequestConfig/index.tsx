@@ -23,7 +23,11 @@ export const RequestConfigTabs: React.FC = () => {
         (h) => h.key.toLowerCase() === "content-type" && !h.disabled
     );
     const currentContentType: ContentType =
-        requestBody?.mode === "formdata" || ctHeader?.value === "multipart/form-data"
+        ctHeader?.value === "multipart/form-data"
+            ? "multipart/form-data"
+            : ctHeader?.value === "application/json"
+            ? "application/json"
+            : requestBody?.mode === "formdata"
             ? "multipart/form-data"
             : "application/json";
 

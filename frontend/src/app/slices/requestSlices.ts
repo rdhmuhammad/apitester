@@ -2,6 +2,13 @@ import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import type {RootState} from "@/app/store/store.ts";
 import {type CollectionState, initialState} from "@/app/slices/index.ts";
 import type {ItemUrl, Request, RequestBody, RequestURL} from "@/pages/editor/types/api.ts";
+import {
+    mergeQueryParams,
+    parseQueryParams,
+    parseRawToPath,
+    replaceRawQuery,
+    syncPathVariables,
+} from "@/lib/urlUtils.ts";
 
 const mapParam = (param: ItemUrl, payload: ItemUrl): ItemUrl => {
     return param.id === payload.id ? {
@@ -63,6 +70,11 @@ type SetUrlPathPayload = {
 
 type SetUrlRawPayload = {
     raw: string
+}
+
+type PathVariablePayload = {
+    key: string
+    value: string
 }
 
 const getSelectedRequest = (state: CollectionState): Request | null => {
@@ -133,28 +145,17 @@ const getQueryString = (raw: string) => {
 
 const normalizePathSegments = (path: string[]) => path.filter(Boolean)
 
-const parseRawToPath = (raw: string): string[] => {
-    if (!raw.trim()) return []
-
-    const rawWithoutQuery = raw.split("?")[0]
-    let pathname = rawWithoutQuery
-
-    if (/^https?:\/\//i.test(rawWithoutQuery)) {
-        try {
-            pathname = new URL(rawWithoutQuery).pathname
-        } catch {
-            pathname = rawWithoutQuery
-        }
-    }
-
-    return pathname.split("/").filter(Boolean)
-}
-
 const syncRawWithPath = (url: RequestURL) => {
     const queryString = getQueryString(url.raw)
     const nextPath = normalizePathSegments(url.path)
     url.path = nextPath
     url.raw = `${nextPath.length > 0 ? `/${nextPath.join("/")}` : ""}${queryString}`
+    url.variable = syncPathVariables(url.raw, url.variable)
+}
+
+// Params table -> endpoint: the query part of `raw` always mirrors the enabled params.
+const syncRawWithQuery = (url: RequestURL) => {
+    url.raw = replaceRawQuery(url.raw ?? "", url.query ?? [])
 }
 
 const markDirty = (state: CollectionState) => {
@@ -246,6 +247,7 @@ export const addQueryParamReducer = (state: CollectionState, action: PayloadActi
 
     currentRequest.url.query = currentRequest.url.query ?? []
     currentRequest.url.query.push(action.payload.query)
+    syncRawWithQuery(currentRequest.url)
     markDirty(state)
 }
 
@@ -253,7 +255,8 @@ export const updateQueryParamReducer = (state: CollectionState, action: PayloadA
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
-    currentRequest.url.query = currentRequest.url.query.map((param) => mapParam(param, action.payload.query))
+    currentRequest.url.query = (currentRequest.url.query ?? []).map((param) => mapParam(param, action.payload.query))
+    syncRawWithQuery(currentRequest.url)
     markDirty(state)
 }
 
@@ -262,6 +265,7 @@ export const removeQueryParamReducer = (state: CollectionState, action: PayloadA
     if (!currentRequest) return
 
     currentRequest.url.query = (currentRequest.url.query ?? []).filter((item) => item.id !== action.payload.id)
+    syncRawWithQuery(currentRequest.url)
     markDirty(state)
 }
 
@@ -345,12 +349,25 @@ export const setUrlPathReducer = (state: CollectionState, action: PayloadAction<
     markDirty(state)
 }
 
+// Endpoint -> params table: `raw` is stored as typed, query rows and path variables are derived from it.
 export const setUrlRawReducer = (state: CollectionState, action: PayloadAction<SetUrlRawPayload>) => {
     const currentRequest = getSelectedRequest(state)
     if (!currentRequest) return
 
-    currentRequest.url.raw = action.payload.raw
-    currentRequest.url.path = parseRawToPath(action.payload.raw)
+    const {raw} = action.payload
+    currentRequest.url.raw = raw
+    currentRequest.url.path = parseRawToPath(raw)
+    currentRequest.url.query = mergeQueryParams(currentRequest.url.query ?? [], parseQueryParams(raw))
+    currentRequest.url.variable = syncPathVariables(raw, currentRequest.url.variable)
+    markDirty(state)
+}
+
+export const updatePathVariableReducer = (state: CollectionState, action: PayloadAction<PathVariablePayload>) => {
+    const currentRequest = getSelectedRequest(state)
+    const variable = currentRequest?.url.variable?.find((item) => item.key === action.payload.key)
+    if (!variable) return
+
+    variable.value = action.payload.value
     markDirty(state)
 }
 
@@ -372,6 +389,7 @@ const requestSlices = createSlice({
         removeUrlPath: removeUrlPathReducer,
         setUrlPath: setUrlPathReducer,
         setUrlRaw: setUrlRawReducer,
+        updatePathVariable: updatePathVariableReducer,
     },
 })
 
@@ -392,6 +410,7 @@ export const {
     removeUrlPath,
     setUrlPath,
     setUrlRaw,
+    updatePathVariable,
 } = requestSlices.actions
 
 export const setEndpoint = setUrlRaw
@@ -419,3 +438,7 @@ export const selectRequestUrl = (state: RootState): RequestURL | null =>
 export const selectHeader = selectRequestHeader
 export const selectReqParam = (state: RootState): ItemUrl[] =>
     getCurrentRequestFromState(state)?.url?.query ?? []
+
+const NO_PATH_VARIABLES: ItemUrl[] = []
+export const selectPathVariables = (state: RootState): ItemUrl[] =>
+    getCurrentRequestFromState(state)?.url?.variable ?? NO_PATH_VARIABLES

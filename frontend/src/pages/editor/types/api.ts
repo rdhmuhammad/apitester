@@ -92,6 +92,8 @@ export interface RequestURL {
   host: string[];
   path: string[];
   query: ItemUrl[];
+  /** Path variables, one per unique `:key` segment in `raw` (Postman `url.variable`). */
+  variable?: ItemUrl[];
 }
 
 export interface CollectionAuth {

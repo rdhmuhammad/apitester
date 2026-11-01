@@ -7,7 +7,9 @@ import { useAppDispatch, useAppSelector } from "@/app/store/hooks.ts";
 import {
     addQueryParam,
     removeQueryParam,
+    selectPathVariables,
     selectReqParam,
+    updatePathVariable,
     updateQueryParam,
 } from "@/app/slices/requestSlices.ts";
 import type { ItemUrl } from "@/pages/editor/types/api.ts";
@@ -18,6 +20,7 @@ export interface ParamsContentProps {
     className?: string;
 }
 
+// Query rows and path variables are both kept in sync with the endpoint (`url.raw`) by the Redux reducers.
 export const ParamsContent: React.FC<ParamsContentProps> = ({
     query: propQuery,
     updateQuery: propUpdateQuery,
@@ -25,6 +28,7 @@ export const ParamsContent: React.FC<ParamsContentProps> = ({
 }) => {
     const dispatch = useAppDispatch();
     const reduxQuery = useAppSelector(selectReqParam);
+    const pathVariables = useAppSelector(selectPathVariables);
     const query = propQuery ?? reduxQuery ?? [];
 
     const [newParamKey, setNewParamKey] = useState("");
@@ -72,101 +76,130 @@ export const ParamsContent: React.FC<ParamsContentProps> = ({
     };
 
     return (
-        <div className={cn("overflow-hidden rounded-lg border border-border", className)}>
-            <div className="grid grid-cols-12 gap-x-2 bg-muted px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                <span className="col-span-3">Key</span>
-                <span className="col-span-3">Value</span>
-                <span className="col-span-4">Description</span>
-                <span className="col-span-2" />
-            </div>
-            {query.map((item) => (
-                <div
-                    key={item.id ?? item.key}
-                    className={cn(
-                        "grid grid-cols-12 gap-x-2 border-t border-border px-3 py-2 items-center",
-                        item.disabled && "opacity-50"
-                    )}
-                >
+        <div className={cn("space-y-4", className)}>
+            <div className="overflow-hidden rounded-lg border border-border">
+                <div className="grid grid-cols-12 gap-x-2 bg-muted px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <span className="col-span-3">Key</span>
+                    <span className="col-span-3">Value</span>
+                    <span className="col-span-4">Description</span>
+                    <span className="col-span-2" />
+                </div>
+                {query.map((item) => (
+                    <div
+                        key={item.id ?? item.key}
+                        className={cn(
+                            "grid grid-cols-12 gap-x-2 border-t border-border px-3 py-2 items-center",
+                            item.disabled && "opacity-50"
+                        )}
+                    >
+                        <Input
+                            value={item.key}
+                            onChange={(event) =>
+                                handleUpdateParam({ ...item, key: event.target.value })
+                            }
+                            className="col-span-3 h-8 bg-background"
+                            disabled={item.disabled}
+                        />
+                        <Input
+                            value={item.value}
+                            onChange={(event) =>
+                                handleUpdateParam({ ...item, value: event.target.value })
+                            }
+                            className="col-span-3 h-8 bg-background"
+                            disabled={item.disabled}
+                        />
+                        <Input
+                            value={item.description ?? ""}
+                            onChange={(event) =>
+                                handleUpdateParam({ ...item, description: event.target.value })
+                            }
+                            className="col-span-4 h-8 text-xs bg-background"
+                            disabled={item.disabled}
+                            placeholder="description"
+                        />
+                        <div className="col-span-2 flex justify-end gap-1">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleToggleParam(item)}
+                                className="h-8 w-8 p-0"
+                            >
+                                {item.disabled ? (
+                                    <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                    <ToggleRight className="h-4 w-4 text-emerald-600" />
+                                )}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteParam(item.id)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+                <div className="grid grid-cols-12 gap-x-2 border-t border-border px-3 py-2 items-center">
                     <Input
-                        value={item.key}
-                        readOnly
-                        className="col-span-3 h-8 bg-background"
-                        disabled={item.disabled}
+                        value={newParamKey}
+                        onChange={(event) => setNewParamKey(event.target.value)}
+                        className="col-span-3 h-8"
+                        placeholder="key"
                     />
                     <Input
-                        value={item.value}
-                        onChange={(event) =>
-                            handleUpdateParam({ ...item, value: event.target.value })
-                        }
-                        className="col-span-3 h-8 bg-background"
-                        disabled={item.disabled}
+                        value={newParamValue}
+                        onChange={(event) => setNewParamValue(event.target.value)}
+                        className="col-span-3 h-8"
+                        placeholder="value"
                     />
                     <Input
-                        value={item.description ?? ""}
-                        onChange={(event) =>
-                            handleUpdateParam({ ...item, description: event.target.value })
-                        }
-                        className="col-span-4 h-8 text-xs bg-background"
-                        disabled={item.disabled}
+                        value={newParamDesc}
+                        onChange={(event) => setNewParamDesc(event.target.value)}
+                        className="col-span-4 h-8 text-xs"
                         placeholder="description"
                     />
-                    <div className="col-span-2 flex justify-end gap-1">
+                    <div className="col-span-2 flex justify-end">
                         <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => handleToggleParam(item)}
+                            onClick={handleAddParam}
                             className="h-8 w-8 p-0"
                         >
-                            {item.disabled ? (
-                                <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                                <ToggleRight className="h-4 w-4 text-emerald-600" />
-                            )}
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteParam(item.id)}
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                            <Trash2 className="h-4 w-4" />
+                            <Plus className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
-            ))}
-            <div className="grid grid-cols-12 gap-x-2 border-t border-border px-3 py-2 items-center">
-                <Input
-                    value={newParamKey}
-                    onChange={(event) => setNewParamKey(event.target.value)}
-                    className="col-span-3 h-8"
-                    placeholder="key"
-                />
-                <Input
-                    value={newParamValue}
-                    onChange={(event) => setNewParamValue(event.target.value)}
-                    className="col-span-3 h-8"
-                    placeholder="value"
-                />
-                <Input
-                    value={newParamDesc}
-                    onChange={(event) => setNewParamDesc(event.target.value)}
-                    className="col-span-4 h-8 text-xs"
-                    placeholder="description"
-                />
-                <div className="col-span-2 flex justify-end">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleAddParam}
-                        className="h-8 w-8 p-0"
-                    >
-                        <Plus className="h-4 w-4" />
-                    </Button>
-                </div>
             </div>
+            {pathVariables.length > 0 && (
+                <div className="overflow-hidden rounded-lg border border-border">
+                    <div className="grid grid-cols-12 gap-x-2 bg-muted px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <span className="col-span-3">Path Variable</span>
+                        <span className="col-span-9">Value</span>
+                    </div>
+                    {pathVariables.map((item) => (
+                        <div
+                            key={item.key}
+                            className="grid grid-cols-12 gap-x-2 border-t border-border px-3 py-2 items-center"
+                        >
+                            {/* Keys come from `:key` segments of the endpoint, so only the value is editable. */}
+                            <Input value={item.key} readOnly className="col-span-3 h-8 bg-background" />
+                            <Input
+                                value={item.value}
+                                onChange={(event) =>
+                                    dispatch(updatePathVariable({ key: item.key, value: event.target.value }))
+                                }
+                                className="col-span-9 h-8 bg-background"
+                                placeholder="value"
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

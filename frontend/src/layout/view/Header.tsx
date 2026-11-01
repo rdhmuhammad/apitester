@@ -24,8 +24,9 @@ import {
 import type {HeaderAction} from "@/layout/types/headerContext.ts";
 import {useSendRequest} from "@/layout/hooks/useSendRequest.ts";
 import type {ColtReqMethod} from "@/app/slices";
-import type {CollectionVar, ItemUrl} from "@/pages/editor/types/api.ts";
-import {addQueryParam, setMethod, setUrlRaw, updateQueryParam} from "@/app/slices/requestSlices.ts";
+import type {CollectionVar} from "@/pages/editor/types/api.ts";
+import {setMethod, setUrlRaw} from "@/app/slices/requestSlices.ts";
+import {resolvePathVariables, splitEndpointPrefix, splitRawUrl} from "@/lib/urlUtils.ts";
 import CollectionManagerDialog from "@/layout/components/CollectionManagerDialog.tsx";
 import {useCollectionPushPull} from "@/layout/hooks/useCollectionPushPull.ts";
 import type {RestRequestResponse} from "@/layout/types/scriptRunner.ts";
@@ -55,12 +56,6 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
         variablesRef.current = next
         dispatch(setVariables(next))
     }, [dispatch])
-
-    useEffect(() => {
-        const raw = currRequest?.request?.url?.raw ?? ''
-        const queryIndex = raw.indexOf('?')
-        setEndpoint(queryIndex >= 0 ? raw.slice(0, queryIndex) : raw)
-    }, [currRequest?.request?.url?.raw]);
 
     useEffect(() => {
         const method = (currRequest?.request?.method?.toUpperCase() as ColtReqMethod[number]) || 'GET'
@@ -96,7 +91,9 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
     };
     const [requestMethod, setRequestMethod] = useState<ColtReqMethod[number]>("GET");
     const [selectedBaseUrl, setSelectedBaseUrl] = useState("");
-    const [endpoint, setEndpoint] = useState(currRequest?.request?.url.raw ?? "");
+    // Redux `url.raw` is the single source of truth; the input shows it without the base-url prefix.
+    const rawUrl = currRequest?.request?.url?.raw ?? ""
+    const {prefix: endpointPrefix, endpoint} = splitEndpointPrefix(rawUrl)
     const [newBaseUrl, setNewBaseUrl] = useState("");
     const [isSending, setIsSending] = useState(false);
     const [managerOpen, setManagerOpen] = useState(false);
@@ -117,38 +114,20 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
         })
     }
 
-    const parseQueryParamsFromUrl = (url: string): { cleanUrl: string; params: ItemUrl[] } => {
-        const queryIndex = url.indexOf('?')
-        if (queryIndex === -1) return {cleanUrl: url, params: []}
-
-        const beforeQuery = url.slice(0, queryIndex)
-        const afterQuery = url.slice(queryIndex + 1)
-        const hashIndex = afterQuery.indexOf('#')
-        const queryString = hashIndex >= 0 ? afterQuery.slice(0, hashIndex) : afterQuery
-        const hash = hashIndex >= 0 ? afterQuery.slice(hashIndex) : ''
-
-        const params: ItemUrl[] = []
-        const searchParams = new URLSearchParams(queryString)
-        searchParams.forEach((value, key) => {
-            params.push({id: crypto.randomUUID(), key, value, disabled: false})
-        })
-
-        return {cleanUrl: beforeQuery + hash, params}
+    // Path sent to the server: no query/hash (params are sent separately), `{{var}}` and `:key` resolved.
+    const getSendEndpoint = (): string => {
+        const {base} = splitRawUrl(endpoint)
+        return resolvePathVariables(
+            resolveVariableValue(base),
+            currRequest?.request?.url?.variable ?? [],
+            resolveVariableValue
+        )
     }
 
-    const formatEndpoint = (endpoint: string): string => {
-        const sanitizedEndpoint = endpoint.replace(/\{\{[^{}]+\}\}/g, "").trim()
-
-        if (/^https?:\/\//i.test(sanitizedEndpoint)) {
-            try {
-                const parsedUrl = new URL(sanitizedEndpoint)
-                return `${parsedUrl.pathname}${parsedUrl.hash}`
-            } catch {
-                return sanitizedEndpoint.split('?')[0]
-            }
-        }
-
-        return sanitizedEndpoint.split('?')[0]
+    const handleEndpointChange = (value: string) => {
+        // Keep a hidden `{{base_url}}`/origin prefix unless the user typed/pasted their own.
+        const raw = splitEndpointPrefix(value).prefix ? value : endpointPrefix + value
+        dispatch(setUrlRaw({raw}))
     }
 
 
@@ -164,7 +143,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             headers: (currRequest.request?.header ?? []).map(h => ({ ...h })),
             query: (currRequest.request?.url?.query ?? []).map(q => ({ ...q })),
             url: {
-                raw: currRequest.request?.url?.raw ?? endpoint,
+                raw: rawUrl,
                 host: currRequest.request?.url?.host ?? [],
                 path: currRequest.request?.url?.path ?? [],
                 query: currRequest.request?.url?.query ?? [],
@@ -178,7 +157,7 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
             await sendRequest(
                 {
                     baseUrl: selectedBaseUrl,
-                    endpoint: formatEndpoint(endpoint),
+                    endpoint: getSendEndpoint(),
                     method: requestMethod,
                     headers: (currRequest?.request?.header ?? [])
                         .filter(h => !h.disabled)
@@ -371,27 +350,11 @@ const HeaderLayout: React.FC<{ onSend: HeaderAction }> = (
                         </div>
                     )}
                     <Input
-                        value={formatEndpoint(endpoint)}
-                        disabled={!collectionData}
-                        onChange={(event) => {
-                            const value = event.target.value
-                            const {cleanUrl, params} = parseQueryParamsFromUrl(value)
-                            setEndpoint(cleanUrl)
-                            dispatch(setUrlRaw({raw: cleanUrl}))
-                            const currentParams = currRequest?.request?.url?.query ?? []
-                            params.forEach((param) => {
-                                const existing = currentParams.find(p => p.key === param.key)
-                                if (existing) {
-                                    dispatch(updateQueryParam({
-                                        query: {...existing, value: param.value}
-                                    }))
-                                } else {
-                                    dispatch(addQueryParam({query: param}))
-                                }
-                            })
-                        }}
+                        value={endpoint}
+                        disabled={!collectionData || !currRequest}
+                        onChange={(event) => handleEndpointChange(event.target.value)}
                         className="border-0 rounded-none shadow-none focus-visible:ring-0"
-                        placeholder="/v1/users"
+                        placeholder="/v1/users/:id?page=1"
                         aria-label="Endpoint path"
                     />
                 </div>

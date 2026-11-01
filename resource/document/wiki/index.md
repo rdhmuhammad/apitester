@@ -7,6 +7,7 @@ This index lists the maintained knowledge pages for this codebase.
 ### Implementation
 - [[patterns/index]] - Implementation and architectural pattern pages.
 - [[patterns/frontend/sandboxed-script-runner]] - Multi-layered browser sandbox for executing Postman pre-request and post-request scripts.
+- [[patterns/frontend/redux-endpoint-params-sync]] - Redux reducers keeping the endpoint input, query params, and path variables in sync.
 
 ## Decisions
 
@@ -17,6 +18,8 @@ This index lists the maintained knowledge pages for this codebase.
 
 - [[concepts/index]] - Reusable domain and codebase concepts.
 - [[concepts/collection-security-threat-model]] - Analysis of XSS, script runner sandboxing, SSRF, and variable parsing threat vectors in `collection.json`.
+- [[concepts/path-variable-lifecycle]] - How `:word` endpoint segments become path variables, are synced, edited, and resolved at send time.
+- [[concepts/query-params-lifecycle]] - Bidirectional synchronization between endpoint URL query strings and the RequestConfig query params table.
 
 ## Tasks
 
